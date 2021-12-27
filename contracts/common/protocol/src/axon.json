@@ -1,0 +1,215 @@
+{
+  "namespace": "axon",
+  "imports": [],
+  "declarations": [
+    {
+      "type": "array",
+      "name": "Byte4",
+      "item": "byte",
+      "item_count": 4
+    },
+    {
+      "type": "array",
+      "name": "Byte8",
+      "item": "byte",
+      "item_count": 8
+    },
+    {
+      "type": "array",
+      "name": "Byte10",
+      "item": "byte",
+      "item_count": 10
+    },
+    {
+      "type": "array",
+      "name": "Byte16",
+      "item": "byte",
+      "item_count": 16
+    },
+    {
+      "type": "array",
+      "name": "Byte20",
+      "item": "byte",
+      "item_count": 20
+    },
+    {
+      "type": "array",
+      "name": "Byte32",
+      "item": "byte",
+      "item_count": 32
+    },
+    {
+      "type": "array",
+      "name": "Byte97",
+      "item": "byte",
+      "item_count": 97
+    },
+    {
+      "type": "table",
+      "name": "Identity",
+      "fields": [
+        {
+          "name": "flag",
+          "type": "byte"
+        },
+        {
+          "name": "content",
+          "type": "Byte20"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "StakeInfo",
+      "fields": [
+        {
+          "name": "identity",
+          "type": "Identity"
+        },
+        {
+          "name": "l2_address",
+          "type": "Byte20"
+        },
+        {
+          "name": "bls_pub_key",
+          "type": "Byte97"
+        },
+        {
+          "name": "stake_amount",
+          "type": "Byte16"
+        },
+        {
+          "name": "inauguration_era",
+          "type": "Byte8"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "StakeInfoVec",
+      "item": "StakeInfo"
+    },
+    {
+      "type": "fixvec",
+      "name": "Bytes",
+      "item": "byte"
+    },
+    {
+      "type": "option",
+      "name": "BytesOpt",
+      "item": "Bytes"
+    },
+    {
+      "type": "table",
+      "name": "StakeLockCellData",
+      "fields": [
+        {
+          "name": "version",
+          "type": "byte"
+        },
+        {
+          "name": "stake_infos",
+          "type": "StakeInfoVec"
+        },
+        {
+          "name": "checkpoint_type_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "sudt_type_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "quorum_size",
+          "type": "byte"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "CheckpointLockArgs",
+      "fields": [
+        {
+          "name": "admin_identity",
+          "type": "Identity"
+        },
+        {
+          "name": "type_id_hash",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "CheckpointLockCellData",
+      "fields": [
+        {
+          "name": "version",
+          "type": "byte"
+        },
+        {
+          "name": "state",
+          "type": "byte"
+        },
+        {
+          "name": "period",
+          "type": "Byte8"
+        },
+        {
+          "name": "era",
+          "type": "Byte8"
+        },
+        {
+          "name": "block_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "period_interval",
+          "type": "Byte4"
+        },
+        {
+          "name": "era_period",
+          "type": "Byte4"
+        },
+        {
+          "name": "unlock_period",
+          "type": "Byte4"
+        },
+        {
+          "name": "base_reward",
+          "type": "Byte16"
+        },
+        {
+          "name": "half_period",
+          "type": "Byte8"
+        },
+        {
+          "name": "common_ref",
+          "type": "Byte10"
+        },
+        {
+          "name": "sudt_type_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "stake_type_hash",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "CheckpointLockWitnessLock",
+      "fields": [
+        {
+          "name": "checkpoint",
+          "type": "BytesOpt"
+        },
+        {
+          "name": "signature",
+          "type": "BytesOpt"
+        }
+      ]
+    }
+  ]
+}

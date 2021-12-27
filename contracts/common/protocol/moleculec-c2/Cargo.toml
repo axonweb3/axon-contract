@@ -1,0 +1,22 @@
+[package]
+name = "molecule2"
+version = "0.1.0"
+authors = ["xjd <xjd@cryptape.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+
+
+
+[dev-dependencies]
+ckb-types = "0.100.0"
+
+
+[profile.release]
+overflow-checks = true
+
+[profile.bench]
+overflow-checks = true
