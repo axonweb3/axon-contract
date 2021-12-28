@@ -20,8 +20,24 @@ table StakeInfo {
 }
 
 vector StakeInfoVec <StakeInfo>;
-vector Bytes <byte>;
-option BytesOpt (Bytes);
+option IdentityOpt (Identity);
+
+////////////////////
+// selection lock
+////////////////////
+table SelectionLockArgs {
+	omni_lock_hash:       Byte32,
+	checkpoint_lock_hash: Byte32,
+}
+
+////////////////////
+// stake lock
+////////////////////
+table StakeLockArgs {
+	admin_identity: Identity,
+	type_id_hash:   Byte32,
+	node_identity:  IdentityOpt,
+}
 
 table StakeLockCellData {
 	version:              byte,
@@ -31,6 +47,9 @@ table StakeLockCellData {
 	quorum_size:          byte,
 }
 
+////////////////////
+// checkpoint lock
+////////////////////
 table CheckpointLockArgs {
 	admin_identity: Identity,
 	type_id_hash:   Byte32,
@@ -50,9 +69,19 @@ table CheckpointLockCellData {
 	common_ref:      Byte10,
 	sudt_type_hash:  Byte32,
 	stake_type_hash: Byte32,
+	withdrawal_lock_code_hash: Byte32,
 }
 
-table CheckpointLockWitnessLock {
-  	checkpoint: BytesOpt,
-  	signature:  BytesOpt,
+////////////////////
+// withdrawal lock
+////////////////////
+table WithdrawalLockArgs {
+	admin_identity: 		   Identity,
+	checkpoint_cell_type_hash: Byte32,
+	node_identity:             IdentityOpt,
+}
+
+table WithdrawalLockCellData {
+	amount: Byte16,
+	period: Byte8,
 }

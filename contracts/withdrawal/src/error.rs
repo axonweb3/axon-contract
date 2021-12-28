@@ -8,13 +8,19 @@ pub enum Error {
     LengthNotEnough,
     Encoding,
     // Add customized errors here...
-	CheckpointCellError,
-	CheckpointCapacityMismatch,
-	CheckpointDataMismatch,
+    WitnessInputTypeEmpty,
 	BadWitnessInputType,
-	WitnessLockError,
-	ATAmountMismatch,
+	UnknownMode,
 	SignatureMismatch,
+	TypeScriptEmpty,
+	ATCellShouldEmpty,
+	CheckpointCelldepEmpty,
+	BadCheckpointCelldep,
+	BadWithdrawalData,
+	BadWithdrawalPeriod,
+	BadWithdrawalTypeHash,
+	SomeWithdrawalTypeEmpty,
+	TotalAmountMismatch,
 }
 
 impl From<SysError> for Error {

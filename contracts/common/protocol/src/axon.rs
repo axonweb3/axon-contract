@@ -257,36 +257,72 @@ impl StakeInfoVec {
         cur.into()
     }
 }
-
-pub struct Bytes {
+// warning: IdentityOpt not implemented for Rust
+pub struct IdentityOpt {
     cursor: Cursor,
 }
-
-impl From<Cursor> for Bytes {
+impl From<Cursor> for IdentityOpt {
     fn from(cursor: Cursor) -> Self {
         Self { cursor }
     }
 }
 
-impl Bytes {
-    pub fn len(&self) -> usize {
-        self.cursor.fixvec_length()
+pub struct SelectionLockArgs {
+    cursor: Cursor,
+}
+
+impl From<Cursor> for SelectionLockArgs {
+    fn from(cursor: Cursor) -> Self {
+        SelectionLockArgs { cursor }
     }
 }
 
-impl Bytes {
-    pub fn get(&self, index: usize) -> u8 {
-        let cur = self.cursor.fixvec_slice_by_index(1, index).unwrap();
+impl SelectionLockArgs {
+    pub fn omni_lock_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
-// warning: BytesOpt not implemented for Rust
-pub struct BytesOpt {
+
+impl SelectionLockArgs {
+    pub fn checkpoint_lock_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
+    }
+}
+
+pub struct StakeLockArgs {
     cursor: Cursor,
 }
-impl From<Cursor> for BytesOpt {
+
+impl From<Cursor> for StakeLockArgs {
     fn from(cursor: Cursor) -> Self {
-        Self { cursor }
+        StakeLockArgs { cursor }
+    }
+}
+
+impl StakeLockArgs {
+    pub fn admin_identity(&self) -> Identity {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeLockArgs {
+    pub fn type_id_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeLockArgs {
+    pub fn node_identity(&self) -> Option<Identity> {
+        let cur = self.cursor.table_slice_by_index(2).unwrap();
+        if cur.option_is_none() {
+            None
+        } else {
+            Some(cur.into())
+        }
     }
 }
 
@@ -460,19 +496,40 @@ impl CheckpointLockCellData {
     }
 }
 
-pub struct CheckpointLockWitnessLock {
+impl CheckpointLockCellData {
+    pub fn withdrawal_lock_code_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(13).unwrap();
+        cur.into()
+    }
+}
+
+pub struct WithdrawalLockArgs {
     cursor: Cursor,
 }
 
-impl From<Cursor> for CheckpointLockWitnessLock {
+impl From<Cursor> for WithdrawalLockArgs {
     fn from(cursor: Cursor) -> Self {
-        CheckpointLockWitnessLock { cursor }
+        WithdrawalLockArgs { cursor }
     }
 }
 
-impl CheckpointLockWitnessLock {
-    pub fn checkpoint(&self) -> Option<Vec<u8>> {
+impl WithdrawalLockArgs {
+    pub fn admin_identity(&self) -> Identity {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl WithdrawalLockArgs {
+    pub fn checkpoint_cell_type_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
+    }
+}
+
+impl WithdrawalLockArgs {
+    pub fn node_identity(&self) -> Option<Identity> {
+        let cur = self.cursor.table_slice_by_index(2).unwrap();
         if cur.option_is_none() {
             None
         } else {
@@ -481,13 +538,26 @@ impl CheckpointLockWitnessLock {
     }
 }
 
-impl CheckpointLockWitnessLock {
-    pub fn signature(&self) -> Option<Vec<u8>> {
+pub struct WithdrawalLockCellData {
+    cursor: Cursor,
+}
+
+impl From<Cursor> for WithdrawalLockCellData {
+    fn from(cursor: Cursor) -> Self {
+        WithdrawalLockCellData { cursor }
+    }
+}
+
+impl WithdrawalLockCellData {
+    pub fn amount(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl WithdrawalLockCellData {
+    pub fn period(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
-        if cur.option_is_none() {
-            None
-        } else {
-            Some(cur.into())
-        }
+        cur.into()
     }
 }

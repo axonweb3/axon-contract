@@ -1,5 +1,5 @@
 [package]
-name = "selection"
+name = "withdrawal"
 version = "0.1.0"
 edition = "2018"
 
@@ -8,3 +8,4 @@ edition = "2018"
 [dependencies]
 ckb-std = "0.9.0"
 protocol = { path = "../common/protocol" }
+secp256k1 = { path = "../common/secp256k1" }

@@ -90,14 +90,41 @@
       "item": "StakeInfo"
     },
     {
-      "type": "fixvec",
-      "name": "Bytes",
-      "item": "byte"
+      "type": "option",
+      "name": "IdentityOpt",
+      "item": "Identity"
     },
     {
-      "type": "option",
-      "name": "BytesOpt",
-      "item": "Bytes"
+      "type": "table",
+      "name": "SelectionLockArgs",
+      "fields": [
+        {
+          "name": "omni_lock_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "checkpoint_lock_hash",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "StakeLockArgs",
+      "fields": [
+        {
+          "name": "admin_identity",
+          "type": "Identity"
+        },
+        {
+          "name": "type_id_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "node_identity",
+          "type": "IdentityOpt"
+        }
+      ]
     },
     {
       "type": "table",
@@ -194,20 +221,42 @@
         {
           "name": "stake_type_hash",
           "type": "Byte32"
+        },
+        {
+          "name": "withdrawal_lock_code_hash",
+          "type": "Byte32"
         }
       ]
     },
     {
       "type": "table",
-      "name": "CheckpointLockWitnessLock",
+      "name": "WithdrawalLockArgs",
       "fields": [
         {
-          "name": "checkpoint",
-          "type": "BytesOpt"
+          "name": "admin_identity",
+          "type": "Identity"
         },
         {
-          "name": "signature",
-          "type": "BytesOpt"
+          "name": "checkpoint_cell_type_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "node_identity",
+          "type": "IdentityOpt"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "WithdrawalLockCellData",
+      "fields": [
+        {
+          "name": "amount",
+          "type": "Byte16"
+        },
+        {
+          "name": "period",
+          "type": "Byte8"
         }
       ]
     }

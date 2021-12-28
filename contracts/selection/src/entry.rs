@@ -12,20 +12,19 @@ use ckb_std::{
 };
 
 use crate::error::Error;
+use protocol::{
+	axon, Cursor
+};
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
     let args: Bytes = script.args().unpack();
     debug!("script args is {:?}", args);
 
-    // check args = <32 byte omni_lock_hash><32 byte checkpoint_lock_hash>
-    if args.len() != 64 {
-        return Err(Error::ArgsFormatError);
-    }
-
 	// extract omni and checkpoint lock_hash from script_args
-	let omni_lock_hash = &args[0..32];
-	let checkpoint_lock_hash = &args[32..64];
+	let selection_args: axon::SelectionLockArgs = Cursor::from(args.to_vec()).into();
+	let omni_lock_hash = selection_args.omni_lock_hash();
+	let checkpoint_lock_hash = selection_args.checkpoint_lock_hash();
 
 	// count omni and checkpoint cells count
 	let mut omni_cells_count = 0;
@@ -34,9 +33,9 @@ pub fn main() -> Result<(), Error> {
 	// search omni and checkpoint cells via ckb functions
 	QueryIter::new(load_cell_lock_hash, Source::Input)
 		.for_each(|lock_hash| {
-			if &lock_hash == omni_lock_hash {
+			if &lock_hash == omni_lock_hash.as_slice() {
 				omni_cells_count += 1;
-			} else if &lock_hash == checkpoint_lock_hash {
+			} else if &lock_hash == checkpoint_lock_hash.as_slice() {
 				checkpoint_cells_count += 1;
 			}
 		});
