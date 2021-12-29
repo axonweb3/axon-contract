@@ -126,6 +126,7 @@ pub fn main() -> Result<(), Error> {
 				.enumerate()
 				.map(|(i, type_hash)| {
 					if type_hash.unwrap_or([0u8; 32]) == checkpoint_cell_type_hash.as_slice() {
+                        assert!(find_checkpoint == false);
 						find_checkpoint = true;
 						let checkpoint_period = {
 							let data = load_cell_data(i, Source::CellDep);

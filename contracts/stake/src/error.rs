@@ -8,7 +8,18 @@ pub enum Error {
     LengthNotEnough,
     Encoding,
     // Add customized errors here...
-    MyError,
+    BadWitnessInputType,
+    SignatureMismatch,
+    TypeScriptEmpty,
+	ATCellShouldEmpty,
+    StakeDataError,
+    CheckpointDataError,
+    CheckpointDataEmpty,
+    StakeDataEmpty,
+    AdminModeError,
+    CompanionModeError,
+    UpdateModeError,
+    NotApplyStakeInfoError,
 }
 
 impl From<SysError> for Error {

@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use molecule2::Cursor;
 
 pub struct Byte4 {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for Byte4 {
@@ -29,7 +29,7 @@ impl Byte4 {
 }
 
 pub struct Byte8 {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for Byte8 {
@@ -52,7 +52,7 @@ impl Byte8 {
 }
 
 pub struct Byte10 {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for Byte10 {
@@ -75,7 +75,7 @@ impl Byte10 {
 }
 
 pub struct Byte16 {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for Byte16 {
@@ -98,7 +98,7 @@ impl Byte16 {
 }
 
 pub struct Byte20 {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for Byte20 {
@@ -121,7 +121,7 @@ impl Byte20 {
 }
 
 pub struct Byte32 {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for Byte32 {
@@ -144,7 +144,7 @@ impl Byte32 {
 }
 
 pub struct Byte97 {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for Byte97 {
@@ -167,7 +167,7 @@ impl Byte97 {
 }
 
 pub struct Identity {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for Identity {
@@ -191,7 +191,7 @@ impl Identity {
 }
 
 pub struct StakeInfo {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for StakeInfo {
@@ -236,7 +236,7 @@ impl StakeInfo {
 }
 
 pub struct StakeInfoVec {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for StakeInfoVec {
@@ -259,7 +259,7 @@ impl StakeInfoVec {
 }
 // warning: IdentityOpt not implemented for Rust
 pub struct IdentityOpt {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 impl From<Cursor> for IdentityOpt {
     fn from(cursor: Cursor) -> Self {
@@ -268,7 +268,7 @@ impl From<Cursor> for IdentityOpt {
 }
 
 pub struct SelectionLockArgs {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for SelectionLockArgs {
@@ -292,7 +292,7 @@ impl SelectionLockArgs {
 }
 
 pub struct StakeLockArgs {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for StakeLockArgs {
@@ -327,7 +327,7 @@ impl StakeLockArgs {
 }
 
 pub struct StakeLockCellData {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for StakeLockCellData {
@@ -372,7 +372,7 @@ impl StakeLockCellData {
 }
 
 pub struct CheckpointLockArgs {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for CheckpointLockArgs {
@@ -396,7 +396,7 @@ impl CheckpointLockArgs {
 }
 
 pub struct CheckpointLockCellData {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for CheckpointLockCellData {
@@ -504,7 +504,7 @@ impl CheckpointLockCellData {
 }
 
 pub struct WithdrawalLockArgs {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for WithdrawalLockArgs {
@@ -539,7 +539,7 @@ impl WithdrawalLockArgs {
 }
 
 pub struct WithdrawalLockCellData {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl From<Cursor> for WithdrawalLockCellData {
