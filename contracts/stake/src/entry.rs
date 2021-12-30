@@ -1,5 +1,5 @@
 // Import from `core` instead of from `std` since we are in no-std mode
-use core::{result::Result, slice::SlicePattern};
+use core::result::Result;
 
 // Import heap related library from `alloc`
 // https://doc.rust-lang.org/alloc/index.html
@@ -10,15 +10,19 @@ use alloc::{
 // Import CKB syscalls and structures
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
-    debug, ckb_constants::Source, high_level::{
-        load_script, load_cell_type_hash, load_cell_data, load_cell_lock, QueryIter
+    ckb_constants::Source, high_level::{
+        load_script, load_cell_type_hash, load_cell_data, load_cell_lock, load_witness_args, QueryIter
     }, ckb_types::{
         bytes::Bytes, prelude::*
     },
 };
 
 use crate::error::Error;
-use protocol::{Cursor, axon::{self, StakeInfo}};
+use protocol::{
+	Cursor, axon::{
+		self, StakeInfo
+	}
+};
 
 enum FILTER {
     APPLIED,
@@ -31,7 +35,7 @@ fn get_stake_data_by_type_hash(cell_type_hash: &[u8; 32], source: Source) -> Res
     QueryIter::new(load_cell_type_hash, source)
         .enumerate()
         .map(|(i, type_hash)| {
-            if type_hash.unwrap_or([0u8; 32]) == cell_type_hash {
+            if &type_hash.unwrap_or([0u8; 32]) == cell_type_hash {
                 assert!(stake_data.is_none());
                 stake_data = {
                     let data = load_cell_data(i, source);
@@ -82,45 +86,34 @@ fn bytes_to_u64(bytes: &Vec<u8>) -> u64 {
 	u64::from_le_bytes(array)
 }
 
-fn filter_stakeinfos_by_era(era: u64, stake_infos: &axon::StakeInfoVec, filter_type: FILTER) -> Vec<axon::StakeInfo> {
-    let mut filtered_stake_infos = vec![];
-    match filter_type {
-        FILTER::APPLIED => {
+// fn filter_stakeinfos_by_era(era: u64, stake_infos: &axon::StakeInfoVec, filter_type: FILTER) -> Vec<axon::StakeInfo> {
+//     let mut filtered_stake_infos = vec![];
+//     match filter_type {
+//         FILTER::APPLIED => {
             
-        },
-        FILTER::APPLYING => {
+//         },
+//         FILTER::APPLYING => {
 
-        },
-        FILTER::NOTAPPLY => {
-            for i in 0..stake_infos.len() {
-                let stake_info = &stake_infos.get(i);
-                if bytes_to_u64(&stake_info.inauguration_era()) > era + 1 {
-                    filtered_stake_infos.push(stake_info.clone());
-                }
-            }
-        }
-    }
-    filtered_stake_infos
-}
+//         },
+//         FILTER::NOTAPPLY => {
+//             for i in 0..stake_infos.len() {
+//                 let stake_info = &stake_infos.get(i);
+//                 if bytes_to_u64(&stake_info.inauguration_era()) > era + 1 {
+//                     filtered_stake_infos.push(stake_info.clone());
+//                 }
+//             }
+//         }
+//     }
+//     filtered_stake_infos
+// }
 
-fn stakeinfos_diff(stake_infos_1: &Vec<axon::StakeInfo>, stake_infos_2: &Vec<axon::StakeInfo>) -> Vec<axon::StakeInfo> {
+// fn stakeinfos_diff(stake_infos_1: &Vec<axon::StakeInfo>, stake_infos_2: &Vec<axon::StakeInfo>) -> Vec<axon::StakeInfo> {
     
-}
-
-impl From<axon::StakeInfoVec> for Vec<axon::StakeInfo> {
-    fn from(infos: axon::StakeInfoVec) -> Self {
-        let mut stake_infos = vec![];
-        for i in 0..infos.len() {
-            stake_infos.push(infos.get(i));
-        }
-        stake_infos
-    }
-}
+// }
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
     let args: Bytes = script.args().unpack();
-    debug!("script args is {:?}", args);
 
     // extract stake_args 
     let stake_args: axon::StakeLockArgs = Cursor::from(args.to_vec()).into();
@@ -128,7 +121,7 @@ pub fn main() -> Result<(), Error> {
     let type_id_hash = stake_args.type_id_hash();
     let node_identity = stake_args.node_identity();
 
-	// check this is wether admin mode or other mode
+	// check this is wether admin signature or normal signature
 	let witness_args = load_witness_args(0, Source::GroupInput)?;
 	let is_admin = {
 		let input_type = witness_args.input_type().to_opt();
@@ -160,8 +153,8 @@ pub fn main() -> Result<(), Error> {
         if node_identity.is_some() {
             let mut at_cell_count = 0;
             QueryIter::new(load_cell_type_hash, Source::Output)
-                .foe_each(|type_hash| {
-                    if type_hash.unwrap_or([0u8; 32]) == at_type_hash.as_slice() {
+                .for_each(|type_hash| {
+                    if type_hash.unwrap_or([0u8; 32]) == at_type_hash {
                         at_cell_count += 1;
                     }
                 });
@@ -220,8 +213,8 @@ pub fn main() -> Result<(), Error> {
         } else {
             let mut find_node_identity = false;
             QueryIter::new(load_cell_lock, Source::Input)
-                .map(|lock| {
-                    if lock.code_hash() == script.code_hash() {
+                .for_each(|lock| {
+                    if lock.code_hash().as_slice() == script.code_hash().as_slice() {
                         let lock_args: axon::StakeLockArgs = {
                             let bytes: Bytes = lock.args().unpack();
                             Cursor::from(bytes.to_vec()).into()
@@ -239,4 +232,3 @@ pub fn main() -> Result<(), Error> {
 
     Ok(())
 }
-

@@ -10,7 +10,6 @@ pub enum Error {
     // Add customized errors here...
     WitnessInputTypeEmpty,
 	BadWitnessInputType,
-	UnknownMode,
 	SignatureMismatch,
 	TypeScriptEmpty,
 	ATCellShouldEmpty,

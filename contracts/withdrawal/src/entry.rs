@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 // Import CKB syscalls and structures
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
-    debug, ckb_constants::Source, high_level::{
+    ckb_constants::Source, high_level::{
 		load_script, load_witness_args, load_cell_type_hash, load_cell_data, load_cell_lock_hash, QueryIter
 	}, ckb_types::{
 		bytes::Bytes, prelude::*
@@ -20,13 +20,19 @@ use protocol::{
 	axon, Cursor
 };
 
+fn bytes_to_u128(bytes: &Vec<u8>) -> u128 {
+	let mut array: [u8; 16] = [0u8; 16];
+	array.copy_from_slice(bytes.as_slice());
+	u128::from_le_bytes(array)
+}
+
 fn bytes_to_u64(bytes: &Vec<u8>) -> u64 {
 	let mut array: [u8; 8] = [0u8; 8];
 	array.copy_from_slice(bytes.as_slice());
 	u64::from_le_bytes(array)
 }
 
-fn get_total_amount_by_script_hash(cell_lock_hash: &[u8; 32], cell_type_hash: &[u8; 32], source: Source) -> Result<u64, Error> {
+fn get_total_amount_by_script_hash(cell_lock_hash: &[u8; 32], cell_type_hash: &[u8; 32], source: Source) -> Result<u128, Error> {
 	let total_amount = QueryIter::new(load_cell_lock_hash, source)
 		.enumerate()
 		.map(|(i, lock_hash)| {
@@ -50,21 +56,20 @@ fn get_total_amount_by_script_hash(cell_lock_hash: &[u8; 32], cell_type_hash: &[
 						}
 						Cursor::from(data.unwrap()).into()
 					};
-					amount = bytes_to_u64(&withdrawal_data.amount());
+					amount = bytes_to_u128(&withdrawal_data.amount());
 				}
 			}
 			Ok(amount)
 		})
 		.collect::<Result<Vec<_>, _>>()?
 		.into_iter()
-		.sum::<u64>();
+		.sum::<u128>();
 	Ok(total_amount)
 }
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
     let args: Bytes = script.args().unpack();
-    debug!("script args is {:?}", args);
 
 	// extract parameters from lock_args
 	let withdrawal_args: axon::WithdrawalLockArgs = Cursor::from(args.to_vec()).into();
@@ -72,8 +77,8 @@ pub fn main() -> Result<(), Error> {
 	let checkpoint_cell_type_hash = withdrawal_args.checkpoint_cell_type_hash();
 	let node_identity = withdrawal_args.node_identity();
 
-	// get admin mode flag
-	let is_admin_mode = {
+	// check this is wether admin signature or normal signature
+	let is_admin = {
 		let input_type = load_witness_args(0, Source::GroupInput)?.input_type();
 		if input_type.is_none() {
 			return Err(Error::WitnessInputTypeEmpty);
@@ -94,13 +99,10 @@ pub fn main() -> Result<(), Error> {
 	};
 
 	// mode select
-	if is_admin_mode {
+	if is_admin {
 		// check admin signature
 		if !secp256k1::verify_signature(&mut admin_identity.content()) {
 			return Err(Error::SignatureMismatch);
-		}
-		if node_identity.is_some() {
-			return Err(Error::UnknownMode);
 		}
 		// burn mode
 		let mut at_cell_count = 0;

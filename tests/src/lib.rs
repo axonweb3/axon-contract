@@ -6,6 +6,8 @@ use std::str::FromStr;
 
 #[cfg(test)]
 mod tests;
+mod axon;
+mod helper;
 
 const TEST_ENV_VAR: &str = "CAPSULE_TEST_ENV";
 

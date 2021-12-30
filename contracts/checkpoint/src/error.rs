@@ -11,6 +11,7 @@ pub enum Error {
 	CheckpointCellError,
 	CheckpointCapacityMismatch,
 	CheckpointDataMismatch,
+	CheckpointDataError,
 	BadWitnessInputType,
 	WitnessLockError,
 	ATAmountMismatch,

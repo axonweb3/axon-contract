@@ -19,7 +19,6 @@ use protocol::{
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
     let args: Bytes = script.args().unpack();
-    debug!("script args is {:?}", args);
 
 	// extract omni and checkpoint lock_hash from script_args
 	let selection_args: axon::SelectionLockArgs = Cursor::from(args.to_vec()).into();
@@ -39,6 +38,8 @@ pub fn main() -> Result<(), Error> {
 				checkpoint_cells_count += 1;
 			}
 		});
+
+	debug!("omni = {}, checkpoint = {}", omni_cells_count, checkpoint_cells_count);
 
 	// sum of omni and checkpoint must be 1
 	if omni_cells_count + checkpoint_cells_count != 1 {

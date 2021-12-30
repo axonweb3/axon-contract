@@ -7,3 +7,5 @@ edition = "2018"
 
 [dependencies]
 ckb-testtool = "0.6"
+molecule = "0.7.2"
+ckb-system-scripts = "0.5"

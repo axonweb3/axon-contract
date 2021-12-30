@@ -81,7 +81,6 @@ fn bytes_to_u64(bytes: &Vec<u8>) -> u64 {
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
     let args: Bytes = script.args().unpack();
-    debug!("script args is {:?}", args);
 
 	let checkpoint_args: axon::CheckpointLockArgs = Cursor::from(args.to_vec()).into();
 	let admin_identity = checkpoint_args.admin_identity();
@@ -121,6 +120,8 @@ pub fn main() -> Result<(), Error> {
 	let sudt_type_hash = input_checkpoint_data.sudt_type_hash();
 	let input_at_amount = get_capacity_by_type_hash(&sudt_type_hash, Source::Input)?;
 	let output_at_amount = get_capacity_by_type_hash(&sudt_type_hash, Source::Output)?;
+
+	debug!("input_at_amount = {}, output_at_amount = {}", input_at_amount, output_at_amount);
 	
 	// admin mode
 	if is_admin_mode {
@@ -158,6 +159,9 @@ pub fn main() -> Result<(), Error> {
 		let base_reward = bytes_to_u128(&input_checkpoint_data.base_reward());
 		let period      = bytes_to_u64(&input_checkpoint_data.period());
 		let half_period = bytes_to_u64(&input_checkpoint_data.half_period());
+		if period == 0 || half_period == 0 {
+			return Err(Error::CheckpointDataError);
+		}
 		if (output_at_amount - input_at_amount) as u128 != base_reward / 2u128.pow((period / half_period) as u32) {
 			return Err(Error::ATAmountMismatch);
 		}
