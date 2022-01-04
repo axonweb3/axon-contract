@@ -174,7 +174,7 @@ pub fn main() -> Result<(), Error> {
     };
 
     // extract AT type_id from type_script
-    let type_id_scripthash = {
+    let typeid_or_at_type_hash = {
         let type_hash = load_cell_type_hash(0, Source::GroupInput)?;
         if type_hash.is_none() {
             return Err(Error::TypeScriptEmpty);
@@ -189,9 +189,9 @@ pub fn main() -> Result<(), Error> {
             if !secp256k1::verify_signature(&mut admin_identity.content()) {
                 return Err(Error::SignatureMismatch);
             }
-            let input_stake_data = get_stake_data_by_type_hash(&type_id_scripthash, Source::Input)?;
+            let input_stake_data = get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Input)?;
             let output_stake_data =
-                get_stake_data_by_type_hash(&type_id_scripthash, Source::Output)?;
+                get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Output)?;
             if input_stake_data.version() != output_stake_data.version()
                 || input_stake_data.checkpoint_type_hash()
                     != output_stake_data.checkpoint_type_hash()
@@ -209,7 +209,7 @@ pub fn main() -> Result<(), Error> {
             }
             let mut at_cell_count = 0;
             QueryIter::new(load_cell_type_hash, Source::Output).for_each(|type_hash| {
-                if type_hash.unwrap_or([0u8; 32]) == type_id_scripthash {
+                if type_hash.unwrap_or([0u8; 32]) == typeid_or_at_type_hash {
                     at_cell_count += 1;
                 }
             });
@@ -236,8 +236,8 @@ pub fn main() -> Result<(), Error> {
         MODE::UPDATE => {
             debug!("update mode");
             // check stake_data between input and output
-            // let input_stake_data = get_stake_data_by_type_hash(&type_id_scripthash, Source::Input)?;
-            // let output_stake_data = get_stake_data_by_type_hash(&type_id_scripthash, Source::Output)?;
+            // let input_stake_data = get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Input)?;
+            // let output_stake_data = get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Output)?;
             // if input_stake_data.version() != output_stake_data.version()
             //     || input_stake_data.checkpoint_type_hash() != output_stake_data.checkpoint_type_hash()
             //     || input_stake_data.sudt_type_hash() != output_stake_data.sudt_type_hash()
