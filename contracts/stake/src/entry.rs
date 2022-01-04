@@ -10,7 +10,7 @@ use alloc::{
 // Import CKB syscalls and structures
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
-    ckb_constants::Source, high_level::{
+    debug, ckb_constants::Source, high_level::{
         load_script, load_cell_type_hash, load_cell_data, load_cell_lock, load_witness_args, QueryIter
     }, ckb_types::{
         bytes::Bytes, prelude::*
@@ -19,7 +19,7 @@ use ckb_std::{
 
 use crate::error::Error;
 use protocol::{
-	Cursor, axon::{
+	Cursor, read_at, axon::{
 		self, StakeInfo
 	}
 };
@@ -28,6 +28,13 @@ enum FILTER {
     APPLIED,
     APPLYING,
     NOTAPPLY
+}
+
+enum MODE {
+	UPDATE,
+	BURN,
+	ADMIN,
+	COMPANION
 }
 
 fn get_stake_data_by_type_hash(cell_type_hash: &[u8; 32], source: Source) -> Result<axon::StakeLockCellData, Error> {
@@ -86,30 +93,47 @@ fn bytes_to_u64(bytes: &Vec<u8>) -> u64 {
 	u64::from_le_bytes(array)
 }
 
-// fn filter_stakeinfos_by_era(era: u64, stake_infos: &axon::StakeInfoVec, filter_type: FILTER) -> Vec<axon::StakeInfo> {
-//     let mut filtered_stake_infos = vec![];
-//     match filter_type {
-//         FILTER::APPLIED => {
+fn bytes_to_u32(bytes: &Vec<u8>) -> u32 {
+	let mut array: [u8; 4] = [0u8; 4];
+	array.copy_from_slice(bytes.as_slice());
+	u32::from_le_bytes(array)
+}
+
+fn filter_stakeinfos_by_era(era: u64, stake_infos: &axon::StakeInfoVec, filter_type: FILTER) -> Result<BTreeSet<Vec<u8>>, Error> {
+    let mut filtered_stake_infos = BTreeSet::new();
+    match filter_type {
+        FILTER::APPLIED => {
             
-//         },
-//         FILTER::APPLYING => {
+        },
+        FILTER::APPLYING => {
 
-//         },
-//         FILTER::NOTAPPLY => {
-//             for i in 0..stake_infos.len() {
-//                 let stake_info = &stake_infos.get(i);
-//                 if bytes_to_u64(&stake_info.inauguration_era()) > era + 1 {
-//                     filtered_stake_infos.push(stake_info.clone());
-//                 }
-//             }
-//         }
-//     }
-//     filtered_stake_infos
-// }
+        },
+        FILTER::NOTAPPLY => {
+            for i in 0..stake_infos.len() {
+                let stake_info = stake_infos.get(i);
+                if bytes_to_u64(&stake_info.inauguration_era()) > era + 1 {
+					let mut bytes = vec![0u8; stake_info.cursor.size];
+					read_at(&stake_info.cursor, bytes.as_mut_slice());
+                    if !filtered_stake_infos.insert(bytes.to_vec()) {
+						return Err(Error::StakeDataEmpty);
+					}
+                }
+            }
+        }
+    }
+    Ok(filtered_stake_infos)
+}
 
-// fn stakeinfos_diff(stake_infos_1: &Vec<axon::StakeInfo>, stake_infos_2: &Vec<axon::StakeInfo>) -> Vec<axon::StakeInfo> {
-    
-// }
+fn stakeinfos_into_set(stake_infos: &axon::StakeInfoVec) -> BTreeSet<Vec<u8>> {
+	let mut btree_set = BTreeSet::new();
+	for i in 0..stake_infos.len() {
+		let stake_info = stake_infos.get(i);
+		let mut bytes = vec![0u8; stake_info.cursor.size];
+		read_at(&stake_info.cursor, bytes.as_mut_slice());
+		btree_set.insert(bytes.to_vec());
+	}
+	btree_set
+}
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
@@ -121,21 +145,31 @@ pub fn main() -> Result<(), Error> {
     let type_id_hash = stake_args.type_id_hash();
     let node_identity = stake_args.node_identity();
 
-	// check this is wether admin signature or normal signature
-	let witness_args = load_witness_args(0, Source::GroupInput)?;
-	let is_admin = {
-		let input_type = witness_args.input_type().to_opt();
-		if input_type.is_none() {
-			return Err(Error::BadWitnessInputType);
-		}
-		match input_type.unwrap().raw_data().to_vec().first() {
-			Some(value) => value == &0,
-			None        => return Err(Error::BadWitnessInputType)
-		}
+	// identify contract mode by witness
+	let mode = match load_witness_args(0, Source::GroupInput) {
+		Ok(witness) => {
+			let value = witness.input_type().to_opt();
+			if value.is_none() || value.as_ref().unwrap().len() != 1 {
+				return Err(Error::BadWitnessInputType)
+			}
+			if value.unwrap().raw_data().to_vec().first().unwrap() == &0 {
+				if node_identity.is_none() {
+					MODE::ADMIN
+				} else {
+					MODE::BURN
+				}
+			} else {
+				if node_identity.is_none() {
+					return Err(Error::UnknownMode)
+				}
+				MODE::COMPANION
+			}
+		},
+		Err(_) => MODE::UPDATE
 	};
 
-	// extract AT script_hash from type_script
-	let at_type_hash = {
+	// extract AT type_id from type_script
+	let type_id_scripthash = {
 		let type_hash = load_cell_type_hash(0, Source::GroupInput)?;
 		if type_hash.is_none() {
 			return Err(Error::TypeScriptEmpty);
@@ -143,92 +177,100 @@ pub fn main() -> Result<(), Error> {
 		type_hash.unwrap()
 	};
 
-    // mode select
-    if is_admin {
-		// check admin signature
-		if !secp256k1::verify_signature(&mut admin_identity.content()) {
-			return Err(Error::SignatureMismatch);
-		}
-        // burn mode
-        if node_identity.is_some() {
-            let mut at_cell_count = 0;
-            QueryIter::new(load_cell_type_hash, Source::Output)
-                .for_each(|type_hash| {
-                    if type_hash.unwrap_or([0u8; 32]) == at_type_hash {
-                        at_cell_count += 1;
-                    }
-                });
-            if at_cell_count != 0 {
-                return Err(Error::ATCellShouldEmpty);
-            }
-        // admin mode
-        } else {
-            let input_stake_data = get_stake_data_by_type_hash(&at_type_hash, Source::Input)?;
-            let output_stake_data = get_stake_data_by_type_hash(&at_type_hash, Source::Output)?;
+	match mode {
+		MODE::ADMIN => {
+			debug!("admin mode");
+			// check admin signature
+			if !secp256k1::verify_signature(&mut admin_identity.content()) {
+				return Err(Error::SignatureMismatch);
+			}
+            let input_stake_data = get_stake_data_by_type_hash(&type_id_scripthash, Source::Input)?;
+            let output_stake_data = get_stake_data_by_type_hash(&type_id_scripthash, Source::Output)?;
             if input_stake_data.version() != output_stake_data.version()
                 || input_stake_data.checkpoint_type_hash() != output_stake_data.checkpoint_type_hash()
                 || input_stake_data.sudt_type_hash() != output_stake_data.sudt_type_hash()
                 || output_stake_data.quorum_size() > 160 {
                 return Err(Error::AdminModeError);
             }
-        }
-    } else {
-        // update mode
-        if node_identity.is_some() {
+		},
+		MODE::BURN => {
+			debug!("burn mode");
+			// check admin signature
+			if !secp256k1::verify_signature(&mut admin_identity.content()) {
+				return Err(Error::SignatureMismatch);
+			}
+            let mut at_cell_count = 0;
+            QueryIter::new(load_cell_type_hash, Source::Output)
+                .for_each(|type_hash| {
+                    if type_hash.unwrap_or([0u8; 32]) == type_id_scripthash {
+                        at_cell_count += 1;
+                    }
+                });
+            if at_cell_count != 0 {
+                return Err(Error::ATCellShouldEmpty);
+            }
+		},
+		MODE::COMPANION => {
+			debug!("companion mode");
             // check normal signature
             if !secp256k1::verify_signature(&mut node_identity.unwrap().content()) {
                 return Err(Error::SignatureMismatch);
             }
-            // check stake_data between input and output
-            let input_stake_data = get_stake_data_by_type_hash(&at_type_hash, Source::Input)?;
-            let output_stake_data = get_stake_data_by_type_hash(&at_type_hash, Source::Output)?;
-            if input_stake_data.version() != output_stake_data.version()
-                || input_stake_data.checkpoint_type_hash() != output_stake_data.checkpoint_type_hash()
-                || input_stake_data.sudt_type_hash() != output_stake_data.sudt_type_hash()
-                || input_stake_data.quorum_size() != output_stake_data.quorum_size() {
-                return Err(Error::UpdateModeError);
+            let mut find_type_hash = false;
+            QueryIter::new(load_cell_type_hash, Source::Input)
+                .for_each(|type_hash| {
+					if type_hash.unwrap_or([0u8; 32])[..] == type_id_hash[..] {
+						find_type_hash = true;
+					}
+                });
+            if !find_type_hash {
+                return Err(Error::CompanionModeError);
             }
-            // get checkpoint data from celldeps
-            let checkpoint = get_checkpoint_from_celldeps(&input_stake_data.checkpoint_type_hash())?;
-            let era = bytes_to_u64(&checkpoint.era());
-            // get different stake_info between input not applied stake_infos and output not
-            // applied stake_infos
-            //
-            // let input_notapply_stake_infos = filter_stakeinfos_by_era(era, &input_stake_data.stake_infos(), FILTER::NOTAPPLY);
-            // let output_notapply_stake_infos = filter_stakeinfos_by_era(era, &output_stake_data.stake_infos(), FILTER::NOTAPPLY);
-            // let dumplicate_value_check = {
+		},
+		MODE::UPDATE => {
+			debug!("update mode");
+            // check stake_data between input and output
+            // let input_stake_data = get_stake_data_by_type_hash(&type_id_scripthash, Source::Input)?;
+            // let output_stake_data = get_stake_data_by_type_hash(&type_id_scripthash, Source::Output)?;
+            // if input_stake_data.version() != output_stake_data.version()
+            //     || input_stake_data.checkpoint_type_hash() != output_stake_data.checkpoint_type_hash()
+            //     || input_stake_data.sudt_type_hash() != output_stake_data.sudt_type_hash()
+            //     || input_stake_data.quorum_size() != output_stake_data.quorum_size() {
+            //     return Err(Error::UpdateModeError);
+            // }
+
+            // // get checkpoint data from celldeps
+            // let checkpoint = get_checkpoint_from_celldeps(&input_stake_data.checkpoint_type_hash())?;
+            // let era = bytes_to_u64(&checkpoint.era());
+			// let period = bytes_to_u64(&checkpoint.period());
+			// let unlock_period = bytes_to_u32(&checkpoint.unlock_period());
+
+            // // get different stake_info between input not_applied stake_infos and output not_applied stake_infos
+			// let input_stake_infos = input_stake_data.stake_infos();
+			// let output_stake_infos = output_stake_data.stake_infos();
+            // let input_notapply_stake_infos = filter_stakeinfos_by_era(era, &input_stake_infos, FILTER::NOTAPPLY)?;
+            // let output_notapply_stake_infos = filter_stakeinfos_by_era(era, &output_stake_infos, FILTER::NOTAPPLY)?;
+            // let node_stake_info = {
             //     if output_notapply_stake_infos.len() != input_notapply_stake_infos.len() + 1 {
             //         return Err(Error::NotApplyStakeInfoError);
             //     }
-            //     let diff_infos = stakeinfos_diff(&output_notapply_stake_infos, &input_notapply_stake_infos);
-            //     assert!(diff_infos.len() == 1);
-            //     let mut btree_set = BTreeSet::new();
-            //     diff_infos.first().unwrap().clone()
+            //     let diff_stake_infos = output_notapply_stake_infos
+			// 		.symmetric_difference(&input_notapply_stake_infos)
+			// 		.cloned()
+			// 		.collect::<Vec<u8>>();
+			// 	if diff_stake_infos.len() != 1 {
+            //         return Err(Error::NotApplyStakeInfoError);
+			// 	}
+            //     diff_stake_infos.first().unwrap()
             // };
+
             // // check dumplicate stake_info in stake_infos from input
-            // let mut input_stake_infos: Vec<axon::StakeInfo> = input_stake_data.stake_infos().into();
-            // input_stake_infos.push(node_stake_info);
-            
-        // companion mode
-        } else {
-            let mut find_node_identity = false;
-            QueryIter::new(load_cell_lock, Source::Input)
-                .for_each(|lock| {
-                    if lock.code_hash().as_slice() == script.code_hash().as_slice() {
-                        let lock_args: axon::StakeLockArgs = {
-                            let bytes: Bytes = lock.args().unpack();
-                            Cursor::from(bytes.to_vec()).into()
-                        };
-                        if lock_args.node_identity().is_some() {
-                            find_node_identity = true;
-                        }
-                    }
-                });
-            if !find_node_identity {
-                return Err(Error::CompanionModeError);
-            }
-        }
-    }
+            // let mut stake_infos = stakeinfos_into_set(&input_stake_infos);
+            // if !stake_infos.insert(node_stake_info) {
+			// 	return Err(Error::DumplicateInputStakeInfo);
+			// }
+		}
+	}
 
     Ok(())
 }

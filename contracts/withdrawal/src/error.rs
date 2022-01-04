@@ -8,9 +8,9 @@ pub enum Error {
     LengthNotEnough,
     Encoding,
     // Add customized errors here...
-    WitnessInputTypeEmpty,
 	BadWitnessInputType,
 	SignatureMismatch,
+	NodeIdentityEmpty,
 	TypeScriptEmpty,
 	ATCellShouldEmpty,
 	CheckpointCelldepEmpty,
@@ -19,7 +19,7 @@ pub enum Error {
 	BadWithdrawalPeriod,
 	BadWithdrawalTypeHash,
 	SomeWithdrawalTypeEmpty,
-	TotalAmountMismatch,
+	TotalSudtAmountMismatch,
 }
 
 impl From<SysError> for Error {

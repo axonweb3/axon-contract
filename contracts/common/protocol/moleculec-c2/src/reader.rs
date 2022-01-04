@@ -45,8 +45,8 @@ pub struct DataSource {
 
 #[derive(Clone)]
 pub struct Cursor {
-    offset: usize,
-    size: usize,
+    pub offset: usize,
+    pub size: usize,
     data_source: Rc<RefCell<DataSource>>,
 }
 

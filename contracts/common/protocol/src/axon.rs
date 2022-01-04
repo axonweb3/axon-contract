@@ -537,27 +537,3 @@ impl WithdrawalLockArgs {
         }
     }
 }
-
-pub struct WithdrawalLockCellData {
-    pub cursor: Cursor,
-}
-
-impl From<Cursor> for WithdrawalLockCellData {
-    fn from(cursor: Cursor) -> Self {
-        WithdrawalLockCellData { cursor }
-    }
-}
-
-impl WithdrawalLockCellData {
-    pub fn amount(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(0).unwrap();
-        cur.into()
-    }
-}
-
-impl WithdrawalLockCellData {
-    pub fn period(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(1).unwrap();
-        cur.into()
-    }
-}

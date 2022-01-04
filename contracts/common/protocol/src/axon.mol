@@ -80,8 +80,3 @@ table WithdrawalLockArgs {
 	checkpoint_cell_type_hash: Byte32,
 	node_identity:             IdentityOpt,
 }
-
-table WithdrawalLockCellData {
-	amount: Byte16,
-	period: Byte8,
-}

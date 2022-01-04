@@ -245,20 +245,6 @@
           "type": "IdentityOpt"
         }
       ]
-    },
-    {
-      "type": "table",
-      "name": "WithdrawalLockCellData",
-      "fields": [
-        {
-          "name": "amount",
-          "type": "Byte16"
-        },
-        {
-          "name": "period",
-          "type": "Byte8"
-        }
-      ]
     }
   ]
 }

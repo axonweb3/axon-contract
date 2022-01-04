@@ -162,11 +162,10 @@ fn test_checkpoint_success() {
 			.previous_output(
 				context.create_cell(
 					CellOutput::new_builder()
-						.capacity(2000.pack())
 						.lock(always_success_lock_script.clone())
 						.type_(Some(at_type_script.clone()).pack())
 						.build(),
-					Bytes::new(),
+					Bytes::from(2000u128.to_le_bytes().to_vec()),
 				)
 			)
 			.build(),
@@ -179,7 +178,7 @@ fn test_checkpoint_success() {
 						.lock(always_success_lock_script.clone())
 						.type_(Some(at_type_script.clone()).pack())
 						.build(),
-					Bytes::new(),
+					Bytes::from(3000u128.to_le_bytes().to_vec()),
 				)
 			)
 			.build(),
@@ -193,14 +192,13 @@ fn test_checkpoint_success() {
             .build(),
 		// AT cell
         CellOutput::new_builder()
-            .capacity(5000.pack())
             .lock(always_success_lock_script)
 			.type_(Some(at_type_script).pack())
             .build(),
 	];
 
 	// prepare outputs_data
-	let outputs_data = vec![checkpoint_data.as_bytes(), Bytes::new()];
+	let outputs_data = vec![checkpoint_data.as_bytes(), Bytes::from(5000u128.to_le_bytes().to_vec())];
 
 	// prepare signed tx
     let tx = TransactionBuilder::default()
@@ -274,7 +272,7 @@ fn test_withdrawal_success() {
 						.lock(withdrawal_lock_script.clone())
 						.type_(Some(at_type_script.clone()).pack())
 						.build(),
-					withdrawal_data.as_bytes(),
+					Bytes::from(withdrawal_data.clone()),
 				)
 			)
 			.build(),
@@ -289,7 +287,7 @@ fn test_withdrawal_success() {
 	];
 
 	// prepare outputs_data
-	let outputs_data = vec![withdrawal_data.as_bytes()];
+	let outputs_data = vec![Bytes::from(withdrawal_data)];
 
 	// prepare checkpoint cell_dep
 	let checkpoint_data = axon_checkpoint_data(1, 1, &type_id_type_script.calc_script_hash());
@@ -347,9 +345,6 @@ fn test_stake_success() {
 	let type_id_type_script = context
         .build_script(&always_success_out_point, Bytes::new())
         .expect("type_id script");
-	let at_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![1]))
-        .expect("at script");
     let always_success_script_dep = CellDep::new_builder()
         .out_point(always_success_out_point)
         .build();
@@ -377,7 +372,7 @@ fn test_stake_success() {
 					CellOutput::new_builder()
 						.capacity(1000.pack())
 						.lock(stake_lock_script.clone())
-						.type_(Some(at_type_script.clone()).pack())
+						.type_(Some(type_id_type_script.clone()).pack())
 						.build(),
 					stake_data.as_bytes(),
 				)
@@ -389,7 +384,7 @@ fn test_stake_success() {
         CellOutput::new_builder()
             .capacity(1000.pack())
             .lock(stake_lock_script)
-			.type_(Some(at_type_script).pack())
+			.type_(Some(type_id_type_script.clone()).pack())
             .build(),
 	];
 

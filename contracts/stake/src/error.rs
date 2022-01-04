@@ -16,10 +16,11 @@ pub enum Error {
     CheckpointDataError,
     CheckpointDataEmpty,
     StakeDataEmpty,
+	UnknownMode,
     AdminModeError,
     CompanionModeError,
     UpdateModeError,
-    NotApplyStakeInfoError,
+    DumplicateInputStakeInfo,
 }
 
 impl From<SysError> for Error {

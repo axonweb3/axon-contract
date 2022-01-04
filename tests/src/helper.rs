@@ -57,10 +57,11 @@ pub fn axon_checkpoint_data(period: u64, half_period: u64, sudt_type_hash: &Byte
 		.build()
 }
 
-pub fn axon_withdrawal_data(period: u64) -> axon::WithdrawalLockCellData {
-	axon::WithdrawalLockCellData::new_builder()
-		.period(axon_byte8(period))
-		.build()
+pub fn axon_withdrawal_data(period: u64) -> Vec<u8> {
+	let mut data = vec![];
+	data.append(&mut 0u128.to_le_bytes().to_vec());
+	data.append(&mut period.to_le_bytes().to_vec());
+	data
 }
 
 pub fn axon_stake_info(pubkey_hash: &[u8; 20], era: u64) -> axon::StakeInfo {
