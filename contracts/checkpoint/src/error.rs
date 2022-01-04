@@ -8,15 +8,15 @@ pub enum Error {
     LengthNotEnough,
     Encoding,
     // Add customized errors here...
-	CheckpointCellError,
-	CheckpointCapacityMismatch,
-	CheckpointDataMismatch,
-	CheckpointDataError,
-	BadSudtDataFormat,
-	BadWitnessInputType,
-	WitnessLockError,
-	ATAmountMismatch,
-	SignatureMismatch,
+    CheckpointCellError,
+    CheckpointCapacityMismatch,
+    CheckpointDataMismatch,
+    CheckpointDataError,
+    BadSudtDataFormat,
+    BadWitnessInputType,
+    WitnessLockError,
+    ATAmountMismatch,
+    SignatureMismatch,
 }
 
 impl From<SysError> for Error {
@@ -31,4 +31,3 @@ impl From<SysError> for Error {
         }
     }
 }
-

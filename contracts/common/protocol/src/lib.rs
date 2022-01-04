@@ -5,6 +5,4 @@
 #![feature(panic_info_message)]
 
 pub mod axon;
-pub use molecule2::{
-	Cursor, read_at
-};
+pub use molecule2::{read_at, Cursor};

@@ -1,8 +1,8 @@
 extern crate alloc;
 
+use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
-use alloc::boxed::Box;
 use core::cell::RefCell;
 use core::cmp::min;
 

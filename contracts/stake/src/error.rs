@@ -11,12 +11,12 @@ pub enum Error {
     BadWitnessInputType,
     SignatureMismatch,
     TypeScriptEmpty,
-	ATCellShouldEmpty,
+    ATCellShouldEmpty,
     StakeDataError,
     CheckpointDataError,
     CheckpointDataEmpty,
     StakeDataEmpty,
-	UnknownMode,
+    UnknownMode,
     AdminModeError,
     CompanionModeError,
     UpdateModeError,
@@ -35,4 +35,3 @@ impl From<SysError> for Error {
         }
     }
 }
-
