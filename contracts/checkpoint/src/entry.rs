@@ -18,7 +18,7 @@ use ckb_std::{
 };
 
 use crate::error::Error;
-use protocol::{axon, Cursor};
+use protocol::{reader as axon, Cursor};
 
 fn get_info_by_type_hash(
     type_hash: &Vec<u8>,

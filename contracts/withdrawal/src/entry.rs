@@ -18,7 +18,7 @@ use ckb_std::{
 };
 
 use crate::error::Error;
-use protocol::{axon, Cursor};
+use protocol::{reader as axon, Cursor};
 
 enum MODE {
     ACP,

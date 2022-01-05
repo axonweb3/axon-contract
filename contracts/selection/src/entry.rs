@@ -11,7 +11,7 @@ use ckb_std::{
 };
 
 use crate::error::Error;
-use protocol::{axon, Cursor};
+use protocol::{reader as axon, Cursor};
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;

@@ -3,7 +3,7 @@ use core::result::Result;
 
 // Import heap related library from `alloc`
 // https://doc.rust-lang.org/alloc/index.html
-use alloc::{collections::BTreeSet, vec, vec::Vec};
+use alloc::vec::Vec;
 
 // Import CKB syscalls and structures
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
@@ -11,134 +11,11 @@ use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, prelude::*},
     debug,
-    high_level::{
-        load_cell_data, load_cell_lock, load_cell_type_hash, load_script, load_witness_args,
-        QueryIter,
-    },
+    high_level::{load_cell_type_hash, load_script, load_witness_args, QueryIter},
 };
 
-use crate::error::Error;
-use protocol::{
-    axon::{self, StakeInfo},
-    read_at, Cursor,
-};
-
-enum FILTER {
-    APPLIED,
-    APPLYING,
-    NOTAPPLY,
-}
-
-enum MODE {
-    UPDATE,
-    BURN,
-    ADMIN,
-    COMPANION,
-}
-
-fn get_stake_data_by_type_hash(
-    cell_type_hash: &[u8; 32],
-    source: Source,
-) -> Result<axon::StakeLockCellData, Error> {
-    let mut stake_data = None;
-    QueryIter::new(load_cell_type_hash, source)
-        .enumerate()
-        .map(|(i, type_hash)| {
-            if &type_hash.unwrap_or([0u8; 32]) == cell_type_hash {
-                assert!(stake_data.is_none());
-                stake_data = {
-                    let data = load_cell_data(i, source);
-                    if let Err(_) = data {
-                        return Err(Error::StakeDataError);
-                    }
-                    let stake_data: axon::StakeLockCellData = Cursor::from(data.unwrap()).into();
-                    Some(stake_data)
-                };
-            }
-            Ok(())
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    if stake_data.is_none() {
-        return Err(Error::StakeDataEmpty);
-    }
-    Ok(stake_data.unwrap())
-}
-
-fn get_checkpoint_from_celldeps(
-    checkpoint_type_hash: &Vec<u8>,
-) -> Result<axon::CheckpointLockCellData, Error> {
-    let mut checkpoint_data = None;
-    QueryIter::new(load_cell_type_hash, Source::CellDep)
-        .enumerate()
-        .map(|(i, type_hash)| {
-            if type_hash.unwrap_or([0u8; 32])[..] == checkpoint_type_hash[..] {
-                assert!(checkpoint_data.is_none());
-                checkpoint_data = {
-                    let data = load_cell_data(i, Source::CellDep);
-                    if let Err(_) = data {
-                        return Err(Error::CheckpointDataError);
-                    }
-                    let checkpoint_data: axon::CheckpointLockCellData =
-                        Cursor::from(data.unwrap()).into();
-                    Some(checkpoint_data)
-                };
-            }
-            Ok(())
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    if checkpoint_data.is_none() {
-        return Err(Error::CheckpointDataEmpty);
-    }
-    Ok(checkpoint_data.unwrap())
-}
-
-fn bytes_to_u64(bytes: &Vec<u8>) -> u64 {
-    let mut array: [u8; 8] = [0u8; 8];
-    array.copy_from_slice(bytes.as_slice());
-    u64::from_le_bytes(array)
-}
-
-fn bytes_to_u32(bytes: &Vec<u8>) -> u32 {
-    let mut array: [u8; 4] = [0u8; 4];
-    array.copy_from_slice(bytes.as_slice());
-    u32::from_le_bytes(array)
-}
-
-fn filter_stakeinfos_by_era(
-    era: u64,
-    stake_infos: &axon::StakeInfoVec,
-    filter_type: FILTER,
-) -> Result<BTreeSet<Vec<u8>>, Error> {
-    let mut filtered_stake_infos = BTreeSet::new();
-    match filter_type {
-        FILTER::APPLIED => {}
-        FILTER::APPLYING => {}
-        FILTER::NOTAPPLY => {
-            for i in 0..stake_infos.len() {
-                let stake_info = stake_infos.get(i);
-                if bytes_to_u64(&stake_info.inauguration_era()) > era + 1 {
-                    let mut bytes = vec![0u8; stake_info.cursor.size];
-                    read_at(&stake_info.cursor, bytes.as_mut_slice());
-                    if !filtered_stake_infos.insert(bytes.to_vec()) {
-                        return Err(Error::StakeDataEmpty);
-                    }
-                }
-            }
-        }
-    }
-    Ok(filtered_stake_infos)
-}
-
-fn stakeinfos_into_set(stake_infos: &axon::StakeInfoVec) -> BTreeSet<Vec<u8>> {
-    let mut btree_set = BTreeSet::new();
-    for i in 0..stake_infos.len() {
-        let stake_info = stake_infos.get(i);
-        let mut bytes = vec![0u8; stake_info.cursor.size];
-        read_at(&stake_info.cursor, bytes.as_mut_slice());
-        btree_set.insert(bytes.to_vec());
-    }
-    btree_set
-}
+use crate::{error::Error, helper::*};
+use protocol::{reader as axon, Cursor};
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
@@ -189,7 +66,8 @@ pub fn main() -> Result<(), Error> {
             if !secp256k1::verify_signature(&mut admin_identity.content()) {
                 return Err(Error::SignatureMismatch);
             }
-            let input_stake_data = get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Input)?;
+            let input_stake_data =
+                get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Input)?;
             let output_stake_data =
                 get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Output)?;
             if input_stake_data.version() != output_stake_data.version()
@@ -236,45 +114,120 @@ pub fn main() -> Result<(), Error> {
         MODE::UPDATE => {
             debug!("update mode");
             // check stake_data between input and output
-            // let input_stake_data = get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Input)?;
-            // let output_stake_data = get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Output)?;
-            // if input_stake_data.version() != output_stake_data.version()
-            //     || input_stake_data.checkpoint_type_hash() != output_stake_data.checkpoint_type_hash()
-            //     || input_stake_data.sudt_type_hash() != output_stake_data.sudt_type_hash()
-            //     || input_stake_data.quorum_size() != output_stake_data.quorum_size() {
-            //     return Err(Error::UpdateModeError);
-            // }
+            let input_stake_data =
+                get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Input)?;
+            let output_stake_data =
+                get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Output)?;
+            if input_stake_data.version() != output_stake_data.version()
+                || input_stake_data.checkpoint_type_hash()
+                    != output_stake_data.checkpoint_type_hash()
+                || input_stake_data.sudt_type_hash() != output_stake_data.sudt_type_hash()
+                || input_stake_data.quorum_size() != output_stake_data.quorum_size()
+            {
+                return Err(Error::StakeInfoMatchError);
+            }
 
-            // // get checkpoint data from celldeps
-            // let checkpoint = get_checkpoint_from_celldeps(&input_stake_data.checkpoint_type_hash())?;
-            // let era = bytes_to_u64(&checkpoint.era());
-            // let period = bytes_to_u64(&checkpoint.period());
-            // let unlock_period = bytes_to_u32(&checkpoint.unlock_period());
+            // prepare transformed stake_infos data
+            let mut input_stake_infos_set = stakeinfos_into_set(&input_stake_data.stake_infos())?;
+            let output_stake_infos_set = stakeinfos_into_set(&output_stake_data.stake_infos())?;
 
-            // // get different stake_info between input not_applied stake_infos and output not_applied stake_infos
-            // let input_stake_infos = input_stake_data.stake_infos();
-            // let output_stake_infos = output_stake_data.stake_infos();
-            // let input_notapply_stake_infos = filter_stakeinfos_by_era(era, &input_stake_infos, FILTER::NOTAPPLY)?;
-            // let output_notapply_stake_infos = filter_stakeinfos_by_era(era, &output_stake_infos, FILTER::NOTAPPLY)?;
-            // let node_stake_info = {
-            //     if output_notapply_stake_infos.len() != input_notapply_stake_infos.len() + 1 {
-            //         return Err(Error::NotApplyStakeInfoError);
-            //     }
-            //     let diff_stake_infos = output_notapply_stake_infos
-            // 		.symmetric_difference(&input_notapply_stake_infos)
-            // 		.cloned()
-            // 		.collect::<Vec<u8>>();
-            // 	if diff_stake_infos.len() != 1 {
-            //         return Err(Error::NotApplyStakeInfoError);
-            // 	}
-            //     diff_stake_infos.first().unwrap()
-            // };
+            // get different stake_info between input not_apply stake_infos and output not_apply stake_infos
+            let checkpoint =
+                get_checkpoint_from_celldeps(&input_stake_data.checkpoint_type_hash())?;
+            let era = bytes_to_u64(&checkpoint.era());
+            let mut input_notapply_stake_infos =
+                filter_stakeinfos(era, u8::MAX, &input_stake_infos_set, FILTER::NOTAPPLY)?;
+            let output_notapply_stake_infos =
+                filter_stakeinfos(era, u8::MAX, &output_stake_infos_set, FILTER::NOTAPPLY)?;
+            let node_stake_info = {
+                if output_notapply_stake_infos.len() != input_notapply_stake_infos.len() + 1 {
+                    return Err(Error::StakeInfoMatchError);
+                }
+                let diff_stake_infos = output_notapply_stake_infos
+                    .symmetric_difference(&input_notapply_stake_infos)
+                    .cloned()
+                    .collect::<Vec<_>>();
+                if diff_stake_infos.len() != 1 {
+                    return Err(Error::StakeInfoMatchError);
+                }
+                diff_stake_infos.first().unwrap().clone()
+            };
 
-            // // check dumplicate stake_info in stake_infos from input
-            // let mut stake_infos = stakeinfos_into_set(&input_stake_infos);
-            // if !stake_infos.insert(node_stake_info) {
-            // 	return Err(Error::DumplicateInputStakeInfo);
-            // }
+            // put node_stake_info into not_apply set or main set
+            if node_stake_info.inauguration_era > era + 1 {
+                if !input_notapply_stake_infos.insert(node_stake_info.clone()) {
+                    return Err(Error::StakeInfoDumplicateError);
+                }
+            } else {
+                if !input_stake_infos_set.insert(node_stake_info.clone()) {
+                    return Err(Error::StakeInfoDumplicateError);
+                }
+            }
+
+            // check valid stake_info subset from input is equal to output's
+            let quorum = input_stake_data.quorum_size();
+            let mut input_applied_stake_infos =
+                filter_stakeinfos(era, quorum, &input_stake_infos_set, FILTER::APPLIED)?;
+            let mut input_applying_stake_infos =
+                filter_stakeinfos(era, quorum, &input_stake_infos_set, FILTER::APPLYING)?;
+            let valid_stake_infos = {
+                input_notapply_stake_infos.append(&mut input_applied_stake_infos);
+                input_notapply_stake_infos.append(&mut input_applying_stake_infos);
+                input_notapply_stake_infos
+            };
+            if valid_stake_infos != output_stake_infos_set {
+                return Err(Error::StakeInfoMatchError);
+            }
+
+            // get valid stake_amount on node_stake_info.identity
+            let mut valid_stake_amount = 0;
+            output_stake_infos_set.iter().for_each(|object| {
+                if object.identity == node_stake_info.identity
+                    && object.stake_amount > valid_stake_amount
+                {
+                    valid_stake_amount = object.stake_amount;
+                }
+            });
+
+            // check valid stake_amount from stake AT cells in output
+            let output_sudt = get_total_sudt_by_type_hash(
+                &input_stake_data.sudt_type_hash(),
+                &node_stake_info.identity,
+                Source::Output,
+            )?;
+            if output_sudt != valid_stake_amount {
+                return Err(Error::InvaidStakeATAmount);
+            }
+
+            // check withdraw AT amount
+            let input_sudt = get_total_sudt_by_type_hash(
+                &input_stake_data.sudt_type_hash(),
+                &node_stake_info.identity,
+                Source::Input,
+            )?;
+            if input_sudt <= output_sudt {
+                return Err(Error::InvaidStakeATAmount);
+            }
+            let withdraw_sudt = input_sudt - output_sudt;
+
+            // build withdrawal AT lock_script and search withdrawal AT cell
+            let withdrawal_lock_hash = calc_withdrawal_lock_hash(
+                &checkpoint.withdrawal_lock_code_hash(),
+                admin_identity,
+                &input_stake_data.checkpoint_type_hash(),
+                &node_stake_info.identity,
+            );
+            let period = bytes_to_u64(&checkpoint.period());
+            let unlock_period = bytes_to_u32(&checkpoint.unlock_period()) as u64;
+            let total_sudt = get_withdrawal_total_sudt_amount(
+                &withdrawal_lock_hash,
+                &input_stake_data.sudt_type_hash(),
+                period + unlock_period,
+                Source::Output,
+            )?;
+            if withdraw_sudt != total_sudt {
+                return Err(Error::WithdrawCellError);
+            }
         }
     }
 
