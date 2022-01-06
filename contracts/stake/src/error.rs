@@ -21,7 +21,6 @@ pub enum Error {
     StakeInfoMatchError,
     StakeInfoQuorumError,
     InvaidStakeATAmount,
-    SudtTypeArgsMissing,
     WithdrawCellError,
 }
 

@@ -128,17 +128,18 @@ pub fn main() -> Result<(), Error> {
             }
 
             // prepare transformed stake_infos data
-            let mut input_stake_infos_set = stakeinfos_into_set(&input_stake_data.stake_infos())?;
+            let input_stake_infos_set = stakeinfos_into_set(&input_stake_data.stake_infos())?;
             let output_stake_infos_set = stakeinfos_into_set(&output_stake_data.stake_infos())?;
 
             // get different stake_info between input not_apply stake_infos and output not_apply stake_infos
+            let quorum = input_stake_data.quorum_size();
             let checkpoint =
                 get_checkpoint_from_celldeps(&input_stake_data.checkpoint_type_hash())?;
             let era = bytes_to_u64(&checkpoint.era());
             let mut input_notapply_stake_infos =
-                filter_stakeinfos(era, u8::MAX, &input_stake_infos_set, FILTER::NOTAPPLY)?;
+                filter_stakeinfos(era + 1, quorum, &input_stake_infos_set, FILTER::NOTAPPLY)?;
             let output_notapply_stake_infos =
-                filter_stakeinfos(era, u8::MAX, &output_stake_infos_set, FILTER::NOTAPPLY)?;
+                filter_stakeinfos(era + 1, quorum, &output_stake_infos_set, FILTER::NOTAPPLY)?;
             let node_stake_info = {
                 if output_notapply_stake_infos.len() != input_notapply_stake_infos.len() + 1 {
                     return Err(Error::StakeInfoMatchError);
@@ -158,18 +159,13 @@ pub fn main() -> Result<(), Error> {
                 if !input_notapply_stake_infos.insert(node_stake_info.clone()) {
                     return Err(Error::StakeInfoDumplicateError);
                 }
-            } else {
-                if !input_stake_infos_set.insert(node_stake_info.clone()) {
-                    return Err(Error::StakeInfoDumplicateError);
-                }
             }
 
             // check valid stake_info subset from input is equal to output's
-            let quorum = input_stake_data.quorum_size();
             let mut input_applied_stake_infos =
-                filter_stakeinfos(era, quorum, &input_stake_infos_set, FILTER::APPLIED)?;
+                filter_stakeinfos(era, quorum, &input_stake_infos_set, FILTER::APPLY)?;
             let mut input_applying_stake_infos =
-                filter_stakeinfos(era, quorum, &input_stake_infos_set, FILTER::APPLYING)?;
+                filter_stakeinfos(era + 1, quorum, &input_stake_infos_set, FILTER::APPLY)?;
             let valid_stake_infos = {
                 input_notapply_stake_infos.append(&mut input_applied_stake_infos);
                 input_notapply_stake_infos.append(&mut input_applying_stake_infos);
@@ -191,42 +187,43 @@ pub fn main() -> Result<(), Error> {
 
             // check valid stake_amount from stake AT cells in output
             let output_sudt = get_total_sudt_by_type_hash(
+                &script.code_hash().unpack(),
                 &input_stake_data.sudt_type_hash(),
                 &node_stake_info.identity,
                 Source::Output,
-            )?;
+            );
             if output_sudt != valid_stake_amount {
                 return Err(Error::InvaidStakeATAmount);
             }
 
             // check withdraw AT amount
             let input_sudt = get_total_sudt_by_type_hash(
+                &script.code_hash().unpack(),
                 &input_stake_data.sudt_type_hash(),
                 &node_stake_info.identity,
                 Source::Input,
-            )?;
-            if input_sudt <= output_sudt {
-                return Err(Error::InvaidStakeATAmount);
-            }
-            let withdraw_sudt = input_sudt - output_sudt;
-
-            // build withdrawal AT lock_script and search withdrawal AT cell
-            let withdrawal_lock_hash = calc_withdrawal_lock_hash(
-                &checkpoint.withdrawal_lock_code_hash(),
-                admin_identity,
-                &input_stake_data.checkpoint_type_hash(),
-                &node_stake_info.identity,
             );
-            let period = bytes_to_u64(&checkpoint.period());
-            let unlock_period = bytes_to_u32(&checkpoint.unlock_period()) as u64;
-            let total_sudt = get_withdrawal_total_sudt_amount(
-                &withdrawal_lock_hash,
-                &input_stake_data.sudt_type_hash(),
-                period + unlock_period,
-                Source::Output,
-            )?;
-            if withdraw_sudt != total_sudt {
-                return Err(Error::WithdrawCellError);
+
+            // check if it's withdraw operation
+            if input_sudt > output_sudt {
+                // build withdrawal AT lock_script and search withdrawal AT cell
+                let withdrawal_lock_hash = calc_withdrawal_lock_hash(
+                    &checkpoint.withdrawal_lock_code_hash(),
+                    admin_identity,
+                    &input_stake_data.checkpoint_type_hash(),
+                    &node_stake_info.identity,
+                );
+                let period = bytes_to_u64(&checkpoint.period());
+                let unlock_period = bytes_to_u32(&checkpoint.unlock_period()) as u64;
+                let total_sudt = get_withdrawal_total_sudt_amount(
+                    &withdrawal_lock_hash,
+                    &input_stake_data.sudt_type_hash(),
+                    period + unlock_period,
+                    Source::Output,
+                )?;
+                if input_sudt - output_sudt != total_sudt {
+                    return Err(Error::WithdrawCellError);
+                }
             }
         }
     }

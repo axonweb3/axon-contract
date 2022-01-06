@@ -1,15 +1,19 @@
 use crate::error::Error;
-use alloc::{collections::BTreeSet, vec, vec::Vec};
+use alloc::{
+    collections::{btree_map::BTreeMap, BTreeSet},
+    vec,
+    vec::Vec,
+};
 use blake2b_ref::Blake2bBuilder;
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::{
         core::ScriptHashType,
         packed::{Byte32, Script},
-        prelude::Pack,
+        prelude::*,
     },
     high_level::{
-        load_cell_data, load_cell_lock_hash, load_cell_type, load_cell_type_hash, QueryIter,
+        load_cell_data, load_cell_lock, load_cell_lock_hash, load_cell_type_hash, QueryIter,
     },
 };
 use core::{cmp::Ordering, result::Result};
@@ -19,8 +23,7 @@ use protocol::{
 };
 
 pub enum FILTER {
-    APPLIED,
-    APPLYING,
+    APPLY,
     NOTAPPLY,
 }
 
@@ -80,28 +83,26 @@ pub fn get_stake_data_by_type_hash(
 }
 
 pub fn get_total_sudt_by_type_hash(
+    stake_code_hash: &[u8; 32],
     sudt_type_hash: &Vec<u8>,
     identity: &[u8; 21],
     source: Source,
-) -> Result<u128, Error> {
+) -> u128 {
     let mut sudt = 0;
     QueryIter::new(load_cell_type_hash, source)
         .enumerate()
-        .map(|(i, type_hash)| {
+        .for_each(|(i, type_hash)| {
             if type_hash.unwrap_or([0u8; 32]) == sudt_type_hash.as_slice() {
-                let cell_type = load_cell_type(i, source).unwrap();
-                if cell_type.is_none() {
-                    return Err(Error::SudtTypeArgsMissing);
-                }
-                if cell_type.unwrap().args().raw_data().to_vec()[..21] == identity[..] {
+                let lock = load_cell_lock(i, source).unwrap();
+                if &lock.code_hash().unpack() == stake_code_hash
+                    && lock.args().raw_data().to_vec()[..21] == identity[..]
+                {
                     let data = load_cell_data(i, source).unwrap();
                     sudt += bytes_to_u128(&data[..16].to_vec());
                 }
             }
-            Ok(())
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(sudt)
+        });
+    sudt
 }
 
 pub fn get_checkpoint_from_celldeps(
@@ -152,12 +153,13 @@ pub fn filter_stakeinfos(
 ) -> Result<BTreeSet<StakeInfoObject>, Error> {
     let mut filtered_stake_infos = BTreeSet::new();
     match filter_type {
-        FILTER::APPLIED => {
-            let mut minimal_era = u64::MAX;
+        FILTER::APPLY => {
+            let mut maximum_eras = BTreeMap::new();
             for stake_info in stake_infos {
                 if stake_info.inauguration_era <= era {
-                    if stake_info.inauguration_era < minimal_era {
-                        minimal_era = stake_info.inauguration_era;
+                    let personal_max_era = maximum_eras.entry(&stake_info.identity).or_insert(0u64);
+                    if stake_info.inauguration_era > *personal_max_era {
+                        (*personal_max_era) = stake_info.inauguration_era;
                     }
                     if !filtered_stake_infos.insert(stake_info.clone()) {
                         return Err(Error::StakeInfoDumplicateError);
@@ -166,27 +168,13 @@ pub fn filter_stakeinfos(
             }
             filtered_stake_infos = filtered_stake_infos
                 .into_iter()
-                .filter(|info| info.inauguration_era == minimal_era)
-                .collect::<Vec<_>>()[..quorum as usize]
-                .to_vec()
-                .into_iter()
-                .collect();
-        }
-        FILTER::APPLYING => {
-            let mut minimal_era = u64::MAX;
-            for stake_info in stake_infos {
-                if stake_info.inauguration_era <= era + 1 {
-                    if stake_info.inauguration_era < minimal_era {
-                        minimal_era = stake_info.inauguration_era;
+                .filter(|info| {
+                    if let Some(max_era) = maximum_eras.get(&info.identity) {
+                        &info.inauguration_era == max_era
+                    } else {
+                        false
                     }
-                    if !filtered_stake_infos.insert(stake_info.clone()) {
-                        return Err(Error::StakeInfoDumplicateError);
-                    }
-                }
-            }
-            filtered_stake_infos = filtered_stake_infos
-                .into_iter()
-                .filter(|info| info.inauguration_era == minimal_era)
+                })
                 .collect::<Vec<_>>()[..quorum as usize]
                 .to_vec()
                 .into_iter()
@@ -194,7 +182,7 @@ pub fn filter_stakeinfos(
         }
         FILTER::NOTAPPLY => {
             for stake_info in stake_infos {
-                if stake_info.inauguration_era > era + 1 {
+                if stake_info.inauguration_era > era {
                     if !filtered_stake_infos.insert(stake_info.clone()) {
                         return Err(Error::StakeInfoDumplicateError);
                     }
