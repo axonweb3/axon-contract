@@ -6,5 +6,5 @@ fn main() {
         "cargo:rustc-link-search=native={}",
         Path::new(&dir).join("ckb-lib-blst/build").display()
     );
-    println!("cargo:rustc-link-lib=static=ckb-lib-blst");
+    println!("cargo:rustc-link-lib=static=bls12_381_sighash_all");
 }

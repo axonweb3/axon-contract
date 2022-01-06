@@ -1,5 +1,5 @@
 [workspace]
-members = ["tests", "contracts/selection", "contracts/checkpoint", "contracts/common/protocol", "contracts/common/secp256k1", "contracts/withdrawal", "contracts/stake"]
+members = ["tests", "contracts/selection", "contracts/checkpoint", "contracts/common/protocol", "contracts/common/blst", "contracts/common/secp256k1", "contracts/withdrawal", "contracts/stake"]
 
 [profile.release]
 overflow-checks = true
