@@ -3,7 +3,7 @@ CC := $(TARGET)-gcc
 LD := $(TARGET)-gcc
 AR := $(TARGET)-ar
 OBJCOPY := $(TARGET)-objcopy
-CFLAGS := -fPIC -O3 -nostdinc -nostdlib -nostartfiles -fvisibility=hidden -I deps/ckb-c-stdlib -I deps/ckb-c-stdlib/libc -I deps -I deps/ckb-c-stdlib/molecule -I c -I build -I deps/secp256k1/src -I deps/secp256k1 -Wall  -Wno-nonnull -Wno-nonnull-compare -Wno-unused-function -g
+CFLAGS := -fPIC -O3 -nostdinc -nostdlib -nostartfiles -fvisibility=hidden -I deps/ckb-c-stdlib -I deps/ckb-c-stdlib/libc -I deps -I deps/ckb-c-stdlib/molecule -I c -I build -I deps/secp256k1/src -I deps/secp256k1 -Wall -Werror -Wno-nonnull -Wno-nonnull-compare -Wno-unused-function -g
 LDFLAGS := -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
 CFLAGS_BLST := -fno-builtin-printf -Ideps/blst/bindings -D__SHARED_LIBRARY__ $(CFLAGS)
 
@@ -15,15 +15,12 @@ all: build/libckb-lib-blst.a
 all-via-docker:
 	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make all"
 
-build/libckb-lib-blst.a: build/bls12_381_sighash_all.o
+build/libckb-lib-blst.a: build/bls12_381_sighash_all.o build/server-asm.o build/blst_mul_mont_384.o build/blst_mul_mont_384x.o
 	$(AR) rcs $@ $^
-
-build/bls12_381_sighash_all.o: c/bls12_381_sighash_all.c build/server-asm.o build/blst_mul_mont_384.o build/blst_mul_mont_384x.o
-	$(CC) $(CFLAGS_BLST) -c -o $@ $^
 	$(OBJCOPY) --strip-debug --strip-all $@
 
-build/server.o: deps/blst/src/server.c deps/blst/src/no_asm.h
-	$(CC) -c -DCKB_DECLARATION_ONLY $(CFLAGS_BLST)  $(LDFLAGS) -o $@ $<
+build/bls12_381_sighash_all.o: c/bls12_381_sighash_all.c
+	$(CC) $(CFLAGS_BLST) -c $(LDFLAGS) -o $@ $^
 
 build/server-asm.o: deps/blst/src/server.c deps/blst/src/no_asm.h
 	$(CC) -c -DUSE_MUL_MONT_384_ASM -DCKB_DECLARATION_ONLY $(CFLAGS_BLST) $(LDFLAGS) -o $@ $<
@@ -39,8 +36,7 @@ fmt:
 	git diff --exit-code $(wildcard c/*.h c/*.c)
 
 clean:
-	rm -rf build/*.debug
-	rm -f build/blst* build/server.o build/server-asm.o
+	rm -f build/bls* build/lib* build/server-asm.o
 
 dist: clean all
 
