@@ -152,11 +152,11 @@ int load_and_hash_witness(blake2b_state *ctx, size_t start, size_t index,
   return CKB_SUCCESS;
 }
 
-int verify_bls12_381_blake160_sighash_all(uint8_t *pubkey_hash,
-                                          uint8_t *signature_bytes) {
+int verify_bls12_381_blake160_sighash_all(uint8_t *pubkey_hash) {
   int ret;
   uint64_t len = 0;
   unsigned char temp[MAX_WITNESS_SIZE];
+  unsigned char lock_bytes[BLST_SIGNAUTRE_SIZE];
   uint64_t read_len = MAX_WITNESS_SIZE;
   uint64_t witness_len = MAX_WITNESS_SIZE;
 
@@ -179,6 +179,8 @@ int verify_bls12_381_blake160_sighash_all(uint8_t *pubkey_hash,
   if (lock_bytes_seg.size < BLST_SIGNAUTRE_SIZE) {
     return ERROR_IDENTITY_ARGUMENTS_LEN;
   }
+  memcpy(lock_bytes, lock_bytes_seg.ptr, lock_bytes_seg.size);
+
   /* Load tx hash */
   unsigned char tx_hash[BLAKE2B_BLOCK_SIZE];
   len = BLAKE2B_BLOCK_SIZE;
@@ -241,7 +243,7 @@ int verify_bls12_381_blake160_sighash_all(uint8_t *pubkey_hash,
 
   blake2b_final(&blake2b_ctx, message, BLAKE2B_BLOCK_SIZE);
 
-  const uint8_t *pubkey = signature_bytes;
+  const uint8_t *pubkey = lock_bytes;
   const uint8_t *sig = pubkey + BLST_PUBKEY_SIZE;
 
   BLST_ERROR err = blst_verify(sig, pubkey, message, BLAKE2B_BLOCK_SIZE);

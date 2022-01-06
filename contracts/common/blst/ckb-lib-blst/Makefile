@@ -1,4 +1,4 @@
-TARGET := riscv64-unknown-elf
+TARGET := riscv64-unknown-linux-gnu
 CC := $(TARGET)-gcc
 LD := $(TARGET)-gcc
 AR := $(TARGET)-ar
@@ -10,12 +10,12 @@ CFLAGS_BLST := -fno-builtin-printf -Ideps/blst/bindings -D__SHARED_LIBRARY__ $(C
 # docker pull nervos/ckb-riscv-gnu-toolchain:gnu-bionic-20191012
 BUILDER_DOCKER := nervos/ckb-riscv-gnu-toolchain@sha256:aae8a3f79705f67d505d1f1d5ddc694a4fd537ed1c7e9622420a470d59ba2ec3
 
-all: build/libbls12_381_sighash_all.a
+all: build/libckb-lib-blst.a
 
 all-via-docker:
-	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make"
+	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make all"
 
-build/libbls12_381_sighash_all.a: build/bls12_381_sighash_all.o
+build/libckb-lib-blst.a: build/bls12_381_sighash_all.o
 	$(AR) rcs $@ $^
 
 build/bls12_381_sighash_all.o: c/bls12_381_sighash_all.c build/server-asm.o build/blst_mul_mont_384.o build/blst_mul_mont_384x.o

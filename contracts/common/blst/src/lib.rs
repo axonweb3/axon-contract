@@ -7,7 +7,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-#[link(name = "bls12_381_sighash_all", kind = "static")]
+#[link(name = "ckb-lib-blst", kind = "static")]
 extern "C" {
     fn verify_bls12_381_blake160_sighash_all(pubkey_hash: *const u8) -> i32;
 }
