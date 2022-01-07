@@ -55,11 +55,14 @@ impl StakeInfoObject {
 
 impl Ord for StakeInfoObject {
     fn cmp(&self, other: &Self) -> Ordering {
-        match other.stake_amount.cmp(&self.stake_amount) {
-            Ordering::Equal => other.identity.cmp(&self.identity),
-            Ordering::Less => Ordering::Less,
-            Ordering::Greater => Ordering::Greater,
-        }
+		let mut order = other.stake_amount.cmp(&self.stake_amount);
+		if let Ordering::Equal = order {
+            order = other.identity.cmp(&self.identity);
+			if let Ordering::Equal = order {
+				order = other.inauguration_era.cmp(&self.inauguration_era);
+			}
+		}
+		order
     }
 }
 
