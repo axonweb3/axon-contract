@@ -21,7 +21,9 @@ pub enum Error {
     StakeInfoMatchError,
     StakeInfoQuorumError,
     InvaidStakeATAmount,
+    StakeATCellError,
     WithdrawCellError,
+    WithdrawCellSudtMismatch,
 }
 
 impl From<SysError> for Error {

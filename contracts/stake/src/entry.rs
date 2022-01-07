@@ -191,18 +191,18 @@ pub fn main() -> Result<(), Error> {
                 &input_stake_data.sudt_type_hash(),
                 &node_stake_info.identity,
                 Source::Output,
-            );
+            )?;
             if output_sudt != valid_stake_amount {
                 return Err(Error::InvaidStakeATAmount);
             }
 
-            // check withdraw AT amount
+            // check stake AT amount of inputs
             let input_sudt = get_total_sudt_by_type_hash(
                 &script.code_hash().unpack(),
                 &input_stake_data.sudt_type_hash(),
                 &node_stake_info.identity,
                 Source::Input,
-            );
+            )?;
 
             // check if it's withdraw operation
             if input_sudt > output_sudt {
@@ -222,7 +222,7 @@ pub fn main() -> Result<(), Error> {
                     Source::Output,
                 )?;
                 if input_sudt - output_sudt != total_sudt {
-                    return Err(Error::WithdrawCellError);
+                    return Err(Error::WithdrawCellSudtMismatch);
                 }
             }
         }

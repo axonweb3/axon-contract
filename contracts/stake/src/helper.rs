@@ -55,7 +55,11 @@ impl StakeInfoObject {
 
 impl Ord for StakeInfoObject {
     fn cmp(&self, other: &Self) -> Ordering {
-        other.stake_amount.cmp(&self.stake_amount)
+        match other.stake_amount.cmp(&self.stake_amount) {
+            Ordering::Equal => other.identity.cmp(&self.identity),
+            Ordering::Less => Ordering::Less,
+            Ordering::Greater => Ordering::Greater,
+        }
     }
 }
 
@@ -87,22 +91,32 @@ pub fn get_total_sudt_by_type_hash(
     sudt_type_hash: &Vec<u8>,
     identity: &[u8; 21],
     source: Source,
-) -> u128 {
+) -> Result<u128, Error> {
     let mut sudt = 0;
     QueryIter::new(load_cell_type_hash, source)
         .enumerate()
-        .for_each(|(i, type_hash)| {
+        .map(|(i, type_hash)| {
             if type_hash.unwrap_or([0u8; 32]) == sudt_type_hash.as_slice() {
                 let lock = load_cell_lock(i, source).unwrap();
-                if &lock.code_hash().unpack() == stake_code_hash
-                    && lock.args().raw_data().to_vec()[..21] == identity[..]
-                {
-                    let data = load_cell_data(i, source).unwrap();
-                    sudt += bytes_to_u128(&data[..16].to_vec());
+                if &lock.code_hash().unpack() == stake_code_hash {
+                    // lock_args = admin_identity | checkpoint_type_hash | node_identity
+                    let lock_args = lock.args().raw_data().to_vec();
+                    if lock_args.len() < 74 {
+                        return Err(Error::StakeATCellError);
+                    }
+                    if lock_args[53..] == identity[..] {
+                        let data = load_cell_data(i, source).unwrap();
+                        if data.len() < 16 {
+                            return Err(Error::StakeATCellError);
+                        }
+                        sudt += bytes_to_u128(&data[..16].to_vec());
+                    }
                 }
             }
-        });
-    sudt
+            Ok(())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(sudt)
 }
 
 pub fn get_checkpoint_from_celldeps(
@@ -240,7 +254,7 @@ pub fn calc_withdrawal_lock_hash(
         .code_hash(Byte32::new_unchecked(
             withdrawal_code_hash.as_slice().into(),
         ))
-        .hash_type(ScriptHashType::Data.into())
+        .hash_type(ScriptHashType::Type.into())
         .args(withdrawal_lock_args.as_slice().pack())
         .build();
     let mut lock_hash = [0u8; 32];
