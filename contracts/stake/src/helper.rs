@@ -287,7 +287,7 @@ pub fn get_withdrawal_total_sudt_amount(
                         return Err(Error::WithdrawCellError);
                     }
                     if period != bytes_to_u64(&data[16..24].to_vec()) {
-                        return Err(Error::WithdrawCellError);
+                        return Err(Error::WithdrawCellPeriodMismatch);
                     }
                     total_sudt += bytes_to_u128(&data[..16].to_vec());
                 }

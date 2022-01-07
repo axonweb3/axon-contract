@@ -23,6 +23,7 @@ pub enum Error {
     InvaidStakeATAmount,
     StakeATCellError,
     WithdrawCellError,
+    WithdrawCellPeriodMismatch,
     WithdrawCellSudtMismatch,
 }
 
