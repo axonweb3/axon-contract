@@ -160,9 +160,9 @@ dependencies = [
 name = "checkpoint"
 version = "0.1.0"
 dependencies = [
+ "blst",
  "ckb-std",
  "protocol",
- "secp256k1 0.1.0",
 ]
 
 [[package]]

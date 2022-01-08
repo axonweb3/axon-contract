@@ -144,7 +144,7 @@ pub fn main() -> Result<(), Error> {
     // admin mode
     if is_admin_mode {
         // check admin signature
-        if !secp256k1::verify_signature(&mut admin_identity.content()) {
+        if !blst::verify_secp256k1_signature(&mut admin_identity.content()) {
             return Err(Error::SignatureMismatch);
         }
         // check AT amount
@@ -153,10 +153,13 @@ pub fn main() -> Result<(), Error> {
         }
     // checkpoint mode
     } else {
-        let checkpoint = witness_args.lock().to_opt();
-        if checkpoint.is_none() {
-            return Err(Error::WitnessLockError);
+		/////////////////////////////////////////////////////////////////
+		// FOR TEST
+        if !blst::verify_blst_signature(&mut admin_identity.content()) {
+            return Err(Error::SignatureMismatch);
         }
+		/////////////////////////////////////////////////////////////////
+
         if input_checkpoint_data.state() != output_checkpoint_data.state()
             || input_checkpoint_data.unlock_period() != output_checkpoint_data.unlock_period()
         {

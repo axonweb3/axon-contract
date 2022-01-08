@@ -1,5 +1,19 @@
 {
 	"files.associations": {
-		"rc_lock_mol2.h": "c"
+		"rc_lock_mol2.h": "c",
+		"blockchain-api2.h": "c",
+		"molecule2_reader.h": "c",
+		"blockchain.h": "c",
+		"molecule_reader.h": "c",
+		"molecule_builder.h": "c",
+		"ckb_consts.h": "c",
+		"ckb_syscalls.h": "c",
+		"blst.h": "c",
+		"blake2b.h": "c",
+		"stdio.h": "c",
+		"stddef.h": "c",
+		"secp256k1_helper.h": "c",
+		"secp256k1_lock.h": "c",
+		"secp256k1.c": "cpp"
 	}
 }
