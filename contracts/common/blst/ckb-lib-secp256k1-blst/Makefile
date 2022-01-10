@@ -12,7 +12,7 @@ CFLAGS_BLST := -mno-relax -fno-builtin-printf -Ickb-production-scripts/deps/blst
 
 CKB_SCRIPT_SECP256K1 := ckb-production-scripts/deps/secp256k1
 PROTOCOL_HEADER := ckb-production-scripts/c/blockchain.h
-BUILDER_DOCKER := jjy0/ckb-capsule-recipe-rust:2020-9-28
+BUILDER_DOCKER := thewawar/ckb-capsule:2021-12-25
 
 all: build/libckb-lib-secp256k1-blst.a
 
