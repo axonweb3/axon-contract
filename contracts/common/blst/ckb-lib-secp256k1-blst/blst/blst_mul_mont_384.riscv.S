@@ -3,7 +3,7 @@
 # special directive: ['.globl', 'blst_mul_mont_384']
 # blst_mul_mont_384:    
 .globl    blst_mul_mont_384
-.align    4
+#.align    4
 blst_mul_mont_384:
 addi sp, sp, -8
 sd ra, 0(sp)
@@ -62,7 +62,7 @@ addi sp, sp, 8
 ret    
 # __blst_mulq_mont_384:    
 .globl    __blst_mulq_mont_384
-.align    4
+#.align    4
 __blst_mulq_mont_384:
 addi sp, sp, -8
 sd ra, 0(sp)

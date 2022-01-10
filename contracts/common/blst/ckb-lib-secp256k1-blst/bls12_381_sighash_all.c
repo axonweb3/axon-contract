@@ -8,6 +8,7 @@
 int ckb_exit(signed char);
 
 // clang-format off
+#include <stdio.h>
 #include "blake2b.h"
 #include "blockchain.h"
 #include "ckb_consts.h"
