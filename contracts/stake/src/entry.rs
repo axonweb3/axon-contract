@@ -14,8 +14,15 @@ use ckb_std::{
     high_level::{load_cell_type_hash, load_script, load_witness_args, QueryIter},
 };
 
-use crate::{error::Error, helper::*};
+use util::{error::Error, helper::*};
 use protocol::{reader as axon, Cursor};
+
+pub enum MODE {
+    UPDATE,
+    BURN,
+    ADMIN,
+    COMPANION,
+}
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
@@ -63,7 +70,7 @@ pub fn main() -> Result<(), Error> {
         MODE::ADMIN => {
             debug!("admin mode");
             // check admin signature
-            if !secp256k1::verify_signature(&mut admin_identity.content()) {
+            if !secp256k1::verify_signature(&admin_identity.content()) {
                 return Err(Error::SignatureMismatch);
             }
             let input_stake_data =
@@ -82,7 +89,7 @@ pub fn main() -> Result<(), Error> {
         MODE::BURN => {
             debug!("burn mode");
             // check admin signature
-            if !secp256k1::verify_signature(&mut admin_identity.content()) {
+            if !secp256k1::verify_signature(&admin_identity.content()) {
                 return Err(Error::SignatureMismatch);
             }
             let mut at_cell_count = 0;
@@ -98,7 +105,7 @@ pub fn main() -> Result<(), Error> {
         MODE::COMPANION => {
             debug!("companion mode");
             // check normal signature
-            if !secp256k1::verify_signature(&mut node_identity.unwrap().content()) {
+            if !secp256k1::verify_signature(&node_identity.unwrap().content()) {
                 return Err(Error::SignatureMismatch);
             }
             let mut find_type_hash = false;
@@ -186,7 +193,7 @@ pub fn main() -> Result<(), Error> {
             });
 
             // check valid stake_amount from stake AT cells in output
-            let output_sudt = get_total_sudt_by_type_hash(
+            let output_sudt = get_total_sudt_by_identity(
                 &script.code_hash().unpack(),
                 &input_stake_data.sudt_type_hash(),
                 &node_stake_info.identity,
@@ -197,7 +204,7 @@ pub fn main() -> Result<(), Error> {
             }
 
             // check stake AT amount of inputs
-            let input_sudt = get_total_sudt_by_type_hash(
+            let input_sudt = get_total_sudt_by_identity(
                 &script.code_hash().unpack(),
                 &input_stake_data.sudt_type_hash(),
                 &node_stake_info.identity,

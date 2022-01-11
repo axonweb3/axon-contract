@@ -13,8 +13,6 @@
 
 // define modules
 mod entry;
-mod error;
-mod helper;
 
 use ckb_std::default_alloc;
 

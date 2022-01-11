@@ -47,6 +47,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f59bbe95d4e52a6398ec21238d31577f2b28a9d86807f06ca59d191d8440d0bb"
 
 [[package]]
+name = "bit-vec"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -178,11 +184,13 @@ dependencies = [
 name = "checkpoint"
 version = "0.1.0"
 dependencies = [
+ "bit-vec 0.6.3",
  "blst 0.1.0",
  "ckb-std",
  "keccak-hash",
  "protocol",
  "rlp",
+ "util",
 ]
 
 [[package]]
@@ -526,7 +534,7 @@ version = "0.100.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "048653106f001c8e0c4d26853d187fd9216d18ee64318dc7a0cda8676f95a31f"
 dependencies = [
- "bit-vec",
+ "bit-vec 0.5.1",
  "bitflags",
  "bytes",
  "ckb-channel",
@@ -1558,6 +1566,7 @@ version = "0.1.0"
 dependencies = [
  "ckb-std",
  "protocol",
+ "util",
 ]
 
 [[package]]
@@ -1632,10 +1641,10 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 name = "stake"
 version = "0.1.0"
 dependencies = [
- "blake2b-ref 0.3.0",
  "ckb-std",
  "protocol",
  "secp256k1 0.1.0",
+ "util",
 ]
 
 [[package]]
@@ -1857,6 +1866,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
 
 [[package]]
+name = "util"
+version = "0.1.0"
+dependencies = [
+ "blake2b-ref 0.3.0",
+ "ckb-std",
+ "protocol",
+]
+
+[[package]]
 name = "vcpkg"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1993,6 +2011,7 @@ dependencies = [
  "ckb-std",
  "protocol",
  "secp256k1 0.1.0",
+ "util",
 ]
 
 [[package]]

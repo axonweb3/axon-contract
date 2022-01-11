@@ -8,3 +8,4 @@ edition = "2018"
 [dependencies]
 ckb-std = "0.9.0"
 protocol = { path = "../common/protocol" }
+util = { path = "../common/util" }

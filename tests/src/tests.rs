@@ -1,5 +1,5 @@
 use super::*;
-use blst::min_pk::{AggregatePublicKey, SecretKey};
+use blst::min_pk::SecretKey;
 use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};

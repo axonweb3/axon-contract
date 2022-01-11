@@ -69,8 +69,8 @@ const static uint8_t g_dst_label[] =
     "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
 const static size_t g_dst_label_len = 43;
 
-static BLST_ERROR blst_verify_aggregate(const uint8_t *sig, const uint8_t *pks,
-                                        size_t pks_len, const uint8_t *msg, size_t msg_len) {
+int blst_verify_aggregate(const uint8_t *sig, const uint8_t *pks,
+                          size_t pks_len, const uint8_t *msg, size_t msg_len) {
 	if (pks_len == 0) {
 		return ERROR_BLST_AGGREGATE_FAILED;
 	}
@@ -165,7 +165,7 @@ int load_and_hash_witness(blake2b_state *ctx, size_t start, size_t index,
   return CKB_SUCCESS;
 }
 
-int verify_bls12_381_blake160_sighash_all(uint8_t *pubkey_hash) {
+int verify_bls12_381_blake160_sighash_all(const uint8_t *pubkey_hash) {
   int ret;
   uint64_t len = 0;
   unsigned char temp[MAX_WITNESS_SIZE];

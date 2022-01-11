@@ -17,61 +17,13 @@ use ckb_std::{
     },
 };
 
-use crate::error::Error;
+use util::{error::Error, helper::*};
 use protocol::{reader as axon, Cursor};
 
 enum MODE {
     ACP,
     BURN,
     UNLOCK,
-}
-
-fn bytes_to_u128(bytes: &Vec<u8>) -> u128 {
-    let mut array: [u8; 16] = [0u8; 16];
-    array.copy_from_slice(bytes.as_slice());
-    u128::from_le_bytes(array)
-}
-
-fn bytes_to_u64(bytes: &Vec<u8>) -> u64 {
-    let mut array: [u8; 8] = [0u8; 8];
-    array.copy_from_slice(bytes.as_slice());
-    u64::from_le_bytes(array)
-}
-
-fn get_total_sudt_by_script_hash(
-    cell_lock_hash: &[u8; 32],
-    cell_type_hash: &[u8; 32],
-    source: Source,
-) -> Result<u128, Error> {
-    let total_amount = QueryIter::new(load_cell_lock_hash, source)
-        .enumerate()
-        .map(|(i, lock_hash)| {
-            let mut amount = 0;
-            if &lock_hash == cell_lock_hash {
-                let type_hash = {
-                    let type_hash = load_cell_type_hash(i, source);
-                    if let Err(_) = type_hash {
-                        return Err(Error::BadWithdrawalTypeHash);
-                    }
-                    match type_hash.unwrap() {
-                        Some(value) => value,
-                        None => return Err(Error::SomeWithdrawalTypeEmpty),
-                    }
-                };
-                if &type_hash == cell_type_hash {
-                    let data = load_cell_data(i, source);
-                    if data.is_err() || data.as_ref().unwrap().len() != 24 {
-                        return Err(Error::BadWithdrawalData);
-                    }
-                    amount = bytes_to_u128(&data.unwrap()[..16].to_vec());
-                }
-            }
-            Ok(amount)
-        })
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .sum::<u128>();
-    Ok(total_amount)
 }
 
 pub fn main() -> Result<(), Error> {
@@ -114,7 +66,7 @@ pub fn main() -> Result<(), Error> {
         MODE::BURN => {
             debug!("burn mode");
             // check admin signature
-            if !secp256k1::verify_signature(&mut admin_identity.content()) {
+            if !secp256k1::verify_signature(&admin_identity.content()) {
                 return Err(Error::SignatureMismatch);
             }
             let mut at_cell_count = 0;
@@ -133,7 +85,7 @@ pub fn main() -> Result<(), Error> {
                 return Err(Error::NodeIdentityEmpty);
             }
             // check normal signature
-            if !secp256k1::verify_signature(&mut node_identity.unwrap().content()) {
+            if !secp256k1::verify_signature(&node_identity.unwrap().content()) {
                 return Err(Error::SignatureMismatch);
             }
             // load checkpoint cell_data from celldeps

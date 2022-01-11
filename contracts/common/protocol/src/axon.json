@@ -40,9 +40,9 @@
     },
     {
       "type": "array",
-      "name": "Byte97",
+      "name": "Byte48",
       "item": "byte",
-      "item_count": 97
+      "item_count": 48
     },
     {
       "type": "table",
@@ -72,7 +72,7 @@
         },
         {
           "name": "bls_pub_key",
-          "type": "Byte97"
+          "type": "Byte48"
         },
         {
           "name": "stake_amount",

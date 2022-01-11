@@ -4,7 +4,7 @@ array Byte10 [byte; 10];
 array Byte16 [byte; 16];
 array Byte20 [byte; 20];
 array Byte32 [byte; 32];
-array Byte97 [byte; 97];
+array Byte48 [byte; 48];
 
 table Identity {
 	flag:    byte,
@@ -14,7 +14,7 @@ table Identity {
 table StakeInfo {
 	identity:         Identity,
 	l2_address:       Byte20,
-	bls_pub_key:      Byte97,
+	bls_pub_key:      Byte48,
 	stake_amount:     Byte16,
 	inauguration_era: Byte8,
 }

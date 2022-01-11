@@ -143,23 +143,23 @@ impl Byte32 {
     }
 }
 
-pub struct Byte97 {
+pub struct Byte48 {
     pub cursor: Cursor,
 }
 
-impl From<Cursor> for Byte97 {
+impl From<Cursor> for Byte48 {
     fn from(cursor: Cursor) -> Self {
         Self { cursor }
     }
 }
 
-impl Byte97 {
+impl Byte48 {
     pub fn len(&self) -> usize {
-        97
+        48
     }
 }
 
-impl Byte97 {
+impl Byte48 {
     pub fn get(&self, index: usize) -> u8 {
         let cur = self.cursor.slice_by_offset(1 * index, 1).unwrap();
         cur.into()
