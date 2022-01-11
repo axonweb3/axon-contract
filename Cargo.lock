@@ -59,6 +59,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95916998c798756098a4eb1b3f2cd510659705a9817bf203d61abd30fbec3e7b"
 
 [[package]]
+name = "blake2b-ref"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88756126a7634ad9c13ed0a6da9aa3376a6b7000eb5fcdbb89d153196326bbcd"
+
+[[package]]
 name = "blake2b-rs"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -320,7 +326,7 @@ version = "0.100.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df37898d25ee742d94857cb2b41090e59b270eeb1f3e4b8a7422f53ea0e98364"
 dependencies = [
- "blake2b-ref",
+ "blake2b-ref 0.2.1",
  "blake2b-rs",
 ]
 
@@ -1327,6 +1333,7 @@ dependencies = [
 name = "protocol"
 version = "0.1.0"
 dependencies = [
+ "molecule",
  "molecule2",
 ]
 
@@ -1625,6 +1632,7 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 name = "stake"
 version = "0.1.0"
 dependencies = [
+ "blake2b-ref 0.3.0",
  "ckb-std",
  "protocol",
  "secp256k1 0.1.0",

@@ -9,3 +9,4 @@ edition = "2018"
 ckb-std = "0.9.0"
 protocol = { path = "../common/protocol" }
 secp256k1 = { path = "../common/secp256k1" }
+blake2b-ref = { version = "0.3", default-features = false }

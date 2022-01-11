@@ -12,15 +12,19 @@ pub enum Error {
     SignatureMismatch,
     TypeScriptEmpty,
     ATCellShouldEmpty,
-    StakeDataError,
-    CheckpointDataError,
     CheckpointDataEmpty,
     StakeDataEmpty,
     UnknownMode,
     AdminModeError,
     CompanionModeError,
-    UpdateModeError,
-    DumplicateInputStakeInfo,
+    StakeInfoDumplicateError,
+    StakeInfoMatchError,
+    StakeInfoQuorumError,
+    InvaidStakeATAmount,
+    StakeATCellError,
+    WithdrawCellError,
+    WithdrawCellPeriodMismatch,
+    WithdrawCellSudtMismatch,
 }
 
 impl From<SysError> for Error {

@@ -18,7 +18,7 @@ use ckb_std::{
 };
 
 use crate::error::Error;
-use protocol::{axon, Cursor};
+use protocol::{reader as axon, Cursor};
 use keccak_hash::keccak;
 use rlp::Rlp;
 
@@ -79,7 +79,6 @@ fn get_sudt_by_type_hash(type_hash: &Vec<u8>, source: Source) -> Result<u128, Er
     Ok(sudt)
 }
 
-fn get_stake
 
 fn bytes_to_u128(bytes: &Vec<u8>) -> u128 {
     let mut array: [u8; 16] = [0u8; 16];
