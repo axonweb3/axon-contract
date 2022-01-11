@@ -1,12 +1,14 @@
 use super::*;
+use blst::min_pk::{AggregatePublicKey, SecretKey};
 use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
+use rand::prelude::*;
 
-const MAX_CYCLES: u64 = 10_000_000;
+const MAX_CYCLES: u64 = 100_000_000;
 
 #[test]
 fn test_selection_success() {
@@ -124,7 +126,19 @@ fn test_checkpoint_success() {
         .build();
 
     // prepare checkpoint_args and checkpoint_data
-    let keypair = Generator::random_keypair();
+    let keypair = {
+        // generate secp256k1 keypair
+        // let kp = Generator::random_keypair();
+        // (kp.0, kp.1.serialize())
+
+        // generate blst keypair
+        let mut rng = thread_rng();
+        let mut ikm = [0u8; 32];
+        rng.fill_bytes(&mut ikm);
+        let sk = SecretKey::key_gen(&ikm, &[]).unwrap();
+        let pk = sk.sk_to_pk();
+        (sk, pk.compress().to_vec())
+    };
     let checkpoint_args = axon::CheckpointLockArgs::new_builder()
         .admin_identity(axon_identity(&keypair.1))
         .type_id_hash(axon_byte32(&type_id_type_script.calc_script_hash()))
@@ -207,7 +221,14 @@ fn test_checkpoint_success() {
         .cell_dep(secp256k1_data_dep)
         .build();
     let tx = context.complete_tx(tx);
-    let tx = sign_tx(tx, &keypair.0, 0);
+
+    let tx = {
+        // sign tx with secp256k1 private key
+        // sign_tx(tx, &keypair.0, 0)
+
+        // sign tx with blst private key
+        blst_sign_tx(tx, &keypair.0, 1)
+    };
 
     // run
     let cycles = context
@@ -247,9 +268,9 @@ fn test_withdrawal_success() {
     // prepare checkpoint_args and checkpoint_data
     let keypair = Generator::random_keypair();
     let withdrawal_args = axon::WithdrawalLockArgs::new_builder()
-        .admin_identity(axon_identity(&keypair.1))
+        .admin_identity(axon_identity(&keypair.1.serialize()))
         .checkpoint_cell_type_hash(axon_byte32(&type_id_type_script.calc_script_hash()))
-        .node_identity(axon_identity_opt(&keypair.1))
+        .node_identity(axon_identity_opt(&keypair.1.serialize()))
         .build();
     let withdrawal_data = axon_withdrawal_data(1);
 
@@ -349,9 +370,9 @@ fn test_stake_success() {
     // prepare checkpoint_args and checkpoint_data
     let keypair = Generator::random_keypair();
     let stake_args = axon::StakeLockArgs::new_builder()
-        .admin_identity(axon_identity(&keypair.1))
+        .admin_identity(axon_identity(&keypair.1.serialize()))
         .type_id_hash(axon_byte32(&type_id_type_script.calc_script_hash()))
-        .node_identity(axon_identity_opt(&keypair.1))
+        .node_identity(axon_identity_opt(&keypair.1.serialize()))
         .build();
     let stake_data = axon_stake_data(70, &type_id_type_script.calc_script_hash(), vec![]);
 

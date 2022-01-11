@@ -85,6 +85,11 @@
       ]
     },
     {
+      "type": "fixvec",
+      "name": "Bytes",
+      "item": "byte"
+    },
+    {
       "type": "dynvec",
       "name": "StakeInfoVec",
       "item": "StakeInfo"
@@ -225,6 +230,20 @@
         {
           "name": "withdrawal_lock_code_hash",
           "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "CheckpointLockWitnessLock",
+      "fields": [
+        {
+          "name": "proposal",
+          "type": "Bytes"
+        },
+        {
+          "name": "proof",
+          "type": "Bytes"
         }
       ]
     },

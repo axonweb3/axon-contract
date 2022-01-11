@@ -189,7 +189,8 @@ pub fn main() -> Result<(), Error> {
             if !secp256k1::verify_signature(&mut admin_identity.content()) {
                 return Err(Error::SignatureMismatch);
             }
-            let input_stake_data = get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Input)?;
+            let input_stake_data =
+                get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Input)?;
             let output_stake_data =
                 get_stake_data_by_type_hash(&typeid_or_at_type_hash, Source::Output)?;
             if input_stake_data.version() != output_stake_data.version()

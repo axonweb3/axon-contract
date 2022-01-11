@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
 use crate::axon;
-use ckb_testtool::ckb_crypto::secp::{Privkey, Pubkey};
+use blst::min_pk::SecretKey;
+use ckb_testtool::ckb_crypto::secp::Privkey;
 use ckb_testtool::ckb_hash::{blake2b_256, new_blake2b};
 use ckb_testtool::ckb_types::{
     bytes::Bytes,
@@ -32,16 +33,15 @@ pub fn axon_byte8(value: u64) -> axon::Byte8 {
     axon::Byte8::new_unchecked(value.to_le_bytes().to_vec().into())
 }
 
-pub fn axon_identity(pubkey: &Pubkey) -> axon::Identity {
-    let compressed_pubkey = pubkey.serialize();
-    let pubkey_hash = blake160(compressed_pubkey.to_vec().as_slice());
+pub fn axon_identity(pubkey: &Vec<u8>) -> axon::Identity {
+    let pubkey_hash = blake160(pubkey.as_slice());
     axon::Identity::new_builder()
         .flag(Byte::from(0))
         .content(axon_byte20(&pubkey_hash))
         .build()
 }
 
-pub fn axon_identity_opt(pubkey: &Pubkey) -> axon::IdentityOpt {
+pub fn axon_identity_opt(pubkey: &Vec<u8>) -> axon::IdentityOpt {
     axon::IdentityOpt::new_builder()
         .set(Some(axon_identity(pubkey)))
         .build()
@@ -110,6 +110,48 @@ pub fn sign_tx(tx: TransactionView, key: &Privkey, mode: u8) -> TransactionView 
         witness
             .as_builder()
             .lock(Some(Bytes::from(sig.serialize())).pack())
+            .build()
+            .as_bytes()
+            .pack(),
+    );
+    tx.as_advanced_builder()
+        .set_witnesses(signed_witnesses)
+        .build()
+}
+
+pub fn blst_sign_tx(tx: TransactionView, key: &SecretKey, mode: u8) -> TransactionView {
+    let mut signed_witnesses: Vec<packed::Bytes> = Vec::new();
+    let mut blake2b = new_blake2b();
+    blake2b.update(&tx.hash().raw_data());
+    // digest the first witness
+    let witness = WitnessArgs::new_builder()
+        .lock(Some(Bytes::from(vec![0u8; 144])).pack())
+        .input_type(Some(Bytes::from(vec![mode])).pack())
+        .build();
+    let witness_size = witness.as_bytes().len() as u64;
+    let mut message = [0u8; 32];
+    blake2b.update(&witness_size.to_le_bytes());
+    blake2b.update(&witness.as_bytes());
+    blake2b.finalize(&mut message);
+    let sig = key
+        .sign(
+            &message,
+            b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_",
+            &[],
+        )
+        .compress();
+    let pubkey = key.sk_to_pk().compress();
+    let compose = {
+        let mut value = [0u8; 144];
+        value[..48].copy_from_slice(&pubkey);
+        value[48..].copy_from_slice(&sig);
+        assert!(value != [0u8; 144]);
+        value.to_vec()
+    };
+    signed_witnesses.push(
+        witness
+            .as_builder()
+            .lock(Some(Bytes::from(compose)).pack())
             .build()
             .as_bytes()
             .pack(),

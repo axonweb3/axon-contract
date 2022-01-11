@@ -19,6 +19,7 @@ table StakeInfo {
 	inauguration_era: Byte8,
 }
 
+vector Bytes <byte>;
 vector StakeInfoVec <StakeInfo>;
 option IdentityOpt (Identity);
 
@@ -70,6 +71,11 @@ table CheckpointLockCellData {
 	sudt_type_hash:  Byte32,
 	stake_type_hash: Byte32,
 	withdrawal_lock_code_hash: Byte32,
+}
+
+table CheckpointLockWitnessLock {
+	proposal: Bytes,
+	proof:    Bytes,
 }
 
 ////////////////////

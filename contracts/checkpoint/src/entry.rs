@@ -19,6 +19,8 @@ use ckb_std::{
 
 use crate::error::Error;
 use protocol::{axon, Cursor};
+use keccak_hash::keccak;
+use rlp::Rlp;
 
 fn get_info_by_type_hash(
     type_hash: &Vec<u8>,
@@ -76,6 +78,8 @@ fn get_sudt_by_type_hash(type_hash: &Vec<u8>, source: Source) -> Result<u128, Er
         .collect::<Result<Vec<_>, _>>()?;
     Ok(sudt)
 }
+
+fn get_stake
 
 fn bytes_to_u128(bytes: &Vec<u8>) -> u128 {
     let mut array: [u8; 16] = [0u8; 16];
@@ -136,13 +140,9 @@ pub fn main() -> Result<(), Error> {
     let input_at_amount = get_sudt_by_type_hash(&sudt_type_hash, Source::Input)?;
     let output_at_amount = get_sudt_by_type_hash(&sudt_type_hash, Source::Output)?;
 
-    debug!(
-        "input_at_amount = {}, output_at_amount = {}",
-        input_at_amount, output_at_amount
-    );
-
     // admin mode
     if is_admin_mode {
+        debug!("admin mode");
         // check admin signature
         if !blst::verify_secp256k1_signature(&mut admin_identity.content()) {
             return Err(Error::SignatureMismatch);
@@ -153,13 +153,7 @@ pub fn main() -> Result<(), Error> {
         }
     // checkpoint mode
     } else {
-		/////////////////////////////////////////////////////////////////
-		// FOR TEST
-        if !blst::verify_blst_signature(&mut admin_identity.content()) {
-            return Err(Error::SignatureMismatch);
-        }
-		/////////////////////////////////////////////////////////////////
-
+        debug!("checkpoint mode");
         if input_checkpoint_data.state() != output_checkpoint_data.state()
             || input_checkpoint_data.unlock_period() != output_checkpoint_data.unlock_period()
         {
@@ -169,9 +163,23 @@ pub fn main() -> Result<(), Error> {
         // 加载 witness 中的 checkpoint（不能为空），解析 checkpoint（rlp 编码），获得 L2_block_hash, L2_block_number, L2_signature,
         // L2_bitmap（参与聚合签名的共识节点编号）, L2_last_checkpoint_block_hash, L2_proposer 等字段。根据 L2 的 block_hash 计算规则
         // 计算 block_hash（Kaccak 哈希算法），验证是否等于 L2_block_hash。
+		let (proposal, proof) = {
+			let witness_lock = witness_args.lock().to_opt();
+			if witness_lock.is_none() {
+				return Err(Error::WitnessLockError);
+			}
+			let value: axon::CheckpointLockWitnessLock = 
+				Cursor::from(witness_lock.unwrap().raw_data().to_vec());
+			(value.proposal(), value.proof())
+		};
+		let block_hash = Rlp::new(&proposal).at(2).map_err(|_| Error::ProposalRlpError)?;
+		if keccak(proposal.clone()).as_bytes().to_vec() != block_hash.as_raw() {
+			return Err(Error::BlockHashMismatch);
+		}
 
         // 根据 stake_type_hash 在 cell_deps 里查找 Stake Cell，根据规则计算出 output.era 的共识节点列表，验证 L2_bitmap 中参与共识的
         // 节点数量超过 2/3 的共识节点。根据 L2_bitmap 获得参与聚合签名的共识节点的 bls_puk_key，使用 BLS 聚合签名算法验签。
+
 
         // 验证 input.state == 0x01 && output.period == input.period + 1 && output.era == ⌊output.period/era_period⌋ && output.block_hash
         // == L2_block_hash && output.period * period_interval == L2_block_number && input.block_hash == L2_last_checkpoint_block_hash

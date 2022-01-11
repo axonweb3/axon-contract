@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -230,6 +231,29 @@ impl StakeInfo {
 impl StakeInfo {
     pub fn inauguration_era(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(4).unwrap();
+        cur.into()
+    }
+}
+
+pub struct Bytes {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for Bytes {
+    fn from(cursor: Cursor) -> Self {
+        Self { cursor }
+    }
+}
+
+impl Bytes {
+    pub fn len(&self) -> usize {
+        self.cursor.fixvec_length()
+    }
+}
+
+impl Bytes {
+    pub fn get(&self, index: usize) -> u8 {
+        let cur = self.cursor.fixvec_slice_by_index(1, index).unwrap();
         cur.into()
     }
 }
@@ -499,6 +523,32 @@ impl CheckpointLockCellData {
     pub fn withdrawal_lock_code_hash(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(13).unwrap();
         cur.into()
+    }
+}
+
+pub struct CheckpointLockWitnessLock {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for CheckpointLockWitnessLock {
+    fn from(cursor: Cursor) -> Self {
+        CheckpointLockWitnessLock { cursor }
+    }
+}
+
+impl CheckpointLockWitnessLock {
+    pub fn proposal(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        let cur2 = cur.convert_to_rawbytes().unwrap();
+        cur2.into()
+    }
+}
+
+impl CheckpointLockWitnessLock {
+    pub fn proof(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        let cur2 = cur.convert_to_rawbytes().unwrap();
+        cur2.into()
     }
 }
 

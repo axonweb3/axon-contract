@@ -15,6 +15,8 @@ pub enum Error {
     BadSudtDataFormat,
     BadWitnessInputType,
     WitnessLockError,
+	ProposalRlpError,
+	BlockHashMismatch,
     ATAmountMismatch,
     SignatureMismatch,
 }

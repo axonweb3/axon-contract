@@ -62,51 +62,81 @@ enum CkbIdentityErrorCode {
   ERROR_IDENTITY_LOCK_SCRIPT_HASH_NOT_FOUND = 70,
   ERROR_INVALID_MOL_FORMAT,
   ERROR_BLST_VERIFY_FAILED,
+  ERROR_BLST_AGGREGATE_FAILED,
 };
 
 const static uint8_t g_dst_label[] =
     "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
 const static size_t g_dst_label_len = 43;
 
-static BLST_ERROR blst_verify(const uint8_t *sig, const uint8_t *pk,
-                              const uint8_t *msg, size_t msg_len) {
-  BLST_ERROR err;
-  blst_p1_affine pk_p1_affine;
-  blst_p1_uncompress(&pk_p1_affine, pk);
-  blst_p2_affine sig_p2_affine;
-  blst_p2_uncompress(&sig_p2_affine, sig);
+static BLST_ERROR blst_verify_aggregate(const uint8_t *sig, const uint8_t *pks,
+                                        size_t pks_len, const uint8_t *msg, size_t msg_len) {
+	if (pks_len == 0) {
+		return ERROR_BLST_AGGREGATE_FAILED;
+	}
+	blst_p1 pk_p1_agg;
+	for (size_t i = 0; i < pks_len; ++i) {
+		const uint8_t *pk = &pks[i * BLST_PUBKEY_SIZE];
+		blst_p1_affine pk_p1_affine;
+		blst_p1_uncompress(&pk_p1_affine, pk);
+		if (i == 0) {
+			blst_p1_from_affine(&pk_p1_agg, &pk_p1_affine);
+		} else {
+			blst_p1_add_or_double_affine(&pk_p1_agg, &pk_p1_agg, &pk_p1_affine);
+		}
+	}
+	blst_p1_affine pk_p1_affine;
+	blst_p1_to_affine(&pk_p1_affine, &pk_p1_agg);
+	blst_p2_affine sig_p2_affine;
+	blst_p2_uncompress(&sig_p2_affine, sig);
 
-#if 1
-  // using one-shot
-  err =
-      blst_core_verify_pk_in_g1(&pk_p1_affine, &sig_p2_affine, true, msg,
-                                msg_len, g_dst_label, g_dst_label_len, NULL, 0);
-  BLS_CHECK(err);
-#else
-  // using pairing interface
-
-  // pubkey must be checked
-  // signature will be checked internally later.
-  printf("using pairing interface\n");
-  uint8_t ctx_buff[blst_pairing_sizeof()];
-
-  bool in_g1 = blst_p1_affine_in_g1(&pk_p1_affine);
-  BLS_CHECK2(in_g1, -1);
-
-  blst_pairing *ctx = (blst_pairing *)ctx_buff;
-  blst_pairing_init(ctx, true, g_dst_label, g_dst_label_len);
-  err = blst_pairing_aggregate_pk_in_g1(ctx, &pk_p1_affine, &sig_p2_affine, msg,
-                                        msg_len, NULL, 0);
-  BLS_CHECK(err);
-  blst_pairing_commit(ctx);
-
-  bool b = blst_pairing_finalverify(ctx, NULL);
-  BLS_CHECK2(b, -1);
-#endif
+	BLST_ERROR err = blst_core_verify_pk_in_g1(&pk_p1_affine, &sig_p2_affine, true, msg,
+									           msg_len, g_dst_label, g_dst_label_len, NULL, 0);
+	BLS_CHECK(err);
 
 exit:
   return err;
 }
+
+// static BLST_ERROR blst_verify(const uint8_t *sig, const uint8_t *pk,
+//                               const uint8_t *msg, size_t msg_len) {
+//   BLST_ERROR err;
+//   blst_p1_affine pk_p1_affine;
+//   blst_p1_uncompress(&pk_p1_affine, pk);
+//   blst_p2_affine sig_p2_affine;
+//   blst_p2_uncompress(&sig_p2_affine, sig);
+
+// #if 1
+//   // using one-shot
+//   err =
+//       blst_core_verify_pk_in_g1(&pk_p1_affine, &sig_p2_affine, true, msg,
+//                                 msg_len, g_dst_label, g_dst_label_len, NULL, 0);
+//   BLS_CHECK(err);
+// #else
+//   // using pairing interface
+
+//   // pubkey must be checked
+//   // signature will be checked internally later.
+//   printf("using pairing interface\n");
+//   uint8_t ctx_buff[blst_pairing_sizeof()];
+
+//   bool in_g1 = blst_p1_affine_in_g1(&pk_p1_affine);
+//   BLS_CHECK2(in_g1, -1);
+
+//   blst_pairing *ctx = (blst_pairing *)ctx_buff;
+//   blst_pairing_init(ctx, true, g_dst_label, g_dst_label_len);
+//   err = blst_pairing_aggregate_pk_in_g1(ctx, &pk_p1_affine, &sig_p2_affine, msg,
+//                                         msg_len, NULL, 0);
+//   BLS_CHECK(err);
+//   blst_pairing_commit(ctx);
+
+//   bool b = blst_pairing_finalverify(ctx, NULL);
+//   BLS_CHECK2(b, -1);
+// #endif
+
+// exit:
+//   return err;
+// }
 
 int load_and_hash_witness(blake2b_state *ctx, size_t start, size_t index,
                           size_t source, bool hash_length) {
@@ -229,7 +259,7 @@ int verify_bls12_381_blake160_sighash_all(uint8_t *pubkey_hash) {
   const uint8_t *pubkey = lock_bytes;
   const uint8_t *sig = pubkey + BLST_PUBKEY_SIZE;
 
-  BLST_ERROR err = blst_verify(sig, pubkey, message, BLAKE2B_BLOCK_SIZE);
+  BLST_ERROR err = blst_verify_aggregate(sig, pubkey, 1, message, BLAKE2B_BLOCK_SIZE);
   if (err != 0) {
     return ERROR_BLST_VERIFY_FAILED;
   }

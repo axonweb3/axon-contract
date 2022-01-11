@@ -9,3 +9,5 @@ edition = "2018"
 ckb-std = "0.9.0"
 protocol = { path = "../common/protocol" }
 blst = { path = "../common/blst" }
+rlp = { version = "0.5.1", default-features = false }
+keccak-hash = { version = "0.8.0", default-features = false }
