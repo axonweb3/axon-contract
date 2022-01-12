@@ -8,16 +8,16 @@ pub enum Error {
     LengthNotEnough,
     Encoding,
 
-	// common
+    // common
     BadWitnessInputType,
     SignatureMismatch,
     TypeScriptEmpty,
     ATCellShouldEmpty,
 
-	// selection contract
+    // selection contract
     OmniCheckpointCountError,
 
-	// checkpoint contract
+    // checkpoint contract
     CheckpointCellError,
     CheckpointCapacityMismatch,
     CheckpointDataMismatch,
@@ -25,17 +25,17 @@ pub enum Error {
     CheckpointDataError,
     BadSudtDataFormat,
     WitnessLockError,
-	ProposalRlpError,
-	ProofRlpError,
-	BlockHashMismatch,
-	ActiveNodesNotEnough,
-	NodesBitmapMismatch,
+    ProposalRlpError,
+    ProofRlpError,
+    BlockHashMismatch,
+    ActiveNodesNotEnough,
+    NodesBitmapMismatch,
     ATAmountMismatch,
-	StakeCellDepEmpty,
-	ProposerAddressMismatch,
-	WithdrawalATAmountMismatch,
-    
-	// stake contract
+    StakeCellDepEmpty,
+    ProposerAddressMismatch,
+    WithdrawalATAmountMismatch,
+
+    // stake contract
     CheckpointDataEmpty,
     StakeDataEmpty,
     UnknownMode,
@@ -50,7 +50,7 @@ pub enum Error {
     WithdrawCellPeriodMismatch,
     WithdrawCellSudtMismatch,
 
-	// withdrawal contract
+    // withdrawal contract
     NodeIdentityEmpty,
     CheckpointCelldepEmpty,
     BadCheckpointCelldep,

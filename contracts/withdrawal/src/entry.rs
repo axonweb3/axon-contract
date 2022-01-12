@@ -17,8 +17,8 @@ use ckb_std::{
     },
 };
 
-use util::{error::Error, helper::*};
 use protocol::{reader as axon, Cursor};
+use util::{error::Error, helper::*};
 
 enum MODE {
     ACP,

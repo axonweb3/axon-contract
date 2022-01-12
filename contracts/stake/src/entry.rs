@@ -14,8 +14,8 @@ use ckb_std::{
     high_level::{load_cell_type_hash, load_script, load_witness_args, QueryIter},
 };
 
-use util::{error::Error, helper::*};
 use protocol::{reader as axon, Cursor};
+use util::{error::Error, helper::*};
 
 pub enum MODE {
     UPDATE,

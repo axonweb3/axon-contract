@@ -10,8 +10,8 @@ use ckb_std::{
     high_level::{load_cell_lock_hash, load_script, QueryIter},
 };
 
-use util::error::Error;
 use protocol::{reader as axon, Cursor};
+use util::error::Error;
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;

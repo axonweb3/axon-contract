@@ -1,4 +1,5 @@
 extern crate alloc;
+use crate::error::Error;
 use alloc::{
     collections::{btree_map::BTreeMap, BTreeSet},
     vec,
@@ -13,16 +14,15 @@ use ckb_std::{
         prelude::*,
     },
     high_level::{
-        load_cell_data, load_cell_lock, load_cell_lock_hash, load_cell_type_hash, load_cell_capacity,
-		QueryIter,
+        load_cell_capacity, load_cell_data, load_cell_lock, load_cell_lock_hash,
+        load_cell_type_hash, QueryIter,
     },
 };
-use core::{cmp::Ordering, result::Result, convert::TryInto};
+use core::{cmp::Ordering, convert::TryInto, result::Result};
 use protocol::{
     prelude::{Builder, Entity},
     reader, writer, Cursor,
 };
-use crate::error::Error;
 
 //////////////////////////////////////////////////////////
 /// used by common
@@ -98,8 +98,8 @@ pub enum FILTER {
 #[derive(Clone, PartialEq, Eq, PartialOrd)]
 pub struct StakeInfoObject {
     pub identity: [u8; 21],
-	pub l2_address: [u8; 20],
-	pub bls_pub_key: [u8; 48],
+    pub l2_address: [u8; 20],
+    pub bls_pub_key: [u8; 48],
     pub stake_amount: u128,
     pub inauguration_era: u64,
 }
@@ -108,26 +108,26 @@ impl StakeInfoObject {
     pub fn new(stake_info: &reader::StakeInfo) -> Self {
         let mut identity = vec![stake_info.identity().flag()];
         identity.append(&mut stake_info.identity().content());
-		Self {
-			identity: identity.try_into().unwrap(),
-			l2_address: stake_info.l2_address().try_into().unwrap(),
-			bls_pub_key: stake_info.bls_pub_key().try_into().unwrap(),
-			stake_amount: bytes_to_u128(&stake_info.stake_amount()),
-			inauguration_era: bytes_to_u64(&stake_info.inauguration_era()),
-		}
+        Self {
+            identity: identity.try_into().unwrap(),
+            l2_address: stake_info.l2_address().try_into().unwrap(),
+            bls_pub_key: stake_info.bls_pub_key().try_into().unwrap(),
+            stake_amount: bytes_to_u128(&stake_info.stake_amount()),
+            inauguration_era: bytes_to_u64(&stake_info.inauguration_era()),
+        }
     }
 }
 
 impl Ord for StakeInfoObject {
     fn cmp(&self, other: &Self) -> Ordering {
-		let mut order = other.stake_amount.cmp(&self.stake_amount);
-		if let Ordering::Equal = order {
+        let mut order = other.stake_amount.cmp(&self.stake_amount);
+        if let Ordering::Equal = order {
             order = other.identity.cmp(&self.identity);
-			if let Ordering::Equal = order {
-				order = other.inauguration_era.cmp(&self.inauguration_era);
-			}
-		}
-		order
+            if let Ordering::Equal = order {
+                order = other.inauguration_era.cmp(&self.inauguration_era);
+            }
+        }
+        order
     }
 }
 
@@ -365,10 +365,10 @@ pub fn get_info_by_type_hash(
                 return Err(Error::CheckpointCellError);
             }
             capacity = load_cell_capacity(i, source).unwrap();
-			celldata = {
-				let data = load_cell_data(i, source).unwrap();
-				Some(reader::CheckpointLockCellData::from(Cursor::from(data)))
-			};
+            celldata = {
+                let data = load_cell_data(i, source).unwrap();
+                Some(reader::CheckpointLockCellData::from(Cursor::from(data)))
+            };
             Ok(())
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -385,10 +385,10 @@ pub fn get_sudt_by_type_hash(type_hash: &Vec<u8>, source: Source) -> Result<u128
         .map(|(i, cell_type_hash)| {
             if cell_type_hash.unwrap_or([0u8; 32]) == type_hash[..] {
                 let data = load_cell_data(i, source).unwrap();
-				if data.len() < 16 {
-					return Err(Error::BadSudtDataFormat);
-				}
-				sudt += bytes_to_u128(&data[..16].to_vec());
+                if data.len() < 16 {
+                    return Err(Error::BadSudtDataFormat);
+                }
+                sudt += bytes_to_u128(&data[..16].to_vec());
             }
             Ok(())
         })
@@ -396,29 +396,32 @@ pub fn get_sudt_by_type_hash(type_hash: &Vec<u8>, source: Source) -> Result<u128
     Ok(sudt)
 }
 
-pub fn get_valid_stakeinfos_from_celldeps(era: u64, stake_type_hash: &Vec<u8>) -> Result<Vec<StakeInfoObject>, Error> {
-	let mut stake_data = None;
+pub fn get_valid_stakeinfos_from_celldeps(
+    era: u64,
+    stake_type_hash: &Vec<u8>,
+) -> Result<Vec<StakeInfoObject>, Error> {
+    let mut stake_data = None;
     QueryIter::new(load_cell_type_hash, Source::CellDep)
         .enumerate()
         .for_each(|(i, type_hash)| {
             if type_hash.unwrap_or([0u8; 32]) == stake_type_hash[..] {
-				stake_data = {
-					let data = load_cell_data(i, Source::CellDep).unwrap();
-				 	Some(reader::StakeLockCellData::from(Cursor::from(data)))
-				};
+                stake_data = {
+                    let data = load_cell_data(i, Source::CellDep).unwrap();
+                    Some(reader::StakeLockCellData::from(Cursor::from(data)))
+                };
             }
         });
-	if stake_data.is_none() {
-		return Err(Error::StakeCellDepEmpty);
-	}
-	let stake_data = stake_data.unwrap();
-	let mut valid_stakeinfos = {
-		let quorum: u8 = stake_data.quorum_size().into();
-		let stakeinfos_set = stakeinfos_into_set(&stake_data.stake_infos())?;
-		filter_stakeinfos(era, quorum, &stakeinfos_set, FILTER::APPLY)?
-			.into_iter()
-			.collect::<Vec<_>>()
-	};
-	valid_stakeinfos.sort_by(|a, b| a.l2_address.cmp(&b.l2_address));
-	Ok(valid_stakeinfos)
+    if stake_data.is_none() {
+        return Err(Error::StakeCellDepEmpty);
+    }
+    let stake_data = stake_data.unwrap();
+    let mut valid_stakeinfos = {
+        let quorum: u8 = stake_data.quorum_size().into();
+        let stakeinfos_set = stakeinfos_into_set(&stake_data.stake_infos())?;
+        filter_stakeinfos(era, quorum, &stakeinfos_set, FILTER::APPLY)?
+            .into_iter()
+            .collect::<Vec<_>>()
+    };
+    valid_stakeinfos.sort_by(|a, b| a.l2_address.cmp(&b.l2_address));
+    Ok(valid_stakeinfos)
 }
