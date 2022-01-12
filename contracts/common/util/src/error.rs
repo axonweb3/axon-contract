@@ -9,16 +9,16 @@ pub enum Error {
     Encoding,
 
     // common
-    BadWitnessInputType,
+    BadWitnessInputType = 10,
     SignatureMismatch,
     TypeScriptEmpty,
     ATCellShouldEmpty,
 
     // selection contract
-    OmniCheckpointCountError,
+    OmniCheckpointCountError = 20,
 
     // checkpoint contract
-    CheckpointCellError,
+    CheckpointCellError = 30,
     CheckpointCapacityMismatch,
     CheckpointDataMismatch,
     CheckpointRlpDataMismatch,
@@ -36,7 +36,7 @@ pub enum Error {
     WithdrawalATAmountMismatch,
 
     // stake contract
-    CheckpointDataEmpty,
+    CheckpointDataEmpty = 50,
     StakeDataEmpty,
     UnknownMode,
     AdminModeError,
@@ -51,7 +51,7 @@ pub enum Error {
     WithdrawCellSudtMismatch,
 
     // withdrawal contract
-    NodeIdentityEmpty,
+    NodeIdentityEmpty = 70,
     CheckpointCelldepEmpty,
     BadCheckpointCelldep,
     BadWithdrawalData,

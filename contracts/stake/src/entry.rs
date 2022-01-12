@@ -54,7 +54,12 @@ pub fn main() -> Result<(), Error> {
                 MODE::COMPANION
             }
         }
-        Err(_) => MODE::UPDATE,
+        Err(_) => {
+            if node_identity.is_some() {
+                return Err(Error::UnknownMode);
+            }
+            MODE::UPDATE
+        }
     };
 
     // extract AT type_id from type_script
@@ -147,6 +152,13 @@ pub fn main() -> Result<(), Error> {
                 filter_stakeinfos(era + 1, quorum, &input_stake_infos_set, FILTER::NOTAPPLY)?;
             let output_notapply_stake_infos =
                 filter_stakeinfos(era + 1, quorum, &output_stake_infos_set, FILTER::NOTAPPLY)?;
+            debug!(
+                "output_notapply = {}/{}, input_notapply = {}/{}",
+                output_notapply_stake_infos.len(),
+                output_stake_infos_set.len(),
+                input_notapply_stake_infos.len(),
+                input_stake_infos_set.len()
+            );
             let node_stake_info = {
                 if output_notapply_stake_infos.len() != input_notapply_stake_infos.len() + 1 {
                     return Err(Error::StakeInfoMatchError);
@@ -160,8 +172,9 @@ pub fn main() -> Result<(), Error> {
                 }
                 diff_stake_infos.first().unwrap().clone()
             };
+            debug!("insert_stake_amount = {}", node_stake_info.stake_amount);
 
-            // put node_stake_info into not_apply set or main set
+            // put node_stake_info into not_apply set
             if node_stake_info.inauguration_era > era + 1 {
                 if !input_notapply_stake_infos.insert(node_stake_info.clone()) {
                     return Err(Error::StakeInfoDumplicateError);
@@ -171,8 +184,18 @@ pub fn main() -> Result<(), Error> {
             // check valid stake_info subset from input is equal to output's
             let mut input_applied_stake_infos =
                 filter_stakeinfos(era, quorum, &input_stake_infos_set, FILTER::APPLY)?;
+            debug!(
+                "input_applied = {}/{}",
+                input_applied_stake_infos.len(),
+                input_stake_infos_set.len()
+            );
             let mut input_applying_stake_infos =
                 filter_stakeinfos(era + 1, quorum, &input_stake_infos_set, FILTER::APPLY)?;
+            debug!(
+                "input_applying = {}/{}",
+                input_applying_stake_infos.len(),
+                input_stake_infos_set.len()
+            );
             let valid_stake_infos = {
                 input_notapply_stake_infos.append(&mut input_applied_stake_infos);
                 input_notapply_stake_infos.append(&mut input_applying_stake_infos);
@@ -193,24 +216,29 @@ pub fn main() -> Result<(), Error> {
             });
 
             // check valid stake_amount from stake AT cells in output
-            let output_sudt = get_total_sudt_by_identity(
+            let output_sudt = get_sudt_from_stake_at_cell(
                 &script.code_hash().unpack(),
                 &input_stake_data.sudt_type_hash(),
                 &node_stake_info.identity,
                 Source::Output,
             )?;
+            debug!(
+                "output_sudt = {}, valid_sudt = {}",
+                output_sudt, valid_stake_amount
+            );
             if output_sudt != valid_stake_amount {
                 return Err(Error::InvaidStakeATAmount);
             }
 
             // check stake AT amount of inputs
-            let input_sudt = get_total_sudt_by_identity(
+            let input_sudt = get_sudt_from_stake_at_cell(
                 &script.code_hash().unpack(),
                 &input_stake_data.sudt_type_hash(),
                 &node_stake_info.identity,
                 Source::Input,
             )?;
 
+            debug!("input_sudt = {}", input_sudt);
             // check if it's withdraw operation
             if input_sudt > output_sudt {
                 // build withdrawal AT lock_script and search withdrawal AT cell
@@ -222,12 +250,14 @@ pub fn main() -> Result<(), Error> {
                 );
                 let period = bytes_to_u64(&checkpoint.period());
                 let unlock_period = bytes_to_u32(&checkpoint.unlock_period()) as u64;
+                debug!("period = {}, unlock_period = {}", period, unlock_period);
                 let total_sudt = get_withdrawal_total_sudt_amount(
                     &withdrawal_lock_hash,
                     &input_stake_data.sudt_type_hash(),
                     period + unlock_period,
                     Source::Output,
                 )?;
+                debug!("withdraw_sudt = {}", total_sudt);
                 if input_sudt - output_sudt != total_sudt {
                     return Err(Error::WithdrawCellSudtMismatch);
                 }

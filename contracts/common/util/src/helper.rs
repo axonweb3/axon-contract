@@ -2,17 +2,19 @@ extern crate alloc;
 use crate::error::Error;
 use alloc::{
     collections::{btree_map::BTreeMap, BTreeSet},
-    vec,
+    str, vec,
     vec::Vec,
 };
 use blake2b_ref::Blake2bBuilder;
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::{
+        bytes::Bytes,
         core::ScriptHashType,
         packed::{Byte32, Script},
         prelude::*,
     },
+    debug,
     high_level::{
         load_cell_capacity, load_cell_data, load_cell_lock, load_cell_lock_hash,
         load_cell_type_hash, QueryIter,
@@ -20,7 +22,7 @@ use ckb_std::{
 };
 use core::{cmp::Ordering, convert::TryInto, result::Result};
 use protocol::{
-    prelude::{Builder, Entity},
+    prelude::{Builder, Byte, Entity},
     reader, writer, Cursor,
 };
 
@@ -95,7 +97,7 @@ pub enum FILTER {
     NOTAPPLY,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Debug)]
 pub struct StakeInfoObject {
     pub identity: [u8; 21],
     pub l2_address: [u8; 20],
@@ -140,12 +142,14 @@ pub fn get_stake_data_by_type_hash(
         .enumerate()
         .for_each(|(i, type_hash)| {
             if &type_hash.unwrap_or([0u8; 32]) == cell_type_hash {
-                assert!(stake_data.is_none());
-                stake_data = {
-                    let data = load_cell_data(i, source).unwrap();
-                    let stake_data: reader::StakeLockCellData = Cursor::from(data).into();
-                    Some(stake_data)
-                };
+                let data = load_cell_data(i, source).unwrap();
+                if data.len() > 24 {
+                    assert!(stake_data.is_none());
+                    stake_data = {
+                        let stake_data: reader::StakeLockCellData = Cursor::from(data).into();
+                        Some(stake_data)
+                    };
+                }
             }
         });
     if stake_data.is_none() {
@@ -154,7 +158,7 @@ pub fn get_stake_data_by_type_hash(
     Ok(stake_data.unwrap())
 }
 
-pub fn get_total_sudt_by_identity(
+pub fn get_sudt_from_stake_at_cell(
     stake_code_hash: &[u8; 32],
     sudt_type_hash: &Vec<u8>,
     identity: &[u8; 21],
@@ -167,17 +171,25 @@ pub fn get_total_sudt_by_identity(
             if type_hash.unwrap_or([0u8; 32]) == sudt_type_hash.as_slice() {
                 let lock = load_cell_lock(i, source).unwrap();
                 if &lock.code_hash().unpack() == stake_code_hash {
-                    // lock_args = admin_identity | checkpoint_type_hash | node_identity
-                    let lock_args = lock.args().raw_data().to_vec();
-                    if lock_args.len() < 74 {
-                        return Err(Error::StakeATCellError);
-                    }
-                    if lock_args[53..] == identity[..] {
-                        let data = load_cell_data(i, source).unwrap();
-                        if data.len() < 16 {
-                            return Err(Error::StakeATCellError);
+                    let lock_args: reader::StakeLockArgs = {
+                        let args: Bytes = lock.args().unpack();
+                        Cursor::from(args.to_vec()).into()
+                    };
+                    if lock_args.node_identity().is_some() {
+                        let owner_identity = {
+                            let owner_identity = lock_args.node_identity().unwrap();
+                            let mut value = [0u8; 21];
+                            value[0] = owner_identity.flag();
+                            value[1..].copy_from_slice(owner_identity.content().as_slice());
+                            value
+                        };
+                        if &owner_identity == identity {
+                            let data = load_cell_data(i, source).unwrap();
+                            if data.len() < 16 {
+                                return Err(Error::StakeATCellError);
+                            }
+                            sudt += bytes_to_u128(&data[..16].to_vec());
                         }
-                        sudt += bytes_to_u128(&data[..16].to_vec());
                     }
                 }
             }
@@ -239,10 +251,14 @@ pub fn filter_stakeinfos(
                         false
                     }
                 })
-                .collect::<Vec<_>>()[..quorum as usize]
-                .to_vec()
-                .into_iter()
                 .collect();
+            if filtered_stake_infos.len() > quorum as usize {
+                filtered_stake_infos = filtered_stake_infos.into_iter().collect::<Vec<_>>()
+                    [..quorum as usize]
+                    .to_vec()
+                    .into_iter()
+                    .collect();
+            }
         }
         FILTER::NOTAPPLY => {
             for stake_info in stake_infos {
@@ -265,11 +281,16 @@ pub fn stakeinfos_into_set(
 ) -> Result<BTreeSet<StakeInfoObject>, Error> {
     let mut btree_set = BTreeSet::new();
     for i in 0..stake_infos.len() {
-        if btree_set.insert(StakeInfoObject::new(&stake_infos.get(i))) {
+        let object = StakeInfoObject::new(&stake_infos.get(i));
+        if !btree_set.insert(object.clone()) {
             return Err(Error::StakeInfoDumplicateError);
         }
     }
     Ok(btree_set)
+}
+
+pub fn bytes_vec(bytes: &Vec<u8>) -> Vec<Byte> {
+    bytes.iter().map(|b| (*b).into()).collect()
 }
 
 pub fn calc_withdrawal_lock_hash(
@@ -279,34 +300,48 @@ pub fn calc_withdrawal_lock_hash(
     node_identity: &[u8; 21],
 ) -> [u8; 32] {
     let node_identity = {
+        let content = writer::Byte20::new_builder()
+            .set(
+                bytes_vec(&node_identity[1..21].to_vec())
+                    .try_into()
+                    .unwrap(),
+            )
+            .build();
         let identity = writer::Identity::new_builder()
             .flag(node_identity[0].into())
-            .content(writer::Byte20::new_unchecked(node_identity[1..20].into()))
+            .content(content)
             .build();
         writer::IdentityOpt::new_builder()
             .set(Some(identity))
             .build()
     };
-    let admin_identity = writer::Identity::new_builder()
-        .flag(admin_identity.flag().into())
-        .content(writer::Byte20::new_unchecked(
-            admin_identity.content().into(),
-        ))
-        .build();
-    let withdrawal_lock_args = writer::WithdrawalLockArgs::new_builder()
-        .admin_identity(admin_identity)
-        .checkpoint_cell_type_hash(writer::Byte32::new_unchecked(
-            checkpoint_type_hash.as_slice().into(),
-        ))
-        .node_identity(node_identity)
-        .build();
-    let withdrawal_lock = Script::new_builder()
-        .code_hash(Byte32::new_unchecked(
-            withdrawal_code_hash.as_slice().into(),
-        ))
-        .hash_type(ScriptHashType::Type.into())
-        .args(withdrawal_lock_args.as_slice().pack())
-        .build();
+    let admin_identity = {
+        let content = writer::Byte20::new_builder()
+            .set(bytes_vec(&admin_identity.content()).try_into().unwrap())
+            .build();
+        writer::Identity::new_builder()
+            .flag(admin_identity.flag().into())
+            .content(content)
+            .build()
+    };
+    let withdrawal_lock_args = {
+        let type_hash = writer::Byte32::new_builder()
+            .set(bytes_vec(checkpoint_type_hash).try_into().unwrap())
+            .build();
+        writer::WithdrawalLockArgs::new_builder()
+            .admin_identity(admin_identity)
+            .checkpoint_cell_type_hash(type_hash)
+            .node_identity(node_identity)
+            .build()
+    };
+    let withdrawal_lock = {
+        let code_hash: [u8; 32] = withdrawal_code_hash.clone().try_into().unwrap();
+        Script::new_builder()
+            .code_hash(code_hash.pack())
+            .hash_type(ScriptHashType::Type.into())
+            .args(withdrawal_lock_args.as_slice().pack())
+            .build()
+    };
     let mut lock_hash = [0u8; 32];
     let mut blake2b = Blake2bBuilder::new(32)
         .personal(b"ckb-default-hash")

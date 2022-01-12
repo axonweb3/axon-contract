@@ -6,18 +6,23 @@ use ckb_testtool::ckb_crypto::secp::Privkey;
 use ckb_testtool::ckb_hash::{blake2b_256, new_blake2b};
 use ckb_testtool::ckb_types::{
     bytes::Bytes,
-    core::TransactionView,
+    core::{ScriptHashType, TransactionView},
     packed::{self, *},
     prelude::*,
     H256,
 };
 use molecule::prelude::*;
+use std::convert::TryInto;
 
 pub fn blake160(data: &[u8]) -> [u8; 20] {
     let mut buf = [0u8; 20];
     let hash = blake2b_256(data);
     buf.clone_from_slice(&hash[..20]);
     buf
+}
+
+pub fn axon_byte48(bytes: &[u8; 48]) -> axon::Byte48 {
+    axon::Byte48::new_unchecked(bytes.to_vec().into())
 }
 
 pub fn axon_byte32(bytes: &Byte32) -> axon::Byte32 {
@@ -29,8 +34,16 @@ pub fn axon_byte20(bytes: &[u8; 20]) -> axon::Byte20 {
     axon::Byte20::new_unchecked(bytes.to_vec().into())
 }
 
+pub fn axon_byte16(value: u128) -> axon::Byte16 {
+    axon::Byte16::new_unchecked(value.to_le_bytes().to_vec().into())
+}
+
 pub fn axon_byte8(value: u64) -> axon::Byte8 {
     axon::Byte8::new_unchecked(value.to_le_bytes().to_vec().into())
+}
+
+pub fn axon_byte4(value: u32) -> axon::Byte4 {
+    axon::Byte4::new_unchecked(value.to_le_bytes().to_vec().into())
 }
 
 pub fn axon_identity(pubkey: &Vec<u8>) -> axon::Identity {
@@ -47,32 +60,49 @@ pub fn axon_identity_opt(pubkey: &Vec<u8>) -> axon::IdentityOpt {
         .build()
 }
 
+pub fn axon_identity_none() -> axon::IdentityOpt {
+    axon::IdentityOpt::new_builder().set(None).build()
+}
+
 pub fn axon_checkpoint_data(
-    period: u64,
-    half_period: u64,
     sudt_type_hash: &Byte32,
+    withdrawal_lock_code_hash: &Byte32,
 ) -> axon::CheckpointLockCellData {
     axon::CheckpointLockCellData::new_builder()
-        .period(axon_byte8(period))
-        .half_period(axon_byte8(half_period))
+        .era(axon_byte8(1))
+        .unlock_period(axon_byte4(1))
+        .period_interval(axon_byte4(1))
+        .era_period(axon_byte4(1))
+        .period(axon_byte8(1))
+        .half_period(axon_byte8(1))
         .sudt_type_hash(axon_byte32(sudt_type_hash))
+        .block_hash(axon_byte32(&[0u8; 32].pack()))
+        .withdrawal_lock_code_hash(axon_byte32(withdrawal_lock_code_hash))
         .build()
 }
 
-pub fn axon_withdrawal_data(period: u64) -> Vec<u8> {
+pub fn axon_withdrawal_data(sudt: u128, period: u64) -> Vec<u8> {
     let mut data = vec![];
-    data.append(&mut 0u128.to_le_bytes().to_vec());
+    data.append(&mut sudt.to_le_bytes().to_vec());
     data.append(&mut period.to_le_bytes().to_vec());
     data
 }
 
-pub fn axon_stake_info(pubkey_hash: &[u8; 20], era: u64) -> axon::StakeInfo {
+pub fn axon_stake_info(
+    pubkey_hash: &[u8; 20],
+    bls_pubkey: &[u8; 48],
+    stake_amount: u128,
+    era: u64,
+) -> axon::StakeInfo {
     let identity = axon::Identity::new_builder()
         .flag(Byte::from(0))
         .content(axon_byte20(&pubkey_hash))
         .build();
     axon::StakeInfo::new_builder()
         .identity(identity)
+        .l2_address(axon_byte20(&bls_pubkey[..20].try_into().unwrap()))
+        .bls_pub_key(axon_byte48(bls_pubkey))
+        .stake_amount(axon_byte16(stake_amount))
         .inauguration_era(axon_byte8(era))
         .build()
 }
@@ -80,14 +110,23 @@ pub fn axon_stake_info(pubkey_hash: &[u8; 20], era: u64) -> axon::StakeInfo {
 pub fn axon_stake_data(
     quorum: u8,
     checkpoint_type_hash: &Byte32,
-    infos: Vec<axon::StakeInfo>,
+    sudt_type_hash: &Byte32,
+    infos: &Vec<axon::StakeInfo>,
 ) -> axon::StakeLockCellData {
-    let stake_infos = axon::StakeInfoVec::new_builder().set(infos).build();
+    let stake_infos = axon::StakeInfoVec::new_builder().set(infos.clone()).build();
     axon::StakeLockCellData::new_builder()
         .checkpoint_type_hash(axon_byte32(checkpoint_type_hash))
+        .sudt_type_hash(axon_byte32(sudt_type_hash))
         .stake_infos(stake_infos)
         .quorum_size(quorum.into())
         .build()
+}
+
+pub fn axon_at_data(amount: u128, period: u64) -> [u8; 24] {
+    let mut data = [0u8; 24];
+    data[..16].copy_from_slice(&amount.to_le_bytes());
+    data[16..].copy_from_slice(&period.to_le_bytes());
+    data
 }
 
 pub fn sign_tx(tx: TransactionView, key: &Privkey, mode: u8) -> TransactionView {
@@ -159,4 +198,23 @@ pub fn blst_sign_tx(tx: TransactionView, key: &SecretKey, mode: u8) -> Transacti
     tx.as_advanced_builder()
         .set_witnesses(signed_witnesses)
         .build()
+}
+
+pub fn calc_withdrawal_lock_hash(
+    withdrawal_code_hash: Byte32,
+    admin_identity: axon::Identity,
+    checkpoint_type_hash: axon::Byte32,
+    node_identity: axon::IdentityOpt,
+) -> Byte32 {
+    let withdrawal_lock_args = axon::WithdrawalLockArgs::new_builder()
+        .admin_identity(admin_identity)
+        .checkpoint_cell_type_hash(checkpoint_type_hash)
+        .node_identity(node_identity)
+        .build();
+    Script::new_builder()
+        .code_hash(withdrawal_code_hash)
+        .hash_type(ScriptHashType::Type.into())
+        .args(withdrawal_lock_args.as_slice().pack())
+        .build()
+        .calc_script_hash()
 }

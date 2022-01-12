@@ -2,7 +2,12 @@ use super::*;
 use blst::min_pk::SecretKey;
 use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
-use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
+use ckb_testtool::ckb_types::{
+    bytes::Bytes,
+    core::{ScriptHashType, TransactionBuilder},
+    packed::*,
+    prelude::*,
+};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
@@ -143,7 +148,8 @@ fn test_checkpoint_success() {
         .admin_identity(axon_identity(&keypair.1))
         .type_id_hash(axon_byte32(&type_id_type_script.calc_script_hash()))
         .build();
-    let checkpoint_data = axon_checkpoint_data(1, 1, &at_type_script.calc_script_hash());
+    let checkpoint_data =
+        axon_checkpoint_data(&at_type_script.calc_script_hash(), &[0u8; 32].pack());
 
     // prepare checkpoint lock_script
     let checkpoint_lock_script = context
@@ -272,7 +278,7 @@ fn test_withdrawal_success() {
         .checkpoint_cell_type_hash(axon_byte32(&type_id_type_script.calc_script_hash()))
         .node_identity(axon_identity_opt(&keypair.1.serialize()))
         .build();
-    let withdrawal_data = axon_withdrawal_data(1);
+    let withdrawal_data = axon_withdrawal_data(0, 1);
 
     // prepare checkpoint lock_script
     let withdrawal_lock_script = context
@@ -308,7 +314,8 @@ fn test_withdrawal_success() {
     let outputs_data = vec![Bytes::from(withdrawal_data)];
 
     // prepare checkpoint cell_dep
-    let checkpoint_data = axon_checkpoint_data(1, 1, &type_id_type_script.calc_script_hash());
+    let checkpoint_data =
+        axon_checkpoint_data(&type_id_type_script.calc_script_hash(), &[0u8; 32].pack());
     let checkpoint_script_dep = CellDep::new_builder()
         .out_point(
             context.create_cell(
@@ -360,29 +367,78 @@ fn test_stake_success() {
     let always_success_lock_script = context
         .build_script(&always_success_out_point, Bytes::from(vec![1]))
         .expect("always_success script");
-    let type_id_type_script = context
-        .build_script(&always_success_out_point, Bytes::new())
-        .expect("type_id script");
+    let checkpoint_type_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![2]))
+        .expect("checkpoint script");
+    let stake_type_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![3]))
+        .expect("stake script");
+    let stake_at_type_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![4]))
+        .expect("sudt script");
     let always_success_script_dep = CellDep::new_builder()
-        .out_point(always_success_out_point)
+        .out_point(always_success_out_point.clone())
         .build();
 
-    // prepare checkpoint_args and checkpoint_data
-    let keypair = Generator::random_keypair();
+    // prepare stake_args and stake_data
     let stake_args = axon::StakeLockArgs::new_builder()
-        .admin_identity(axon_identity(&keypair.1.serialize()))
-        .type_id_hash(axon_byte32(&type_id_type_script.calc_script_hash()))
+        .admin_identity(axon_identity(&vec![0u8; 20]))
+        .type_id_hash(axon_byte32(&stake_type_script.calc_script_hash()))
+        .node_identity(axon_identity_none())
+        .build();
+    let keypair = Generator::random_keypair();
+    let at_stake_args = axon::StakeLockArgs::new_builder()
+        .admin_identity(axon_identity(&vec![0u8; 20]))
+        .type_id_hash(axon_byte32(&stake_type_script.calc_script_hash()))
         .node_identity(axon_identity_opt(&keypair.1.serialize()))
         .build();
-    let stake_data = axon_stake_data(70, &type_id_type_script.calc_script_hash(), vec![]);
+    let mut stake_infos = vec![3u64; 10]
+        .into_iter()
+        .enumerate()
+        .map(|(i, era)| axon_stake_info(&[i as u8; 20], &[i as u8; 48], (i + 1) as u128, era))
+        .collect::<Vec<_>>();
+    let input_stake_data = axon_stake_data(
+        20,
+        &checkpoint_type_script.calc_script_hash(),
+        &stake_at_type_script.calc_script_hash(),
+        &stake_infos,
+    );
 
-    // prepare checkpoint lock_script
+    // prepare stake lock_script
     let stake_lock_script = context
         .build_script(&contract_out_point, stake_args.as_bytes())
         .expect("stake script");
+    let at_stake_lock_script = context
+        .build_script(&contract_out_point, at_stake_args.as_bytes())
+        .expect("at stake script");
+
+    // prepare withdraw lock_script
+    let withdrawal_args = axon::WithdrawalLockArgs::new_builder()
+        .admin_identity(axon_identity(&vec![0u8; 20]))
+        .checkpoint_cell_type_hash(axon_byte32(&checkpoint_type_script.calc_script_hash()))
+        .node_identity(axon_identity_opt(&keypair.1.serialize()))
+        .build();
+    let withdrawal_lock_script = Script::new_builder()
+        .code_hash([0u8; 32].pack())
+        .hash_type(ScriptHashType::Type.into())
+        .args(withdrawal_args.as_slice().pack())
+        .build();
 
     // prepare tx inputs and outputs
     let inputs = vec![
+        // stake AT cell
+        CellInput::new_builder()
+            .previous_output(
+                context.create_cell(
+                    CellOutput::new_builder()
+                        .capacity(1000.pack())
+                        .lock(at_stake_lock_script.clone())
+                        .type_(Some(stake_at_type_script.clone()).pack())
+                        .build(),
+                    Bytes::from(axon_at_data(152, 1).to_vec()),
+                ),
+            )
+            .build(),
         // stake cell
         CellInput::new_builder()
             .previous_output(
@@ -390,34 +446,61 @@ fn test_stake_success() {
                     CellOutput::new_builder()
                         .capacity(1000.pack())
                         .lock(stake_lock_script.clone())
-                        .type_(Some(type_id_type_script.clone()).pack())
+                        .type_(Some(stake_type_script.clone()).pack())
                         .build(),
-                    stake_data.as_bytes(),
+                    input_stake_data.as_bytes(),
                 ),
             )
             .build(),
     ];
     let outputs = vec![
-        // withdrawal cell
+        // stake at cell
+        CellOutput::new_builder()
+            .capacity(1000.pack())
+            .lock(at_stake_lock_script)
+            .type_(Some(stake_at_type_script.clone()).pack())
+            .build(),
+        // stake cell
         CellOutput::new_builder()
             .capacity(1000.pack())
             .lock(stake_lock_script)
-            .type_(Some(type_id_type_script.clone()).pack())
+            .type_(Some(stake_type_script.clone()).pack())
+            .build(),
+        // withdrawal cell
+        CellOutput::new_builder()
+            .capacity(1000.pack())
+            .lock(withdrawal_lock_script.clone())
+            .type_(Some(stake_at_type_script.clone()).pack())
             .build(),
     ];
 
     // prepare outputs_data
-    let outputs_data = vec![stake_data.as_bytes()];
+    let pkhash = blake160(keypair.1.serialize().as_slice());
+    stake_infos.push(axon_stake_info(&pkhash, &[10; 48], 102, 3));
+    let output_stake_data = axon_stake_data(
+        20,
+        &checkpoint_type_script.calc_script_hash(),
+        &stake_at_type_script.calc_script_hash(),
+        &stake_infos,
+    );
+    let outputs_data = vec![
+        Bytes::from(axon_at_data(102, 1).to_vec()),
+        output_stake_data.as_bytes(),
+        Bytes::from(axon_withdrawal_data(50, 2)),
+    ];
 
     // prepare checkpoint cell_dep
-    let checkpoint_data = axon_checkpoint_data(1, 1, &type_id_type_script.calc_script_hash());
+    let checkpoint_data = axon_checkpoint_data(
+        &stake_at_type_script.calc_script_hash(),
+        &withdrawal_lock_script.code_hash(),
+    );
     let checkpoint_script_dep = CellDep::new_builder()
         .out_point(
             context.create_cell(
                 CellOutput::new_builder()
                     .capacity(1000.pack())
                     .lock(always_success_lock_script)
-                    .type_(Some(type_id_type_script).pack())
+                    .type_(Some(checkpoint_type_script).pack())
                     .build(),
                 checkpoint_data.as_bytes(),
             ),
@@ -435,6 +518,8 @@ fn test_stake_success() {
         .cell_dep(checkpoint_script_dep)
         .build();
     let tx = context.complete_tx(tx);
+
+    // sign tx for stake at cell (companion mode)
     let tx = sign_tx(tx, &keypair.0, 1);
 
     // run
