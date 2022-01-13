@@ -1,5 +1,6 @@
 use super::*;
-use blst::min_pk::SecretKey;
+use bit_vec::BitVec;
+use blst::min_pk::AggregateSignature;
 use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::{
@@ -11,7 +12,7 @@ use ckb_testtool::ckb_types::{
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use rand::prelude::*;
+use rlp::RlpStream;
 
 const MAX_CYCLES: u64 = 100_000_000;
 
@@ -106,55 +107,89 @@ fn test_selection_success() {
 fn test_checkpoint_success() {
     // init context
     let mut context = Context::default();
-    let secp256k1_data_bin = BUNDLED_CELL.get("specs/cells/secp256k1_data").unwrap();
-    let secp256k1_data_out_point = context.deploy_cell(secp256k1_data_bin.to_vec().into());
-    let secp256k1_data_dep = CellDep::new_builder()
-        .out_point(secp256k1_data_out_point)
-        .build();
     let contract_bin: Bytes = Loader::default().load_binary("checkpoint");
     let contract_out_point = context.deploy_cell(contract_bin);
     let contract_dep = CellDep::new_builder()
         .out_point(contract_out_point.clone())
         .build();
+    let withdrawal_bin: Bytes = Loader::default().load_binary("withdrawal");
+    let withdrawal_out_point = context.deploy_cell(withdrawal_bin);
+    let withdrawal_dep = CellDep::new_builder()
+        .out_point(withdrawal_out_point.clone())
+        .build();
     let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
     let always_success_lock_script = context
         .build_script(&always_success_out_point, Bytes::from(vec![1]))
         .expect("always_success script");
-    let type_id_type_script = context
-        .build_script(&always_success_out_point, Bytes::new())
-        .expect("type_id script");
-    let at_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![1]))
+    let checkpoint_type_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![2]))
+        .expect("checkpoint script");
+    let stake_type_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![3]))
+        .expect("checkpoint script");
+    let sudt_type_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![4]))
         .expect("at script");
     let always_success_script_dep = CellDep::new_builder()
         .out_point(always_success_out_point)
         .build();
 
-    // prepare checkpoint_args and checkpoint_data
-    let keypair = {
-        // generate secp256k1 keypair
-        // let kp = Generator::random_keypair();
-        // (kp.0, kp.1.serialize())
-
-        // generate blst keypair
-        let mut rng = thread_rng();
-        let mut ikm = [0u8; 32];
-        rng.fill_bytes(&mut ikm);
-        let sk = SecretKey::key_gen(&ikm, &[]).unwrap();
-        let pk = sk.sk_to_pk();
-        (sk, pk.compress().to_vec())
-    };
-    let checkpoint_args = axon::CheckpointLockArgs::new_builder()
-        .admin_identity(axon_identity(&keypair.1))
-        .type_id_hash(axon_byte32(&type_id_type_script.calc_script_hash()))
+    // prepare withdrawal script
+    let withdrawal_args = axon::WithdrawalLockArgs::new_builder()
+        .admin_identity(axon_identity(&vec![0u8; 20]))
+        .checkpoint_cell_type_hash(axon_byte32(&checkpoint_type_script.calc_script_hash()))
+        .node_identity(axon_identity_opt(&vec![0u8; 20]))
         .build();
-    let checkpoint_data =
-        axon_checkpoint_data(&at_type_script.calc_script_hash(), &[0u8; 32].pack());
+    let withdrawal_lock_script = context
+        .build_script(&withdrawal_out_point, withdrawal_args.as_bytes())
+        .expect("withdrawal script");
 
-    // prepare checkpoint lock_script
+    // prepare checkpoint script
+    let checkpoint_args = axon::CheckpointLockArgs::new_builder()
+        .admin_identity(axon_identity(&vec![0u8; 20]))
+        .type_id_hash(axon_byte32(&checkpoint_type_script.calc_script_hash()))
+        .build();
+    let checkpoint_data = axon_checkpoint_data(
+        &sudt_type_script.calc_script_hash(),
+        &stake_type_script.calc_script_hash(),
+        &withdrawal_lock_script.code_hash(),
+    );
     let checkpoint_lock_script = context
         .build_script(&contract_out_point, checkpoint_args.as_bytes())
         .expect("checkpoint script");
+
+    // prepare stake script celldep
+    let bls_keypairs = vec![0; 8]
+        .iter()
+        .map(|_| random_bls_keypair())
+        .collect::<Vec<_>>();
+    let stake_infos = vec![1u64; 8]
+        .into_iter()
+        .enumerate()
+        .map(|(i, era)| {
+            let mut bls_pubkey = [0u8; 48];
+            bls_pubkey.copy_from_slice(&bls_keypairs[i].1);
+            axon_stake_info(&vec![i as u8; 20], &bls_pubkey, (i + 1) as u128, era)
+        })
+        .collect::<Vec<_>>();
+    let stake_data = axon_stake_data(
+        stake_infos.len() as u8,
+        &checkpoint_type_script.calc_script_hash(),
+        &sudt_type_script.calc_script_hash(),
+        &stake_infos,
+    );
+    let stake_cell_dep = CellDep::new_builder()
+        .out_point(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(1000.pack())
+                    .lock(always_success_lock_script.clone())
+                    .type_(Some(stake_type_script).pack())
+                    .build(),
+                stake_data.as_bytes(),
+            ),
+        )
+        .build();
 
     // prepare tx inputs and outputs
     let inputs = vec![
@@ -165,34 +200,21 @@ fn test_checkpoint_success() {
                     CellOutput::new_builder()
                         .capacity(1000.pack())
                         .lock(checkpoint_lock_script.clone())
-                        .type_(Some(type_id_type_script.clone()).pack())
+                        .type_(Some(checkpoint_type_script.clone()).pack())
                         .build(),
                     checkpoint_data.as_bytes(),
                 ),
             )
             .build(),
-        // AT cell 1
+        // withdrawal cell
         CellInput::new_builder()
             .previous_output(
                 context.create_cell(
                     CellOutput::new_builder()
-                        .lock(always_success_lock_script.clone())
-                        .type_(Some(at_type_script.clone()).pack())
+                        .lock(withdrawal_lock_script.clone())
+                        .type_(Some(sudt_type_script.clone()).pack())
                         .build(),
-                    Bytes::from(2000u128.to_le_bytes().to_vec()),
-                ),
-            )
-            .build(),
-        // AT cell 2
-        CellInput::new_builder()
-            .previous_output(
-                context.create_cell(
-                    CellOutput::new_builder()
-                        .capacity(3000.pack())
-                        .lock(always_success_lock_script.clone())
-                        .type_(Some(at_type_script.clone()).pack())
-                        .build(),
-                    Bytes::from(3000u128.to_le_bytes().to_vec()),
+                    Bytes::from(axon_withdrawal_data(3000, 2)),
                 ),
             )
             .build(),
@@ -202,39 +224,103 @@ fn test_checkpoint_success() {
         CellOutput::new_builder()
             .capacity(1000.pack())
             .lock(checkpoint_lock_script)
-            .type_(Some(type_id_type_script).pack())
+            .type_(Some(checkpoint_type_script).pack())
             .build(),
-        // AT cell
+        // withdrawal cell
         CellOutput::new_builder()
-            .lock(always_success_lock_script)
-            .type_(Some(at_type_script).pack())
+            .lock(withdrawal_lock_script)
+            .type_(Some(sudt_type_script).pack())
             .build(),
     ];
 
+    // prepare proposal rlp
+    let proposal = {
+        let mut proposal = RlpStream::new_list(14);
+        proposal.append_empty_data();
+        proposal.append(&vec![0u8; 20]); // proposer_address
+        vec![0; 9].iter().for_each(|_| {
+            proposal.append_empty_data();
+        });
+        proposal.append(&vec![0u8; 32]); // last_checkpoint_block_hash
+        proposal.append_empty_data();
+        proposal.append_empty_data();
+        proposal.as_raw().to_vec()
+    };
+
+    // prepare proof rlp
+    let proposal_hash = keccak_hash::keccak(proposal.clone());
+    let message = {
+        let mut vote = RlpStream::new_list(4);
+        vote.append(&200u64);
+        vote.append(&100u64);
+        vote.append(&1u8);
+        vote.append(&proposal_hash.as_bytes().to_vec());
+        vote.as_raw().to_vec()
+    };
+    let signature = {
+        let signatures = bls_keypairs[1..]
+            .to_vec()
+            .iter()
+            .map(|(privkey, _)| {
+                privkey.sign(
+                    &message,
+                    b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_",
+                    &[],
+                )
+            })
+            .collect::<Vec<_>>();
+        let ref_signatures = signatures.iter().collect::<Vec<_>>();
+        AggregateSignature::aggregate(&ref_signatures.as_slice(), true)
+            .unwrap()
+            .to_signature()
+            .compress()
+    };
+    let mut bitmap = BitVec::from_elem(8, true);
+    bitmap.set(0, false);
+    let proof = {
+        let mut proof = RlpStream::new_list(5);
+        proof.append(&200u64);
+        proof.append(&100u64);
+        proof.append(&proposal_hash.as_bytes().to_vec());
+        proof.append(&signature.to_vec());
+        proof.append(&bitmap.to_bytes());
+        proof.as_raw().to_vec()
+    };
+
     // prepare outputs_data
+    let output_checkpoint_data = checkpoint_data
+        .as_builder()
+        .era(axon_byte8(2))
+        .period(axon_byte8(2))
+        .block_hash(axon_byte32(&proposal_hash.to_fixed_bytes().pack()))
+        .build();
     let outputs_data = vec![
-        checkpoint_data.as_bytes(),
-        Bytes::from(5000u128.to_le_bytes().to_vec()),
+        output_checkpoint_data.as_bytes(),
+        Bytes::from(axon_withdrawal_data(3000, 3)),
     ];
+
+    // prepare witness
+    let witness_lock = axon::CheckpointLockWitnessLock::new_builder()
+        .proposal(axon_bytes(&proposal))
+        .proof(axon_bytes(&proof))
+        .build();
+    let witness = WitnessArgs::new_builder()
+        .lock(Some(Bytes::from(witness_lock.as_bytes())).pack())
+        .input_type(Some(Bytes::from(vec![1])).pack())
+        .build();
 
     // prepare signed tx
     let tx = TransactionBuilder::default()
         .inputs(inputs)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
+        .witness(witness.as_bytes().pack())
         .cell_dep(contract_dep)
         .cell_dep(always_success_script_dep)
-        .cell_dep(secp256k1_data_dep)
+        .cell_dep(stake_cell_dep)
+        .cell_dep(withdrawal_dep)
         .build();
     let tx = context.complete_tx(tx);
-
-    let tx = {
-        // sign tx with secp256k1 private key
-        // sign_tx(tx, &keypair.0, 0)
-
-        // sign tx with blst private key
-        blst_sign_tx(tx, &keypair.0, 1)
-    };
 
     // run
     let cycles = context
@@ -314,8 +400,11 @@ fn test_withdrawal_success() {
     let outputs_data = vec![Bytes::from(withdrawal_data)];
 
     // prepare checkpoint cell_dep
-    let checkpoint_data =
-        axon_checkpoint_data(&type_id_type_script.calc_script_hash(), &[0u8; 32].pack());
+    let checkpoint_data = axon_checkpoint_data(
+        &type_id_type_script.calc_script_hash(),
+        &[0u8; 32].pack(),
+        &[0u8; 32].pack(),
+    );
     let checkpoint_script_dep = CellDep::new_builder()
         .out_point(
             context.create_cell(
@@ -395,7 +484,7 @@ fn test_stake_success() {
     let mut stake_infos = vec![3u64; 10]
         .into_iter()
         .enumerate()
-        .map(|(i, era)| axon_stake_info(&[i as u8; 20], &[i as u8; 48], (i + 1) as u128, era))
+        .map(|(i, era)| axon_stake_info(&vec![i as u8; 20], &[i as u8; 48], (i + 1) as u128, era))
         .collect::<Vec<_>>();
     let input_stake_data = axon_stake_data(
         20,
@@ -475,8 +564,7 @@ fn test_stake_success() {
     ];
 
     // prepare outputs_data
-    let pkhash = blake160(keypair.1.serialize().as_slice());
-    stake_infos.push(axon_stake_info(&pkhash, &[10; 48], 102, 3));
+    stake_infos.push(axon_stake_info(&keypair.1.serialize(), &[10; 48], 102, 3));
     let output_stake_data = axon_stake_data(
         20,
         &checkpoint_type_script.calc_script_hash(),
@@ -492,6 +580,7 @@ fn test_stake_success() {
     // prepare checkpoint cell_dep
     let checkpoint_data = axon_checkpoint_data(
         &stake_at_type_script.calc_script_hash(),
+        &[0u8; 32].pack(),
         &withdrawal_lock_script.code_hash(),
     );
     let checkpoint_script_dep = CellDep::new_builder()

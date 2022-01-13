@@ -99,20 +99,28 @@ pub fn main() -> Result<(), Error> {
         };
 
         // get hash of proposal and check equality with hash in proof
-        let proposal_rlp = Rlp::new(&proposal);
-        let block_hash = proposal_rlp.at(2).map_err(|_| Error::ProposalRlpError)?;
-        if keccak(proposal.clone()).as_bytes().to_vec() != block_hash.as_raw() {
+        let proof_rlp = Rlp::new(&proof);
+        let block_hash: Vec<u8> = proof_rlp.val_at(2).map_err(|_| Error::ProofRlpError)?;
+        let proposal_hash = keccak(proposal.clone()).as_bytes().to_vec();
+        if proposal_hash != block_hash {
             return Err(Error::BlockHashMismatch);
         }
 
         // get validate stake_infos from stake cell in cell_dep and check pBFT consensus validation
-        let proof_rlp = Rlp::new(&proof);
         let era = bytes_to_u64(&output_checkpoint_data.era());
         let valid_nodes =
             get_valid_stakeinfos_from_celldeps(era, &input_checkpoint_data.stake_type_hash())?;
-        let nodes_bitmap =
-            BitVec::from_bytes(proof_rlp.at(4).map_err(|_| Error::ProofRlpError)?.as_raw());
+        let nodes_bitmap = {
+            let bitmap: Vec<u8> = proof_rlp.val_at(4).map_err(|_| Error::ProofRlpError)?;
+            BitVec::from_bytes(bitmap.as_slice())
+        };
         let active_num = nodes_bitmap.iter().filter(|b| *b).count();
+        debug!(
+            "era = {}, nodes = {}/{}",
+            era,
+            active_num,
+            valid_nodes.len()
+        );
         if active_num <= valid_nodes.len() * 2 / 3 {
             return Err(Error::ActiveNodesNotEnough);
         }
@@ -120,16 +128,15 @@ pub fn main() -> Result<(), Error> {
         // prepare signing message and check blst signature validation
         let height: u64 = proof_rlp.val_at(0).map_err(|_| Error::ProofRlpError)?;
         let round: u64 = proof_rlp.val_at(1).map_err(|_| Error::ProofRlpError)?;
+        debug!("height = {}, round = {}", height, round);
         let mut message = RlpStream::new();
-        message.append(&height);
-        message.append(&round);
-        message.append(&1u8);
-        message.append(&block_hash.as_raw());
-        let signature = proof_rlp
-            .at(3)
-            .map_err(|_| Error::ProofRlpError)?
-            .as_raw()
-            .to_vec();
+        message
+            .begin_list(4)
+            .append(&height)
+            .append(&round)
+            .append(&1u8)
+            .append(&block_hash);
+        let signature: Vec<u8> = proof_rlp.val_at(3).map_err(|_| Error::ProofRlpError)?;
         if signature.len() != 96 {
             return Err(Error::ProofRlpError);
         }
@@ -157,34 +164,42 @@ pub fn main() -> Result<(), Error> {
         if era_period == 0 {
             return Err(Error::CheckpointDataError);
         }
-        let last_block_hash = proposal_rlp.at(11).map_err(|_| Error::ProposalRlpError)?;
+        let proposal_rlp = Rlp::new(&proposal);
+        let last_block_hash: Vec<u8> = proposal_rlp
+            .val_at(11)
+            .map_err(|_| Error::ProposalRlpError)?;
         if u8::from(input_checkpoint_data.state()) != 1
             || period != bytes_to_u64(&input_checkpoint_data.period()) + 1
             || era != period / era_period
-            || output_checkpoint_data.block_hash() != block_hash.as_raw().to_vec()
+            || output_checkpoint_data.block_hash() != block_hash
             || period * bytes_to_u32(&output_checkpoint_data.period_interval()) as u64 != height
-            || input_checkpoint_data.block_hash() != last_block_hash.as_raw().to_vec()
+            || input_checkpoint_data.block_hash() != last_block_hash
         {
             return Err(Error::CheckpointRlpDataMismatch);
         }
 
         // check AT amount
-        let base_reward = bytes_to_u128(&input_checkpoint_data.base_reward());
-        let period = bytes_to_u64(&input_checkpoint_data.period());
-        let half_period = bytes_to_u64(&input_checkpoint_data.half_period());
+        let base_reward = bytes_to_u128(&output_checkpoint_data.base_reward());
+        let half_period = bytes_to_u64(&output_checkpoint_data.half_period());
         if half_period == 0 {
             return Err(Error::CheckpointDataError);
         }
         let at_amount_diff = base_reward / 2u128.pow((period / half_period) as u32);
+        debug!(
+            "output_sudt = {}, input_sudt = {}, diff_sudt = {}",
+            output_at_amount, input_at_amount, at_amount_diff
+        );
         if output_at_amount - input_at_amount != at_amount_diff {
             return Err(Error::ATAmountMismatch);
         }
 
         // find node_identity and construct withdrawal lock
-        let proposer_address = proposal_rlp.at(1).map_err(|_| Error::ProposalRlpError)?;
+        let proposer_address: Vec<u8> = proposal_rlp
+            .val_at(1)
+            .map_err(|_| Error::ProposalRlpError)?;
         let mut node_identity = None;
         valid_nodes.iter().for_each(|node| {
-            if node.l2_address == proposer_address.as_raw() {
+            if node.l2_address == proposer_address.as_slice() {
                 node_identity = Some(node.identity);
             }
         });
@@ -212,6 +227,10 @@ pub fn main() -> Result<(), Error> {
             period + unlock_period,
             Source::Output,
         )?;
+        debug!(
+            "output_withdrawal_sudt = {}, input_withdrawal_sudt = {}",
+            output_withdrawal_at_amount, input_withdrawal_at_amount
+        );
         if output_withdrawal_at_amount - input_withdrawal_at_amount != at_amount_diff {
             return Err(Error::WithdrawalATAmountMismatch);
         }

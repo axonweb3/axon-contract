@@ -2,18 +2,13 @@ extern crate alloc;
 use crate::error::Error;
 use alloc::{
     collections::{btree_map::BTreeMap, BTreeSet},
-    str, vec,
+    vec,
     vec::Vec,
 };
 use blake2b_ref::Blake2bBuilder;
 use ckb_std::{
     ckb_constants::Source,
-    ckb_types::{
-        bytes::Bytes,
-        core::ScriptHashType,
-        packed::{Byte32, Script},
-        prelude::*,
-    },
+    ckb_types::{bytes::Bytes, core::ScriptHashType, packed::Script, prelude::*},
     debug,
     high_level::{
         load_cell_capacity, load_cell_data, load_cell_lock, load_cell_lock_hash,

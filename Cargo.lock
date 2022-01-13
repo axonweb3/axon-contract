@@ -1740,11 +1740,15 @@ dependencies = [
 name = "tests"
 version = "0.1.0"
 dependencies = [
+ "bit-vec 0.6.3",
  "blst 0.3.6",
  "ckb-system-scripts",
  "ckb-testtool",
+ "hex",
+ "keccak-hash",
  "molecule",
  "rand 0.8.4",
+ "rlp",
 ]
 
 [[package]]
@@ -1871,6 +1875,7 @@ version = "0.1.0"
 dependencies = [
  "blake2b-ref 0.3.0",
  "ckb-std",
+ "hex",
  "protocol",
 ]
 
