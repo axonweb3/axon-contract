@@ -5,6 +5,13 @@ contracts/**/target/*
 
 # C
 contracts/c/build/*
+contracts/common/secp256k1/ckb-lib-secp256k1/build/*
+contracts/common/blst/ckb-lib-secp256k1-blst/build/*
+
+# others
+build/*
+!.gitkeep
+.tmp/
 
 # others
 build/*
