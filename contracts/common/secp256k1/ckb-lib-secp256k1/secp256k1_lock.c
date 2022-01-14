@@ -32,6 +32,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "blake2b.h"
+#include "blockchain.h"
+#include "secp256k1_helper.h"
 
 /* Extract lock from WitnessArgs */
 int extract_witness_lock(uint8_t *witness, uint64_t len,
