@@ -27,8 +27,8 @@ run tests:
 
 ``` sh
 cd tests
-cargo test_selection_success -- --nocapture
-cargo test_checkpoint_success -- --nocapture
-cargo test_stake_success -- --nocapture
-cargo test_withdrawal_success -- --nocapture
+cargo test test_selection_success -- --nocapture
+cargo test test_checkpoint_success -- --nocapture
+cargo test test_stake_success -- --nocapture
+cargo test test_withdrawal_success -- --nocapture
 ```
