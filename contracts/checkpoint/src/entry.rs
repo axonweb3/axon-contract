@@ -134,7 +134,7 @@ pub fn main() -> Result<(), Error> {
             .begin_list(4)
             .append(&height)
             .append(&round)
-            .append(&1u8)
+            .append(&2u8)
             .append(&block_hash);
         let signature: Vec<u8> = proof_rlp.val_at(3).map_err(|_| Error::ProofRlpError)?;
         if signature.len() != 96 {

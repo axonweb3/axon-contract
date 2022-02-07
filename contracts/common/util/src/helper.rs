@@ -92,7 +92,7 @@ pub enum FILTER {
     NOTAPPLY,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Debug)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Debug)]
 pub struct StakeInfoObject {
     pub identity: [u8; 21],
     pub l2_address: [u8; 20],
@@ -127,6 +127,12 @@ impl Ord for StakeInfoObject {
         order
     }
 }
+
+// impl PartialEq for StakeInfoObject {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.identity == other.identity && self.inauguration_era == other.inauguration_era
+//     }
+// }
 
 pub fn get_stake_data_by_type_hash(
     cell_type_hash: &[u8; 32],
@@ -263,7 +269,7 @@ pub fn filter_stakeinfos(
                     }
                 }
             }
-            if filtered_stake_infos.len() as u8 >= quorum {
+            if filtered_stake_infos.len() as u8 > quorum {
                 return Err(Error::StakeInfoQuorumError);
             }
         }
