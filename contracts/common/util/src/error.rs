@@ -13,6 +13,7 @@ pub enum Error {
     SignatureMismatch,
     TypeScriptEmpty,
     ATCellShouldEmpty,
+    BadScriptArgs,
 
     // selection contract
     OmniCheckpointCountError = 20,

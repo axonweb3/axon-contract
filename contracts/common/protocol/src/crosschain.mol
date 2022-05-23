@@ -1,0 +1,29 @@
+array Uint32  [byte; 4];
+array Address [byte; 20];
+array Hash    [byte; 32];
+array Pubkey  [byte; 32];
+
+vector String <byte>;
+vector PubkeyList <Pubkey>;
+
+table Token {
+   symbol:              String,
+   sUDT_codehash:       Hash,
+   sUDT_owner_lockhash: Hash,
+   fee_ratio:           Uint32,
+}
+
+vector TokenConfig <Token>;
+
+table Metadata {
+   chain_id:            byte,
+   token_config:        TokenConfig,
+   checkpoint_typehash: Hash,
+}
+
+table Transfer {
+   axon_address: Address,
+   ckb_amount:   Uint32,
+   sUDT_amount:  Uint32,
+   symbol:       String,
+}

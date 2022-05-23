@@ -1,0 +1,6 @@
+make --dry-run --keep-going --print-directory
+make: Entering directory '/home/vimchain/contracts/axon'
+make: Leaving directory '/home/vimchain/contracts/axon'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+

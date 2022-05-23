@@ -652,6 +652,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "crosschain-metadata"
+version = "0.1.0"
+dependencies = [
+ "ckb-std",
+ "protocol",
+ "secp256k1 0.1.0",
+ "util",
+]
+
+[[package]]
+name = "crosschain-request"
+version = "0.1.0"
+dependencies = [
+ "ckb-std",
+ "protocol",
+ "util",
+]
+
+[[package]]
 name = "crunchy"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

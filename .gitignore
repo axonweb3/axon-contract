@@ -12,8 +12,3 @@ contracts/common/blst/ckb-lib-secp256k1-blst/build/*
 build/*
 !.gitkeep
 .tmp/
-
-# others
-build/*
-!.gitkeep
-.tmp/

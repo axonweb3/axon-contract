@@ -1,0 +1,107 @@
+{
+  "namespace": "crosschain",
+  "imports": [],
+  "declarations": [
+    {
+      "type": "array",
+      "name": "Uint32",
+      "item": "byte",
+      "item_count": 4
+    },
+    {
+      "type": "array",
+      "name": "Address",
+      "item": "byte",
+      "item_count": 20
+    },
+    {
+      "type": "array",
+      "name": "Hash",
+      "item": "byte",
+      "item_count": 32
+    },
+    {
+      "type": "array",
+      "name": "Pubkey",
+      "item": "byte",
+      "item_count": 32
+    },
+    {
+      "type": "fixvec",
+      "name": "String",
+      "item": "byte"
+    },
+    {
+      "type": "fixvec",
+      "name": "PubkeyList",
+      "item": "Pubkey"
+    },
+    {
+      "type": "table",
+      "name": "Token",
+      "fields": [
+        {
+          "name": "symbol",
+          "type": "String"
+        },
+        {
+          "name": "sUDT_codehash",
+          "type": "Hash"
+        },
+        {
+          "name": "sUDT_owner_lockhash",
+          "type": "Hash"
+        },
+        {
+          "name": "fee_ratio",
+          "type": "Uint32"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "TokenConfig",
+      "item": "Token"
+    },
+    {
+      "type": "table",
+      "name": "Metadata",
+      "fields": [
+        {
+          "name": "chain_id",
+          "type": "byte"
+        },
+        {
+          "name": "token_config",
+          "type": "TokenConfig"
+        },
+        {
+          "name": "checkpoint_typehash",
+          "type": "Hash"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "Transfer",
+      "fields": [
+        {
+          "name": "axon_address",
+          "type": "Address"
+        },
+        {
+          "name": "ckb_amount",
+          "type": "Uint32"
+        },
+        {
+          "name": "sUDT_amount",
+          "type": "Uint32"
+        },
+        {
+          "name": "symbol",
+          "type": "String"
+        }
+      ]
+    }
+  ]
+}

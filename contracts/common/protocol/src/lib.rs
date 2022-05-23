@@ -6,5 +6,6 @@
 
 pub mod reader;
 pub mod writer;
+pub mod crosschain;
 pub use molecule::prelude;
 pub use molecule2::{read_at, Cursor};
