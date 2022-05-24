@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(non_snake_case)]
@@ -121,48 +120,95 @@ impl Hash {
     }
 }
 
-pub struct Pubkey {
+pub struct BlsPubkey {
     pub cursor: Cursor,
 }
 
-impl From<Cursor> for Pubkey {
+impl From<Cursor> for BlsPubkey {
     fn from(cursor: Cursor) -> Self {
         Self { cursor }
     }
 }
 
-impl Pubkey {
+impl BlsPubkey {
     pub fn len(&self) -> usize {
-        32
+        48
     }
 }
 
-impl Pubkey {
+impl BlsPubkey {
     pub fn get(&self, index: usize) -> u8 {
         let cur = self.cursor.slice_by_offset(1 * index, 1).unwrap();
         cur.into()
     }
 }
 
-pub struct PubkeyList {
+pub struct Signautre {
     pub cursor: Cursor,
 }
 
-impl From<Cursor> for PubkeyList {
+impl From<Cursor> for Signautre {
     fn from(cursor: Cursor) -> Self {
         Self { cursor }
     }
 }
 
-impl PubkeyList {
+impl Signautre {
+    pub fn len(&self) -> usize {
+        65
+    }
+}
+
+impl Signautre {
+    pub fn get(&self, index: usize) -> u8 {
+        let cur = self.cursor.slice_by_offset(1 * index, 1).unwrap();
+        cur.into()
+    }
+}
+
+pub struct BlsPubkeyList {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for BlsPubkeyList {
+    fn from(cursor: Cursor) -> Self {
+        Self { cursor }
+    }
+}
+
+impl BlsPubkeyList {
     pub fn len(&self) -> usize {
         self.cursor.fixvec_length()
     }
 }
 
-impl PubkeyList {
+impl BlsPubkeyList {
     pub fn get(&self, index: usize) -> Vec<u8> {
-        let cur = self.cursor.fixvec_slice_by_index(32, index).unwrap();
+        let cur = self.cursor.fixvec_slice_by_index(48, index).unwrap();
+        cur.into()
+    }
+}
+
+pub struct Witness {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for Witness {
+    fn from(cursor: Cursor) -> Self {
+        Witness { cursor }
+    }
+}
+
+impl Witness {
+    pub fn signature(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl Witness {
+    pub fn bls_pubkeys(&self) -> BlsPubkeyList {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }
 }
@@ -253,7 +299,7 @@ impl Metadata {
 }
 
 impl Metadata {
-    pub fn checkpoint_typehash(&self) -> Vec<u8> {
+    pub fn stake_typehash(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(3).unwrap();
         cur.into()
     }

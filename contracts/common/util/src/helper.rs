@@ -487,3 +487,29 @@ pub fn get_metadata_from_celldep(
         Err(Error::BadMetadataTypehash)
     }
 }
+
+pub fn get_bls_pubkeys_from_celldep(stake_typehash: &Vec<u8>) -> Result<Vec<[u8; 48]>, Error> {
+    let mut bls_pubkeys = vec![];
+    QueryIter::new(load_cell_type_hash, Source::CellDep)
+        .enumerate()
+        .for_each(|(i, hash)| {
+            if let Some(hash) = hash {
+                if hash == stake_typehash.as_slice() {
+                    let data = load_cell_data(i, Source::CellDep).unwrap();
+                    let stake_infos =
+                        reader::StakeLockCellData::from(Cursor::from(data)).stake_infos();
+                    for i in 0..stake_infos.len() {
+                        let stake_info = stake_infos.get(i);
+                        let mut pubkey = [0u8; 48];
+                        pubkey.copy_from_slice(stake_info.bls_pub_key().as_slice());
+                        bls_pubkeys.push(pubkey);
+                    }
+                }
+            }
+        });
+    if bls_pubkeys.is_empty() {
+        Err(Error::BadStakeTypehash)
+    } else {
+        Ok(bls_pubkeys)
+    }
+}

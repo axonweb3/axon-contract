@@ -10,6 +10,7 @@ pub enum Error {
 
     // common
     BadWitnessInputType = 10,
+    BadWitnessLock,
     SignatureMismatch,
     TypeScriptEmpty,
     ATCellShouldEmpty,
@@ -63,11 +64,13 @@ pub enum Error {
 
     // corsschain contract
     BadMetadataTypehash = 80,
+    BadStakeTypehash,
     BadSUDTCell,
     MetadataCkbFeeError,
     MetadataSUDTFeeError,
     InsufficientCrosschainCKB,
     InsufficientCrosschainSUDT,
+    UnexpectedBlsPubkey,
 }
 
 impl From<SysError> for Error {

@@ -33,3 +33,7 @@ template_type = "Rust"
 [[contracts]]
 name = "crosschain-request"
 template_type = "Rust"
+
+[[contracts]]
+name = "crosschain-lock"
+template_type = "Rust"

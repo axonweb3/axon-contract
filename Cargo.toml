@@ -11,6 +11,7 @@ members = [
     "contracts/stake",
     "contracts/crosschain-metadata",
     "contracts/crosschain-request",
+    "contracts/crosschain-lock",
 ]
 
 [profile.release]

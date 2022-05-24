@@ -34,14 +34,34 @@
     },
     {
       "type": "array",
-      "name": "Pubkey",
+      "name": "BlsPubkey",
       "item": "byte",
-      "item_count": 32
+      "item_count": 48
+    },
+    {
+      "type": "array",
+      "name": "Signautre",
+      "item": "byte",
+      "item_count": 65
     },
     {
       "type": "fixvec",
-      "name": "PubkeyList",
-      "item": "Pubkey"
+      "name": "BlsPubkeyList",
+      "item": "BlsPubkey"
+    },
+    {
+      "type": "table",
+      "name": "Witness",
+      "fields": [
+        {
+          "name": "signature",
+          "type": "Signautre"
+        },
+        {
+          "name": "bls_pubkeys",
+          "type": "BlsPubkeyList"
+        }
+      ]
     },
     {
       "type": "table",
@@ -83,7 +103,7 @@
           "type": "Uint32"
         },
         {
-          "name": "checkpoint_typehash",
+          "name": "stake_typehash",
           "type": "Hash"
         }
       ]
