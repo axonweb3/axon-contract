@@ -60,6 +60,14 @@ pub enum Error {
     BadWithdrawalTypeHash,
     SomeWithdrawalTypeEmpty,
     TotalSudtAmountMismatch,
+
+    // corsschain contract
+    BadMetadataTypehash = 80,
+    BadSUDTCell,
+    MetadataCkbFeeError,
+    MetadataSUDTFeeError,
+    InsufficientCrosschainCKB,
+    InsufficientCrosschainSUDT,
 }
 
 impl From<SysError> for Error {

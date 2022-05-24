@@ -9,7 +9,7 @@ use blake2b_ref::Blake2bBuilder;
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, core::ScriptHashType, packed::Script, prelude::*},
-    debug,
+    // debug,
     high_level::{
         load_cell_capacity, load_cell_data, load_cell_lock, load_cell_lock_hash,
         load_cell_type_hash, QueryIter,
@@ -17,6 +17,7 @@ use ckb_std::{
 };
 use core::{cmp::Ordering, convert::TryInto, result::Result};
 use protocol::{
+    crosschain,
     prelude::{Builder, Byte, Entity},
     reader, writer, Cursor,
 };
@@ -460,4 +461,29 @@ pub fn get_valid_stakeinfos_from_celldeps(
     };
     valid_stakeinfos.sort_by(|a, b| a.l2_address.cmp(&b.l2_address));
     Ok(valid_stakeinfos)
+}
+
+//////////////////////////////////////////////////////////
+/// used by corsschain contract
+//////////////////////////////////////////////////////////
+
+pub fn get_metadata_from_celldep(
+    metadata_typehash: &Vec<u8>,
+) -> Result<crosschain::Metadata, Error> {
+    let mut metadata = None;
+    QueryIter::new(load_cell_type_hash, Source::CellDep)
+        .enumerate()
+        .for_each(|(i, hash)| {
+            if let Some(hash) = hash {
+                if hash == metadata_typehash.as_slice() {
+                    let data = load_cell_data(i, Source::CellDep).unwrap();
+                    metadata = Some(crosschain::Metadata::from(Cursor::from(data)));
+                }
+            }
+        });
+    if let Some(metadata) = metadata {
+        Ok(metadata)
+    } else {
+        Err(Error::BadMetadataTypehash)
+    }
 }

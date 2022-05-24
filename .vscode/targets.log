@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Mon May 23 13:30:38 2022
+# Make data base, printed on Tue May 24 17:16:51 2022
 
 # Variables
 
@@ -17,7 +17,7 @@ make: *** No rule to make target 'all'.  Stop.
 # automatic
 ?F = $(notdir $?)
 # environment
-WSLENV = VSCODE_WSL_EXT_LOCATION/up:VSCODE_SERVER_TAR/up
+WSLENV = VSCODE_WSL_EXT_LOCATION/up
 # default
 .SHELLFLAGS := -c
 # environment
@@ -57,9 +57,7 @@ PATH = /home/vimchain/.vscode-server/bin/c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /tmp/vscode-ipc-942890cf-3422-445c-85f7-27f7d756ae27.sock
-# environment
-VSCODE_SERVER_TAR = /mnt/c/Users/vimchain/AppData/Local/Temp/vscode-remote-wsl/c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d5/vscode-server-stable-linux-x64.tar.gz
+VSCODE_IPC_HOOK_CLI = /tmp/vscode-ipc-2ac53652-ac9c-4af1-94cd-424cb177e591.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -77,7 +75,7 @@ PWD = /home/vimchain/contracts/axon
 # default
 .LOADED := 
 # environment
-WSL_INTEROP = /run/WSL/778_interop
+WSL_INTEROP = /run/WSL/12_interop
 # environment
 MANPATH = /home/linuxbrew/.linuxbrew/share/man:
 # environment
@@ -115,7 +113,7 @@ NAME = LAPTOP-MK76VT6F
 # automatic
 %D = $(patsubst %/,%,$(dir $%))
 # environment
-VSCODE_WSL_EXT_LOCATION = /mnt/c/Users/vimchain/.vscode/extensions/ms-vscode-remote.remote-wsl-0.66.0
+VSCODE_WSL_EXT_LOCATION = /mnt/c/Users/vimchain/.vscode/extensions/ms-vscode-remote.remote-wsl-0.66.3
 # default
 MAKE_COMMAND := make
 # default
@@ -129,7 +127,6 @@ MFLAGS = -pqrR
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
- 
 windows_ip = 172.21.48.1
 # environment
 HOMEBREW_PREFIX = /home/linuxbrew/.linuxbrew
@@ -170,7 +167,7 @@ VSCODE_EXTHOST_WILL_SEND_SOCKET = true
 # environment
 WSL_DISTRO_NAME = Ubuntu-20.04
 # variable set hash-table stats:
-# Load=78/1024=8%, Rehash=0, Collisions=6/100=6%
+# Load=77/1024=8%, Rehash=0, Collisions=6/99=6%
 
 # Pattern-specific Variable Values
 
@@ -236,6 +233,6 @@ GNUmakefile:
 # strcache performance: lookups = 27 / hit rate = 11%
 # hash-table stats:
 # Load=24/8192=0%, Rehash=0, Collisions=1/27=4%
-# Finished Make data base on Mon May 23 13:30:38 2022
+# Finished Make data base on Tue May 24 17:16:51 2022
 
  
