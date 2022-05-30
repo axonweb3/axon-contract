@@ -155,7 +155,7 @@ impl From<Cursor> for Signautre {
 
 impl Signautre {
     pub fn len(&self) -> usize {
-        65
+        96
     }
 }
 

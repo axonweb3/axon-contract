@@ -76,7 +76,7 @@ pub fn main() -> Result<(), Error> {
         if ckb_fee >= 1000 {
             return Err(Error::MetadataCkbFeeError);
         }
-        let lock_ckb = load_cell_capacity(0, Source::GroupOutput)?;
+        let lock_ckb = load_cell_capacity(0, Source::Output)?;
         debug!(
             "input_ckb = {}, output_ckb = {}",
             lock_ckb,

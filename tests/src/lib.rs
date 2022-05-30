@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 mod axon;
+mod crosschain;
 mod helper;
 #[cfg(test)]
 mod tests;

@@ -42,7 +42,7 @@
       "type": "array",
       "name": "Signautre",
       "item": "byte",
-      "item_count": 65
+      "item_count": 96
     },
     {
       "type": "fixvec",

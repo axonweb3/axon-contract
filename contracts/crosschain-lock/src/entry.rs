@@ -28,7 +28,7 @@ pub fn main() -> Result<(), Error> {
     // find signature_pubkey_list from witness lock
     let sig;
     let mut sig_pubkeys = vec![];
-    let witness_args = load_witness_args(0, Source::GroupOutput)?;
+    let witness_args = load_witness_args(0, Source::GroupInput)?;
     if let Some(data) = witness_args.lock().to_opt() {
         // find bls_pubkey_list from stake info
         let bls_pubkeys = get_bls_pubkeys_from_celldep(&metadata.stake_typehash())?;

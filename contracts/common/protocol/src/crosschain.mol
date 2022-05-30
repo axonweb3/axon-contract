@@ -4,7 +4,7 @@ array Uint128   [byte; 16];
 array Address   [byte; 20];
 array Hash      [byte; 32];
 array BlsPubkey [byte; 48];
-array Signautre [byte; 65];
+array Signautre [byte; 96];
 
 vector BlsPubkeyList <BlsPubkey>;
 
