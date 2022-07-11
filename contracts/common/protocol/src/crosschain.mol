@@ -1,3 +1,4 @@
+array Uint16    [byte; 2];
 array Uint32    [byte; 4];
 array Uint64    [byte; 8];
 array Uint128   [byte; 16];
@@ -22,7 +23,7 @@ table Token {
 vector TokenConfig <Token>;
 
 table Metadata {
-   chain_id:       byte,
+   chain_id:       Uint16,
    token_config:   TokenConfig,
    ckb_fee_ratio:  Uint32,
    stake_typehash: Hash,

@@ -625,11 +625,13 @@ fn test_metadata_update_success() {
 
     // prepare metadata cell data
     let metadata = crosschain::Metadata::new_builder()
-        .chain_id(5.into())
+        .chain_id(cs_uint16(5))
         .ckb_fee_ratio(cs_uint32(100))
         .stake_typehash(cs_hash(&Byte32::default()))
         .token_config(cs_token_config(&vec![]))
         .build();
+    println!("metadata = {}", hex::encode(metadata.as_slice()));
+    println!("metadata = {}", String::from("3d0000001400000015000000190000001d0000000504000000640000000000000000000000000000000000000000000000000000000000000000000000"));
 
     // prepare ckb transaction input/output
     let input = CellInput::new_builder()
@@ -697,7 +699,7 @@ fn test_crosschain_request_success() {
     // prepare metadata celldep
     let sudt_config = ([0u8; 20], sudt_type_script.calc_script_hash(), 100);
     let metadata = crosschain::Metadata::new_builder()
-        .chain_id(5.into())
+        .chain_id(cs_uint16(5))
         .ckb_fee_ratio(cs_uint32(100))
         .stake_typehash(cs_hash(&Byte32::default()))
         .token_config(cs_token_config(&vec![sudt_config]))
@@ -734,7 +736,7 @@ fn test_crosschain_request_success() {
                     .capacity(600.pack())
                     .lock(always_success_lock_script.clone())
                     .build(),
-                metadata.as_bytes(),
+                Bytes::new(),
             ),
         )
         .build();
@@ -801,7 +803,7 @@ fn test_crosschain_lock_success() {
 
     // prepare metadata celldep
     let metadata = crosschain::Metadata::new_builder()
-        .chain_id(5.into())
+        .chain_id(cs_uint16(5))
         .ckb_fee_ratio(cs_uint32(100))
         .stake_typehash(cs_hash(&stake_type_script.calc_script_hash()))
         .token_config(cs_token_config(&vec![]))

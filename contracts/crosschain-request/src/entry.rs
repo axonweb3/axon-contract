@@ -40,6 +40,7 @@ pub fn main() -> Result<(), Error> {
 
     // load metadata from CellDep
     let metadata = get_metadata_from_celldep(&metadata_typehash)?;
+    debug!("metadata_length = {}", metadata.cursor.size);
 
     // get token crosschain fee from metadata
     let ckb_fee = metadata.ckb_fee_ratio();

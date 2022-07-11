@@ -1,9 +1,33 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(non_snake_case)]
+
 extern crate alloc;
 use alloc::vec::Vec;
 use molecule2::Cursor;
+
+pub struct Uint16 {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for Uint16 {
+    fn from(cursor: Cursor) -> Self {
+        Self { cursor }
+    }
+}
+
+impl Uint16 {
+    pub fn len(&self) -> usize {
+        2
+    }
+}
+
+impl Uint16 {
+    pub fn get(&self, index: usize) -> u8 {
+        let cur = self.cursor.slice_by_offset(1 * index, 1).unwrap();
+        cur.into()
+    }
+}
 
 pub struct Uint32 {
     pub cursor: Cursor,
@@ -278,7 +302,7 @@ impl From<Cursor> for Metadata {
 }
 
 impl Metadata {
-    pub fn chain_id(&self) -> u8 {
+    pub fn chain_id(&self) -> u16 {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }

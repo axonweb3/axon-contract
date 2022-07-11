@@ -4,6 +4,12 @@
   "declarations": [
     {
       "type": "array",
+      "name": "Uint16",
+      "item": "byte",
+      "item_count": 2
+    },
+    {
+      "type": "array",
       "name": "Uint32",
       "item": "byte",
       "item_count": 4
@@ -92,7 +98,7 @@
       "fields": [
         {
           "name": "chain_id",
-          "type": "byte"
+          "type": "Uint16"
         },
         {
           "name": "token_config",
