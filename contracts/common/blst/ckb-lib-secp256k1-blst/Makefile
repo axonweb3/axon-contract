@@ -10,9 +10,9 @@ SCRIPT_CFLAGS := -I c -I deps/ckb-c-stdlib -I deps/ckb-c-stdlib/libc -I deps/ckb
 CFLAGS_BLST := -fno-builtin-printf -Ideps/blst/bindings $(CFLAGS) $(SCRIPT_CFLAGS)
 
 CKB_SCRIPT_SECP256K1 := deps/secp256k1
-BUILDER_DOCKER := thewawar/ckb-capsule:2021-12-25
+BUILDER_DOCKER := thewawar/ckb-capsule:2022-08-01
 
-all: blst-apply-patch build/libckb-lib-secp256k1-blst.a
+all: build/libckb-lib-secp256k1-blst.a
 
 all-via-docker:
 	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make all"

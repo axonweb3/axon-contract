@@ -9,7 +9,7 @@ LDFLAGS := -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
 SCRIPT_CFLAGS := -I c -I deps/ckb-c-stdlib -I deps/ckb-c-stdlib/libc -I deps/ckb-c-stdlib/molecule
 
 CKB_SCRIPT_SECP256K1 := deps/secp256k1
-BUILDER_DOCKER := thewawar/ckb-capsule:2021-12-25
+BUILDER_DOCKER := thewawar/ckb-capsule:2022-08-01
 
 all: build/libckb-lib-secp256k1.a
 
