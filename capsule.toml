@@ -6,7 +6,7 @@
 # docker_image = "thewawar/ckb-capsule:2021-12-25"
 
 # capsule version
-version = "0.7.1 c094e36"
+version = "0.9.0"
 # path of deployment config file
 deployment = "deployment.toml"
 
