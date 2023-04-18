@@ -1,0 +1,25 @@
+import basic;
+
+table StakeInfo {
+    is_increase: byte,                   // increase or decrease stake
+    amount:           Byte16,
+    inauguration_epoch: Byte8,
+}
+
+////////////////////
+// stake AT lock
+////////////////////
+table StakeLockArgs {
+    stake_smt_type_id:   Byte32,
+    staker_identity:     Identity,
+}
+
+table StakeAtLockCellData {
+    amount: Byte16,
+    version: byte,
+    l1_address:       Identity,
+    l2_address:       Identity,
+    stake_info: StakeInfo,               // stake record hasn't been updated to Stake SMT cell.
+    checkpoint_type_id: Byte32,          // checkpoint type script id
+    xudt_type_id: Byte32,                // xUDT type script id
+}
