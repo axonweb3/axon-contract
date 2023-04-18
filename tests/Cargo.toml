@@ -2,16 +2,15 @@
 name = "tests"
 version = "0.1.0"
 edition = "2018"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ckb-testtool = "0.6"
-molecule = "0.7.2"
-ckb-system-scripts = "0.5"
+bit-vec = "0.6.3"
 blst = "0.3.4"
+ckb-system-scripts = "0.5"
+ckb-testtool = "0.6"
+hex = "0.4.3"
+keccak-hash = "0.8.0"
+molecule = "0.7.2"
 rand = "0.8.4"
 rlp = "0.5.1"
-keccak-hash = "0.8.0"
-bit-vec = "0.6.3"
-hex = "0.4.3"
