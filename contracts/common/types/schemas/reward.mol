@@ -1,0 +1,13 @@
+import basic;
+
+table RewardSmtCellData {
+    version: byte,
+    claim_smt_root: Byte32,                     // calculated based on users claim record
+    // after epoch 80, updated with metadata every epoch, 
+    // all rewards gotten earlier than 80 epochs are accumulated here
+    expired_rewards_smt_root: Byte32,
+    checkpoint_type_id: Byte32,                  // checkpoint type script hash
+    stake_smt_type_id: Byte32,
+    delegate_smt_type_id: Byte32,
+    xudt_type_id: Byte32,
+}

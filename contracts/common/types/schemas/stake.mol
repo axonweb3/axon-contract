@@ -23,3 +23,12 @@ table StakeAtLockCellData {
     checkpoint_type_id: Byte32,          // checkpoint type script id
     xudt_type_id: Byte32,                // xUDT type script id
 }
+
+// stake smt cell
+table StakeSMTCellData {
+    smt_root: Byte32,             // smt root of all staker infos
+    version: byte,
+    checkpoint_type_id: Byte32,   // checkpoint type script hash
+    delegate_smt_type_id: Byte32,
+    xudt_type_id: Byte32,         // xUDT type script hash
+}
