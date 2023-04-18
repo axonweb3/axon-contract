@@ -1,0 +1,25 @@
+import basic;
+
+table ProposeCount {
+    address: Byte20,
+    count:   Uint32,
+}
+
+vector ProposeCounts <ProposeCount>;
+
+table CheckpointLockCellData {
+    version:           byte,
+    epoch:             Uint64,
+    period:            Uint32,
+    total_period:      Uint32,
+    state_root:        Byte32,
+    latest_block_hash: Byte32,
+    xudt_type_id:      Byte32,
+    timestamp:         Uint64,
+    propose_count:     ProposeCounts,
+}
+
+table CheckpointLockWitnessLock {
+	proposal: Bytes,
+	proof:    Bytes,
+}

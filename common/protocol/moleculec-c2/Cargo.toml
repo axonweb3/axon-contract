@@ -12,7 +12,7 @@ edition = "2018"
 
 
 [dev-dependencies]
-ckb-types = "0.100.0"
+ckb-types = "0.108"
 
 
 [profile.release]

@@ -1,13 +1,13 @@
 [workspace]
 members = [
     "tests",
+    "common/blst",
+    "common/protocol",
+    "common/secp256k1",
+    "common/types",
+    "common/util",
     "contracts/selection",
     "contracts/checkpoint",
-    "contracts/common/protocol",
-    "contracts/common/util",
-    "contracts/common/blst",
-    "contracts/common/secp256k1",
-    "contracts/common/types",
     "contracts/withdrawal",
     "contracts/stake",
     "contracts/crosschain-metadata",

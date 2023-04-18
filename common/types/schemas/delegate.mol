@@ -1,0 +1,53 @@
+import basic;
+
+table DelegateLimit {
+   threshold:          Uint128,
+   max_delegator_size: Uint32,
+}
+
+table DelegateInfo {
+    l1_address:     Identity,
+    l2_address:     Identity,
+    dividend_ratio: byte, // only dividend_ratio% reward will go to delegators
+}
+
+table DelegateCellData {
+    version:            byte,
+    delegate_limit:     DelegateLimit,
+    delegate_info:      DelegateInfo,
+    checkpoint_type_id: Byte32,
+    xudt_type_id:       Byte32,
+}
+
+table DelegatorInfo {
+    staker:             Identity,
+    delegate_amount:    Uint128,
+    inauguration_epoch: Uint64,
+}
+
+vector DelegatorInfos <DelegatorInfo>;
+
+// The data[0..16] is a le_u128 means xUDT amount.
+// So the cell data is decode from offset 16.
+table DelegateAtCellData {
+    version:            byte,
+    checkpoint_type_id: Byte32,
+    xudt_type_id:       Byte32,
+    delegator_infos:    DelegatorInfos,
+}
+
+table StakerSmtRoot {
+    staker: Identity,
+    root:   Byte32,
+}
+
+vector StakerSmtRoots <StakerSmtRoot>;
+
+table DelegateSmtCellData {
+    version:            byte,
+    smt_roots:          StakerSmtRoots,  // smt root of all delegator infos
+    checkpoint_type_id: Byte32,
+    xudt_type_id:       Byte32,
+    delegate_type_id:   Byte32,
+    reward_type_id:     Byte32,
+}
