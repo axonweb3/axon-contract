@@ -1,0 +1,32 @@
+import basic;
+
+table StakeInfo {
+    is_increase:        byte, // increase or decrease stake
+    amount:             Uint128,
+    inauguration_epoch: Uint64,
+}
+
+table StakeLockArgs {
+    stake_smt_type_id: Byte32,
+    staker_identity:   Identity,
+}
+
+// The data[0..16] is a le_u128 means xUDT amount.
+// So the cell data is decode from offset 16.
+table StakeAtLockCellData {
+    version:            byte,
+    l1_address:         Identity,
+    l2_address:         Identity,
+    stake_info:         StakeInfo, 
+    checkpoint_type_id: Byte32,
+    xudt_type_id:       Byte32,
+}
+
+
+table StakeSMTCellData {
+    smt_root:             Byte32, // smt root of all staker infos
+    version:              byte,
+    checkpoint_type_id:   Byte32,
+    delegate_smt_type_id: Byte32,
+    xudt_type_id:         Byte32,
+}
