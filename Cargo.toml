@@ -1,18 +1,7 @@
 [workspace]
 members = [
-    "tests",
     "common/blst",
-    "common/protocol",
-    "common/secp256k1",
     "common/types",
-    "common/util",
-    "contracts/selection",
-    "contracts/checkpoint",
-    "contracts/withdrawal",
-    "contracts/stake",
-    "contracts/crosschain-metadata",
-    "contracts/crosschain-request",
-    "contracts/crosschain-lock",
 ]
 
 [profile.release]
