@@ -1,7 +1,0 @@
-array Byte8  [byte; 16];
-array Byte16 [byte; 16];
-array Byte32 [byte; 32];
-
-array Identity [byte; 20];
-vector Bytes <byte>;
-option IdentityOpt (Identity);

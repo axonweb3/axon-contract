@@ -1,0 +1,11 @@
+import basic;
+
+table RewardSmtCellData {
+    version:                  byte,
+    claim_smt_root:           Byte32,
+    expired_rewards_smt_root: Byte32,
+    checkpoint_type_id:       Byte32,
+    stake_smt_type_id:        Byte32,
+    delegate_smt_type_id:     Byte32,
+    xudt_type_id:             Byte32,
+}

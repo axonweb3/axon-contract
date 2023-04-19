@@ -1,0 +1,42 @@
+import basic;
+
+table Validator {
+    bls_pub_key:    Byte97,
+    pub_key:        Byte65,
+    address:        Identity,
+    propose_weight: Uint32,
+    vote_weight:    Uint32,
+    propose_count:  Uint64,
+}
+
+table ValidatorHistory {
+    address:       Identity,
+    propose_count: Uint64,
+}
+
+vector MetadataList <Metadata>;
+vector ValidatorList <Validator>;
+vector ValidatorHistoryList <ValidatorHistory>;
+
+table Metadata {
+    epoch_len:       Uint32, // how many periods as one epoch
+    period_len:      Uint32, // how many blocks as one period
+    quorum:          Uint16,
+    gas_limit:       Uint64,
+    gas_price:       Uint64,
+    interval:        Uint32,
+    validators:      ValidatorList,
+    propose_ratio:   Uint32,
+    prevote_ratio:   Uint32,
+    precommit_ratio: Uint32,
+    brake_ratio:     Uint32,
+    tx_num_limit:    Uint32,
+    max_tx_size:     Uint32,
+}
+
+table MetadataCellData {
+    version:            byte,
+    epoch:              Uint64,
+    metadata:           MetadataList, // metadata of current and next epoch 
+    validators_history: ValidatorHistoryList, // at most 80 elements
+}
