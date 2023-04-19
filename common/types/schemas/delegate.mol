@@ -1,18 +1,18 @@
 import basic;
 
 table DelegateLimit {
-   threshold:          Uint128,
-   max_delegator_size: Uint32,
+    threshold:          Uint128,
+    max_delegator_size: Uint32,
 }
 
 table DelegateInfo {
-    l1_address:     Identity,
-    l2_address:     Identity,
     dividend_ratio: byte, // only dividend_ratio% reward will go to delegators
 }
 
 table DelegateCellData {
     version:            byte,
+    l1_address:         Identity,
+    l2_address:         Identity,
     delegate_limit:     DelegateLimit,
     delegate_info:      DelegateInfo,
     checkpoint_type_id: Byte32,

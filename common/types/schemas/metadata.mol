@@ -19,8 +19,8 @@ vector ValidatorList <Validator>;
 vector ValidatorHistoryList <ValidatorHistory>;
 
 table Metadata {
-    epoch_len:       Uint32, //how many periods as one epoch
-    period_len:      Uint32, //how many blocks as one period
+    epoch_len:       Uint32, // how many periods as one epoch
+    period_len:      Uint32, // how many blocks as one period
     quorum:          Uint16,
     gas_limit:       Uint64,
     gas_price:       Uint64,
