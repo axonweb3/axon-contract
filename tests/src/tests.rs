@@ -892,7 +892,7 @@ fn test_crosschain_lock_success() {
     let tx = context.complete_tx(tx);
 
     // generate blst aggregate signature
-    let digest: [u8; 32] = tx.hash().unpack();
+    let digest: [u8; 32] = tx.hash().unpack().into();
     let signature = generate_bls_signature(&digest, &bls_keypairs);
     let bls_pubkeys = bls_keypairs
         .iter()

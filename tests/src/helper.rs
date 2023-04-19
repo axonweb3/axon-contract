@@ -28,7 +28,7 @@ pub fn axon_byte48(bytes: &[u8; 48]) -> axon::Byte48 {
 }
 
 pub fn axon_byte32(bytes: &Byte32) -> axon::Byte32 {
-    let bytes: [u8; 32] = bytes.unpack();
+    let bytes: [u8; 32] = bytes.unpack().into();
     axon::Byte32::new_unchecked(bytes.to_vec().into())
 }
 
@@ -283,7 +283,7 @@ pub fn generate_bls_signature(message: &[u8], bls_keypairs: &[(SecretKey, Vec<u8
 //=====================================================
 
 pub fn cs_hash(hash: &Byte32) -> crosschain::Hash {
-    let hash: [u8; 32] = hash.unpack();
+    let hash: [u8; 32] = hash.unpack().into();
     crosschain::Hash::new_unchecked(hash.to_vec().into())
 }
 
