@@ -1,0 +1,6 @@
+import basic;
+
+table SelectionLockArgs {
+	omni_lock_hash:       Byte32,
+	checkpoint_lock_hash: Byte32,
+}
