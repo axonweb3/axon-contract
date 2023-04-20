@@ -14,19 +14,34 @@ jobs:
     steps:
       - name: Git checkout
         uses: actions/checkout@v3
+      - run: rustup component add rustfmt
+      - uses: actions-rs/toolchain@v1
         with:
-          ref: ${{ needs.set-output.outputs.output-sha }}
-      - uses: lyricwulf/abc@v1
-        with:
-          linux: m4
-      # - uses: actions-rs/toolchain@v1
-      #   with:
-      #     profile: minimal
-      #     components: rustfmt, clippy
-
+            toolchain: nightly
       - uses: Swatinem/rust-cache@v2
-
-      - name: CI
+      - run: sudo apt-get update && sudo apt-get install -y build-essential clang libssl-dev pkg-config libclang-dev
+      - name: install capsule
         run: |
-          rustup default nightly
-          make unit-test
+          cargo install cross --git https://github.com/cross-rs/cross
+          cargo install ckb-capsule --locked --version 0.9.0
+
+      - name: selection test
+        run: |
+            capsule build -n selection
+            cd ${{ github.workspace }}/tests
+            cargo test test_selection_success -- --nocapture
+      - name: checkpoint test
+        run: |
+            capsule build -n checkpoint
+            cd ${{ github.workspace }}/tests
+            cargo test test_checkpoint_success -- --nocapture
+      - name: stake test
+        run: |
+            capsule build -n stake
+            cd ${{ github.workspace }}/tests
+            cargo test test_stake_success -- --nocapture
+      - name: withdrawal test
+        run: |
+            capsule build -n withdrawal
+            cd ${{ github.workspace }}/tests
+            cargo test test_withdrawal_success -- --nocapture
