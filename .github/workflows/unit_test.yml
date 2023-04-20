@@ -1,0 +1,32 @@
+name: Unit Tests
+concurrency:
+    group: Unit Tests-${{ github.ref }}
+    cancel-in-progress: true
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.set-output.outputs.output-sha }}
+      - uses: lyricwulf/abc@v1
+        with:
+          linux: m4
+      # - uses: actions-rs/toolchain@v1
+      #   with:
+      #     profile: minimal
+      #     components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: CI
+        run: |
+          rustup default nightly
+          make unit-test
