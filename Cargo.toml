@@ -1,7 +1,10 @@
 [workspace]
 members = [
+    "tests",
     "common/blst",
     "common/types",
+    "common/util",
+    "contracts/selection",
 ]
 
 [profile.release]

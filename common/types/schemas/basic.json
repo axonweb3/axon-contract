@@ -1,0 +1,88 @@
+{
+  "namespace": "basic",
+  "imports": [],
+  "declarations": [
+    {
+      "type": "array",
+      "name": "Byte4",
+      "item": "byte",
+      "item_count": 4
+    },
+    {
+      "type": "array",
+      "name": "Byte8",
+      "item": "byte",
+      "item_count": 8
+    },
+    {
+      "type": "array",
+      "name": "Byte16",
+      "item": "byte",
+      "item_count": 16
+    },
+    {
+      "type": "array",
+      "name": "Byte20",
+      "item": "byte",
+      "item_count": 20
+    },
+    {
+      "type": "array",
+      "name": "Byte32",
+      "item": "byte",
+      "item_count": 32
+    },
+    {
+      "type": "array",
+      "name": "Byte65",
+      "item": "byte",
+      "item_count": 65
+    },
+    {
+      "type": "array",
+      "name": "Byte97",
+      "item": "byte",
+      "item_count": 97
+    },
+    {
+      "type": "array",
+      "name": "Uint16",
+      "item": "byte",
+      "item_count": 2
+    },
+    {
+      "type": "array",
+      "name": "Uint32",
+      "item": "byte",
+      "item_count": 4
+    },
+    {
+      "type": "array",
+      "name": "Uint64",
+      "item": "byte",
+      "item_count": 8
+    },
+    {
+      "type": "array",
+      "name": "Uint128",
+      "item": "byte",
+      "item_count": 16
+    },
+    {
+      "type": "fixvec",
+      "name": "Bytes",
+      "item": "byte"
+    },
+    {
+      "type": "array",
+      "name": "Identity",
+      "item": "byte",
+      "item_count": 20
+    },
+    {
+      "type": "option",
+      "name": "IdentityOpt",
+      "item": "Identity"
+    }
+  ]
+}
