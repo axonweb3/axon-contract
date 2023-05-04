@@ -1,0 +1,17 @@
+import basic;
+
+table WithdrawInfo {
+    amount:    Uint128,
+    epoch:     Uint64,
+}
+
+vector WithdrawInfos <WithdrawInfo>;
+
+// The data[0..16] is a le_u128 means xUDT amount.
+// So the cell data is decode from offset 16.
+table WithdrawAtCellData {
+    version:            byte,
+    checkpoint_type_id: Byte32,
+    xudt_type_id:       Byte32,
+    withdraw_infos:     WithdrawInfos,
+}

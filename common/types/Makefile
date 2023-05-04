@@ -9,5 +9,6 @@ schema:
 	moleculec --language rust --schema-file ${SCHEMA_PATH}/stake.mol > ${SCHEMA_DEST_PATH}/stake.rs
 	moleculec --language rust --schema-file ${SCHEMA_PATH}/delegate.mol > ${SCHEMA_DEST_PATH}/delegate.rs
 	moleculec --language rust --schema-file ${SCHEMA_PATH}/reward.mol > ${SCHEMA_DEST_PATH}/reward.rs
+	moleculec --language rust --schema-file ${SCHEMA_PATH}/withdraw.mol > ${SCHEMA_DEST_PATH}/withdraw.rs
 	cd src
 	cargo fmt
