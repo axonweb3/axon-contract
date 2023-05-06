@@ -2,11 +2,10 @@
 name = "axon-types"
 version = "0.1.0"
 edition = "2021"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+molecule = { version = "0.7", default-features = false }
 # ckb-types = { version = "0.108", default-features = false }
 # ethereum-types = { version = "0.14", default-features = false }
 molecule2 = { path = "moleculec-c2" }
-molecule = { version = "0.7", default-features = false }

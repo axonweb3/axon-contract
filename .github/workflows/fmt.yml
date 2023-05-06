@@ -1,0 +1,30 @@
+name: Code Format
+concurrency:
+    group: Code Format-${{ github.ref }}
+    cancel-in-progress: true
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+jobs:
+  Format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: rustfmt, clippy
+          toolchain: nightly
+
+      - name: check-fmt
+        run: make check-fmt
+
+      - name: install-cargo-sort
+        run: cargo install cargo-sort
+
+      - name: check-sort
+        run: make check-sort
