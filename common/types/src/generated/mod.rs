@@ -7,6 +7,7 @@ pub mod reward;
 pub mod selection;
 pub mod selection_reader;
 pub mod stake;
+pub mod withdraw;
 
 // use molecule::{bytes::Bytes, prelude::Entity};
 
