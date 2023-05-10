@@ -1,6 +1,6 @@
 import basic;
 
 table SelectionLockArgs {
-	omni_lock_hash:       Byte32,
-	checkpoint_lock_hash: Byte32,
+	reward_type_id: Byte32,
+	omni_lock_hash: Byte32,
 }

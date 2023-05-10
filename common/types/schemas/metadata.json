@@ -1,0 +1,396 @@
+{
+  "namespace": "metadata",
+  "imports": [
+    {
+      "name": "basic",
+      "paths": [],
+      "path_supers": 0
+    }
+  ],
+  "declarations": [
+    {
+      "type": "table",
+      "name": "Validator",
+      "fields": [
+        {
+          "name": "bls_pub_key",
+          "type": "Byte97"
+        },
+        {
+          "name": "pub_key",
+          "type": "Byte65"
+        },
+        {
+          "name": "address",
+          "type": "Identity"
+        },
+        {
+          "name": "propose_weight",
+          "type": "Uint32"
+        },
+        {
+          "name": "vote_weight",
+          "type": "Uint32"
+        },
+        {
+          "name": "propose_count",
+          "type": "Uint64"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "MetadataList",
+      "item": "Metadata"
+    },
+    {
+      "type": "dynvec",
+      "name": "ValidatorList",
+      "item": "Validator"
+    },
+    {
+      "type": "table",
+      "name": "Metadata",
+      "fields": [
+        {
+          "name": "epoch_len",
+          "type": "Uint32"
+        },
+        {
+          "name": "period_len",
+          "type": "Uint32"
+        },
+        {
+          "name": "quorum",
+          "type": "Uint16"
+        },
+        {
+          "name": "gas_limit",
+          "type": "Uint64"
+        },
+        {
+          "name": "gas_price",
+          "type": "Uint64"
+        },
+        {
+          "name": "interval",
+          "type": "Uint32"
+        },
+        {
+          "name": "validators",
+          "type": "ValidatorList"
+        },
+        {
+          "name": "propose_ratio",
+          "type": "Uint32"
+        },
+        {
+          "name": "prevote_ratio",
+          "type": "Uint32"
+        },
+        {
+          "name": "precommit_ratio",
+          "type": "Uint32"
+        },
+        {
+          "name": "brake_ratio",
+          "type": "Uint32"
+        },
+        {
+          "name": "tx_num_limit",
+          "type": "Uint32"
+        },
+        {
+          "name": "max_tx_size",
+          "type": "Uint32"
+        },
+        {
+          "name": "block_height",
+          "type": "Uint64"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "MetaTypeIds",
+      "fields": [
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "checkpoint_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "stake_smt_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "delegate_smt_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "withdraw_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "reward_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "xudt_type_id",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "MetadataCellData",
+      "fields": [
+        {
+          "name": "version",
+          "type": "byte"
+        },
+        {
+          "name": "epoch",
+          "type": "Uint64"
+        },
+        {
+          "name": "propose_count_smt_root",
+          "type": "Byte32"
+        },
+        {
+          "name": "type_ids",
+          "type": "MetaTypeIds"
+        },
+        {
+          "name": "metadata",
+          "type": "MetadataList"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "MetadataArgs",
+      "fields": [
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "MetadataWitness",
+      "fields": [
+        {
+          "name": "new_exist_proof",
+          "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "DelegateInfo",
+      "fields": [
+        {
+          "name": "addr",
+          "type": "Identity"
+        },
+        {
+          "name": "amount",
+          "type": "Uint128"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "DelegateInfos",
+      "item": "DelegateInfo"
+    },
+    {
+      "type": "option",
+      "name": "Uint128Opt",
+      "item": "Uint128"
+    },
+    {
+      "type": "table",
+      "name": "MinerGroupInfo",
+      "fields": [
+        {
+          "name": "staker",
+          "type": "Identity"
+        },
+        {
+          "name": "amount",
+          "type": "Uint128Opt"
+        },
+        {
+          "name": "delegate_infos",
+          "type": "DelegateInfos"
+        },
+        {
+          "name": "delegate_epoch_proof",
+          "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "MinerGroupInfos",
+      "item": "MinerGroupInfo"
+    },
+    {
+      "type": "table",
+      "name": "ElectionSmtProof",
+      "fields": [
+        {
+          "name": "miners",
+          "type": "MinerGroupInfos"
+        },
+        {
+          "name": "staker_epoch_proof",
+          "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "DelegateProof",
+      "fields": [
+        {
+          "name": "staker",
+          "type": "Identity"
+        },
+        {
+          "name": "proof",
+          "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "DelegateProofs",
+      "item": "DelegateProof"
+    },
+    {
+      "type": "table",
+      "name": "StakeSmtElectionInfo",
+      "fields": [
+        {
+          "name": "n1",
+          "type": "ElectionSmtProof"
+        },
+        {
+          "name": "n2",
+          "type": "ElectionSmtProof"
+        },
+        {
+          "name": "new_stake_proof",
+          "type": "Bytes"
+        },
+        {
+          "name": "new_delegate_proofs",
+          "type": "DelegateProofs"
+        }
+      ]
+    },
+    {
+      "type": "array",
+      "name": "Byte4",
+      "item": "byte",
+      "item_count": 4,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte8",
+      "item": "byte",
+      "item_count": 8,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte16",
+      "item": "byte",
+      "item_count": 16,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte20",
+      "item": "byte",
+      "item_count": 20,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte32",
+      "item": "byte",
+      "item_count": 32,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte65",
+      "item": "byte",
+      "item_count": 65,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte97",
+      "item": "byte",
+      "item_count": 97,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint16",
+      "item": "byte",
+      "item_count": 2,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint32",
+      "item": "byte",
+      "item_count": 4,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint64",
+      "item": "byte",
+      "item_count": 8,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint128",
+      "item": "byte",
+      "item_count": 16,
+      "imported_depth": 1
+    },
+    {
+      "type": "fixvec",
+      "name": "Bytes",
+      "item": "byte",
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Identity",
+      "item": "byte",
+      "item_count": 20,
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "IdentityOpt",
+      "item": "Identity",
+      "imported_depth": 1
+    }
+  ]
+}

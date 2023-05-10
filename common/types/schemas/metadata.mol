@@ -9,14 +9,8 @@ table Validator {
     propose_count:  Uint64,
 }
 
-table ValidatorHistory {
-    address:       Identity,
-    propose_count: Uint64,
-}
-
 vector MetadataList <Metadata>;
 vector ValidatorList <Validator>;
-vector ValidatorHistoryList <ValidatorHistory>;
 
 table Metadata {
     epoch_len:       Uint32, // how many periods as one epoch
@@ -32,11 +26,67 @@ table Metadata {
     brake_ratio:     Uint32,
     tx_num_limit:    Uint32,
     max_tx_size:     Uint32,
+    block_height:    Uint64,  // no need?
+}
+
+table MetaTypeIds {
+    metadata_type_id: Byte32,
+    checkpoint_type_id: Byte32,
+    stake_smt_type_id: Byte32,
+    delegate_smt_type_id: Byte32,
+    withdraw_type_id: Byte32,
+    reward_type_id: Byte32,
+    xudt_type_id: Byte32,
 }
 
 table MetadataCellData {
     version:            byte,
-    epoch:              Uint64,
+    epoch:              Uint64, // needless?
+    propose_count_smt_root: Byte32,
+    type_ids: MetaTypeIds,
     metadata:           MetadataList, // metadata of current and next epoch 
-    validators_history: ValidatorHistoryList, // at most 80 elements
+}
+
+table MetadataArgs {
+    metadata_type_id: Byte32,
+}
+
+table MetadataWitness {
+    new_exist_proof: Bytes,
+}
+
+// election withness
+table DelegateInfo {
+    addr: Identity,
+    amount: Uint128,
+}
+
+vector DelegateInfos <DelegateInfo>;
+
+option Uint128Opt (Uint128);
+table MinerGroupInfo {
+    staker: Identity,
+    amount: Uint128Opt,                 // if amount == Uint128_MAX, means staker no change
+    delegate_infos: DelegateInfos,      // calculate delegator_smt_root based on this
+    delegate_epoch_proof: Bytes,        // prove delegator_smt_root's existence
+}
+
+vector MinerGroupInfos <MinerGroupInfo>;
+
+table ElectionSmtProof {
+    miners: MinerGroupInfos, // calculate staker_smt_root based on this
+    staker_epoch_proof: Bytes, // prove staker_smt_root's existence
+}
+
+table DelegateProof {
+    staker: Identity,
+    proof: Bytes,
+}
+vector DelegateProofs <DelegateProof>;
+
+table StakeSmtElectionInfo {
+    n1: ElectionSmtProof,
+    n2: ElectionSmtProof,
+    new_stake_proof: Bytes,
+    new_delegate_proofs: DelegateProofs,
 }

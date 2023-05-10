@@ -3,8 +3,8 @@
 use super::basic::*;
 use molecule::prelude::*;
 #[derive(Clone)]
-pub struct StakeInfo(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for StakeInfo {
+pub struct StakeArgs(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for StakeArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -13,12 +13,277 @@ impl ::core::fmt::LowerHex for StakeInfo {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for StakeInfo {
+impl ::core::fmt::Debug for StakeArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for StakeInfo {
+impl ::core::fmt::Display for StakeArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, ", {}: {}", "stake_addr", self.stake_addr())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl ::core::default::Default for StakeArgs {
+    fn default() -> Self {
+        let v: Vec<u8> = vec![
+            44, 0, 0, 0, 12, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        StakeArgs::new_unchecked(v.into())
+    }
+}
+impl StakeArgs {
+    pub const FIELD_COUNT: usize = 2;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn metadata_type_id(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn stake_addr(&self) -> IdentityOpt {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[12..]) as usize;
+            IdentityOpt::new_unchecked(self.0.slice(start..end))
+        } else {
+            IdentityOpt::new_unchecked(self.0.slice(start..))
+        }
+    }
+    pub fn as_reader<'r>(&'r self) -> StakeArgsReader<'r> {
+        StakeArgsReader::new_unchecked(self.as_slice())
+    }
+}
+impl molecule::prelude::Entity for StakeArgs {
+    type Builder = StakeArgsBuilder;
+    const NAME: &'static str = "StakeArgs";
+    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
+        StakeArgs(data)
+    }
+    fn as_bytes(&self) -> molecule::bytes::Bytes {
+        self.0.clone()
+    }
+    fn as_slice(&self) -> &[u8] {
+        &self.0[..]
+    }
+    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        StakeArgsReader::from_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        StakeArgsReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn new_builder() -> Self::Builder {
+        ::core::default::Default::default()
+    }
+    fn as_builder(self) -> Self::Builder {
+        Self::new_builder()
+            .metadata_type_id(self.metadata_type_id())
+            .stake_addr(self.stake_addr())
+    }
+}
+#[derive(Clone, Copy)]
+pub struct StakeArgsReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for StakeArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl<'r> ::core::fmt::Debug for StakeArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl<'r> ::core::fmt::Display for StakeArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, ", {}: {}", "stake_addr", self.stake_addr())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl<'r> StakeArgsReader<'r> {
+    pub const FIELD_COUNT: usize = 2;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn stake_addr(&self) -> IdentityOptReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[12..]) as usize;
+            IdentityOptReader::new_unchecked(&self.as_slice()[start..end])
+        } else {
+            IdentityOptReader::new_unchecked(&self.as_slice()[start..])
+        }
+    }
+}
+impl<'r> molecule::prelude::Reader<'r> for StakeArgsReader<'r> {
+    type Entity = StakeArgs;
+    const NAME: &'static str = "StakeArgsReader";
+    fn to_entity(&self) -> Self::Entity {
+        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
+    }
+    fn new_unchecked(slice: &'r [u8]) -> Self {
+        StakeArgsReader(slice)
+    }
+    fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+        use molecule::verification_error as ve;
+        let slice_len = slice.len();
+        if slice_len < molecule::NUMBER_SIZE {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
+        }
+        let total_size = molecule::unpack_number(slice) as usize;
+        if slice_len != total_size {
+            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
+        }
+        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
+            return Ok(());
+        }
+        if slice_len < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
+        }
+        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
+        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        if slice_len < offset_first {
+            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
+        }
+        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
+        if field_count < Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        } else if !compatible && field_count > Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        };
+        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
+            .chunks_exact(molecule::NUMBER_SIZE)
+            .map(|x| molecule::unpack_number(x) as usize)
+            .collect();
+        offsets.push(total_size);
+        if offsets.windows(2).any(|i| i[0] > i[1]) {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        Byte32Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        IdentityOptReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        Ok(())
+    }
+}
+#[derive(Debug, Default)]
+pub struct StakeArgsBuilder {
+    pub(crate) metadata_type_id: Byte32,
+    pub(crate) stake_addr: IdentityOpt,
+}
+impl StakeArgsBuilder {
+    pub const FIELD_COUNT: usize = 2;
+    pub fn metadata_type_id(mut self, v: Byte32) -> Self {
+        self.metadata_type_id = v;
+        self
+    }
+    pub fn stake_addr(mut self, v: IdentityOpt) -> Self {
+        self.stake_addr = v;
+        self
+    }
+}
+impl molecule::prelude::Builder for StakeArgsBuilder {
+    type Entity = StakeArgs;
+    const NAME: &'static str = "StakeArgsBuilder";
+    fn expected_length(&self) -> usize {
+        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
+            + self.metadata_type_id.as_slice().len()
+            + self.stake_addr.as_slice().len()
+    }
+    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
+        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
+        offsets.push(total_size);
+        total_size += self.metadata_type_id.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.stake_addr.as_slice().len();
+        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
+        for offset in offsets.into_iter() {
+            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
+        }
+        writer.write_all(self.metadata_type_id.as_slice())?;
+        writer.write_all(self.stake_addr.as_slice())?;
+        Ok(())
+    }
+    fn build(&self) -> Self::Entity {
+        let mut inner = Vec::with_capacity(self.expected_length());
+        self.write(&mut inner)
+            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
+        StakeArgs::new_unchecked(inner.into())
+    }
+}
+#[derive(Clone)]
+pub struct StakeInfoDelta(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for StakeInfoDelta {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl ::core::fmt::Debug for StakeInfoDelta {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl ::core::fmt::Display for StakeInfoDelta {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "is_increase", self.is_increase())?;
@@ -36,16 +301,16 @@ impl ::core::fmt::Display for StakeInfo {
         write!(f, " }}")
     }
 }
-impl ::core::default::Default for StakeInfo {
+impl ::core::default::Default for StakeInfoDelta {
     fn default() -> Self {
         let v: Vec<u8> = vec![
             41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        StakeInfo::new_unchecked(v.into())
+        StakeInfoDelta::new_unchecked(v.into())
     }
 }
-impl StakeInfo {
+impl StakeInfoDelta {
     pub const FIELD_COUNT: usize = 3;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
@@ -85,15 +350,15 @@ impl StakeInfo {
             Uint64::new_unchecked(self.0.slice(start..))
         }
     }
-    pub fn as_reader<'r>(&'r self) -> StakeInfoReader<'r> {
-        StakeInfoReader::new_unchecked(self.as_slice())
+    pub fn as_reader<'r>(&'r self) -> StakeInfoDeltaReader<'r> {
+        StakeInfoDeltaReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for StakeInfo {
-    type Builder = StakeInfoBuilder;
-    const NAME: &'static str = "StakeInfo";
+impl molecule::prelude::Entity for StakeInfoDelta {
+    type Builder = StakeInfoDeltaBuilder;
+    const NAME: &'static str = "StakeInfoDelta";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        StakeInfo(data)
+        StakeInfoDelta(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -102,10 +367,10 @@ impl molecule::prelude::Entity for StakeInfo {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        StakeInfoReader::from_slice(slice).map(|reader| reader.to_entity())
+        StakeInfoDeltaReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        StakeInfoReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+        StakeInfoDeltaReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
@@ -118,8 +383,8 @@ impl molecule::prelude::Entity for StakeInfo {
     }
 }
 #[derive(Clone, Copy)]
-pub struct StakeInfoReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for StakeInfoReader<'r> {
+pub struct StakeInfoDeltaReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for StakeInfoDeltaReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -128,12 +393,12 @@ impl<'r> ::core::fmt::LowerHex for StakeInfoReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for StakeInfoReader<'r> {
+impl<'r> ::core::fmt::Debug for StakeInfoDeltaReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for StakeInfoReader<'r> {
+impl<'r> ::core::fmt::Display for StakeInfoDeltaReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "is_increase", self.is_increase())?;
@@ -151,7 +416,7 @@ impl<'r> ::core::fmt::Display for StakeInfoReader<'r> {
         write!(f, " }}")
     }
 }
-impl<'r> StakeInfoReader<'r> {
+impl<'r> StakeInfoDeltaReader<'r> {
     pub const FIELD_COUNT: usize = 3;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
@@ -189,6 +454,913 @@ impl<'r> StakeInfoReader<'r> {
             Uint64Reader::new_unchecked(&self.as_slice()[start..end])
         } else {
             Uint64Reader::new_unchecked(&self.as_slice()[start..])
+        }
+    }
+}
+impl<'r> molecule::prelude::Reader<'r> for StakeInfoDeltaReader<'r> {
+    type Entity = StakeInfoDelta;
+    const NAME: &'static str = "StakeInfoDeltaReader";
+    fn to_entity(&self) -> Self::Entity {
+        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
+    }
+    fn new_unchecked(slice: &'r [u8]) -> Self {
+        StakeInfoDeltaReader(slice)
+    }
+    fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+        use molecule::verification_error as ve;
+        let slice_len = slice.len();
+        if slice_len < molecule::NUMBER_SIZE {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
+        }
+        let total_size = molecule::unpack_number(slice) as usize;
+        if slice_len != total_size {
+            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
+        }
+        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
+            return Ok(());
+        }
+        if slice_len < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
+        }
+        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
+        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        if slice_len < offset_first {
+            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
+        }
+        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
+        if field_count < Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        } else if !compatible && field_count > Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        };
+        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
+            .chunks_exact(molecule::NUMBER_SIZE)
+            .map(|x| molecule::unpack_number(x) as usize)
+            .collect();
+        offsets.push(total_size);
+        if offsets.windows(2).any(|i| i[0] > i[1]) {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        ByteReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        Uint128Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        Uint64Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        Ok(())
+    }
+}
+#[derive(Debug, Default)]
+pub struct StakeInfoDeltaBuilder {
+    pub(crate) is_increase: Byte,
+    pub(crate) amount: Uint128,
+    pub(crate) inauguration_epoch: Uint64,
+}
+impl StakeInfoDeltaBuilder {
+    pub const FIELD_COUNT: usize = 3;
+    pub fn is_increase(mut self, v: Byte) -> Self {
+        self.is_increase = v;
+        self
+    }
+    pub fn amount(mut self, v: Uint128) -> Self {
+        self.amount = v;
+        self
+    }
+    pub fn inauguration_epoch(mut self, v: Uint64) -> Self {
+        self.inauguration_epoch = v;
+        self
+    }
+}
+impl molecule::prelude::Builder for StakeInfoDeltaBuilder {
+    type Entity = StakeInfoDelta;
+    const NAME: &'static str = "StakeInfoDeltaBuilder";
+    fn expected_length(&self) -> usize {
+        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
+            + self.is_increase.as_slice().len()
+            + self.amount.as_slice().len()
+            + self.inauguration_epoch.as_slice().len()
+    }
+    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
+        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
+        offsets.push(total_size);
+        total_size += self.is_increase.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.amount.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.inauguration_epoch.as_slice().len();
+        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
+        for offset in offsets.into_iter() {
+            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
+        }
+        writer.write_all(self.is_increase.as_slice())?;
+        writer.write_all(self.amount.as_slice())?;
+        writer.write_all(self.inauguration_epoch.as_slice())?;
+        Ok(())
+    }
+    fn build(&self) -> Self::Entity {
+        let mut inner = Vec::with_capacity(self.expected_length());
+        self.write(&mut inner)
+            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
+        StakeInfoDelta::new_unchecked(inner.into())
+    }
+}
+#[derive(Clone)]
+pub struct StakeAtCellData(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for StakeAtCellData {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl ::core::fmt::Debug for StakeAtCellData {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl ::core::fmt::Display for StakeAtCellData {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "version", self.version())?;
+        write!(f, ", {}: {}", "l1_address", self.l1_address())?;
+        write!(f, ", {}: {}", "l2_address", self.l2_address())?;
+        write!(f, ", {}: {}", "stake_info", self.stake_info())?;
+        write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl ::core::default::Default for StakeAtCellData {
+    fn default() -> Self {
+        let v: Vec<u8> = vec![
+            138, 0, 0, 0, 24, 0, 0, 0, 25, 0, 0, 0, 45, 0, 0, 0, 65, 0, 0, 0, 106, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        StakeAtCellData::new_unchecked(v.into())
+    }
+}
+impl StakeAtCellData {
+    pub const FIELD_COUNT: usize = 5;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn version(&self) -> Byte {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Byte::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn l1_address(&self) -> Identity {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        let end = molecule::unpack_number(&slice[12..]) as usize;
+        Identity::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn l2_address(&self) -> Identity {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let end = molecule::unpack_number(&slice[16..]) as usize;
+        Identity::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn stake_info(&self) -> StakeInfoDelta {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let end = molecule::unpack_number(&slice[20..]) as usize;
+        StakeInfoDelta::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn metadata_type_id(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[20..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[24..]) as usize;
+            Byte32::new_unchecked(self.0.slice(start..end))
+        } else {
+            Byte32::new_unchecked(self.0.slice(start..))
+        }
+    }
+    pub fn as_reader<'r>(&'r self) -> StakeAtCellDataReader<'r> {
+        StakeAtCellDataReader::new_unchecked(self.as_slice())
+    }
+}
+impl molecule::prelude::Entity for StakeAtCellData {
+    type Builder = StakeAtCellDataBuilder;
+    const NAME: &'static str = "StakeAtCellData";
+    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
+        StakeAtCellData(data)
+    }
+    fn as_bytes(&self) -> molecule::bytes::Bytes {
+        self.0.clone()
+    }
+    fn as_slice(&self) -> &[u8] {
+        &self.0[..]
+    }
+    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        StakeAtCellDataReader::from_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        StakeAtCellDataReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn new_builder() -> Self::Builder {
+        ::core::default::Default::default()
+    }
+    fn as_builder(self) -> Self::Builder {
+        Self::new_builder()
+            .version(self.version())
+            .l1_address(self.l1_address())
+            .l2_address(self.l2_address())
+            .stake_info(self.stake_info())
+            .metadata_type_id(self.metadata_type_id())
+    }
+}
+#[derive(Clone, Copy)]
+pub struct StakeAtCellDataReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for StakeAtCellDataReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl<'r> ::core::fmt::Debug for StakeAtCellDataReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl<'r> ::core::fmt::Display for StakeAtCellDataReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "version", self.version())?;
+        write!(f, ", {}: {}", "l1_address", self.l1_address())?;
+        write!(f, ", {}: {}", "l2_address", self.l2_address())?;
+        write!(f, ", {}: {}", "stake_info", self.stake_info())?;
+        write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl<'r> StakeAtCellDataReader<'r> {
+    pub const FIELD_COUNT: usize = 5;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn version(&self) -> ByteReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        ByteReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn l1_address(&self) -> IdentityReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        let end = molecule::unpack_number(&slice[12..]) as usize;
+        IdentityReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn l2_address(&self) -> IdentityReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let end = molecule::unpack_number(&slice[16..]) as usize;
+        IdentityReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn stake_info(&self) -> StakeInfoDeltaReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let end = molecule::unpack_number(&slice[20..]) as usize;
+        StakeInfoDeltaReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[20..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[24..]) as usize;
+            Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+        } else {
+            Byte32Reader::new_unchecked(&self.as_slice()[start..])
+        }
+    }
+}
+impl<'r> molecule::prelude::Reader<'r> for StakeAtCellDataReader<'r> {
+    type Entity = StakeAtCellData;
+    const NAME: &'static str = "StakeAtCellDataReader";
+    fn to_entity(&self) -> Self::Entity {
+        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
+    }
+    fn new_unchecked(slice: &'r [u8]) -> Self {
+        StakeAtCellDataReader(slice)
+    }
+    fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+        use molecule::verification_error as ve;
+        let slice_len = slice.len();
+        if slice_len < molecule::NUMBER_SIZE {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
+        }
+        let total_size = molecule::unpack_number(slice) as usize;
+        if slice_len != total_size {
+            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
+        }
+        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
+            return Ok(());
+        }
+        if slice_len < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
+        }
+        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
+        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        if slice_len < offset_first {
+            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
+        }
+        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
+        if field_count < Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        } else if !compatible && field_count > Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        };
+        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
+            .chunks_exact(molecule::NUMBER_SIZE)
+            .map(|x| molecule::unpack_number(x) as usize)
+            .collect();
+        offsets.push(total_size);
+        if offsets.windows(2).any(|i| i[0] > i[1]) {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        ByteReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        IdentityReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        IdentityReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        StakeInfoDeltaReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
+        Ok(())
+    }
+}
+#[derive(Debug, Default)]
+pub struct StakeAtCellDataBuilder {
+    pub(crate) version: Byte,
+    pub(crate) l1_address: Identity,
+    pub(crate) l2_address: Identity,
+    pub(crate) stake_info: StakeInfoDelta,
+    pub(crate) metadata_type_id: Byte32,
+}
+impl StakeAtCellDataBuilder {
+    pub const FIELD_COUNT: usize = 5;
+    pub fn version(mut self, v: Byte) -> Self {
+        self.version = v;
+        self
+    }
+    pub fn l1_address(mut self, v: Identity) -> Self {
+        self.l1_address = v;
+        self
+    }
+    pub fn l2_address(mut self, v: Identity) -> Self {
+        self.l2_address = v;
+        self
+    }
+    pub fn stake_info(mut self, v: StakeInfoDelta) -> Self {
+        self.stake_info = v;
+        self
+    }
+    pub fn metadata_type_id(mut self, v: Byte32) -> Self {
+        self.metadata_type_id = v;
+        self
+    }
+}
+impl molecule::prelude::Builder for StakeAtCellDataBuilder {
+    type Entity = StakeAtCellData;
+    const NAME: &'static str = "StakeAtCellDataBuilder";
+    fn expected_length(&self) -> usize {
+        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
+            + self.version.as_slice().len()
+            + self.l1_address.as_slice().len()
+            + self.l2_address.as_slice().len()
+            + self.stake_info.as_slice().len()
+            + self.metadata_type_id.as_slice().len()
+    }
+    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
+        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
+        offsets.push(total_size);
+        total_size += self.version.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.l1_address.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.l2_address.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.stake_info.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.metadata_type_id.as_slice().len();
+        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
+        for offset in offsets.into_iter() {
+            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
+        }
+        writer.write_all(self.version.as_slice())?;
+        writer.write_all(self.l1_address.as_slice())?;
+        writer.write_all(self.l2_address.as_slice())?;
+        writer.write_all(self.stake_info.as_slice())?;
+        writer.write_all(self.metadata_type_id.as_slice())?;
+        Ok(())
+    }
+    fn build(&self) -> Self::Entity {
+        let mut inner = Vec::with_capacity(self.expected_length());
+        self.write(&mut inner)
+            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
+        StakeAtCellData::new_unchecked(inner.into())
+    }
+}
+#[derive(Clone)]
+pub struct StakeSmtCellData(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for StakeSmtCellData {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl ::core::fmt::Debug for StakeSmtCellData {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl ::core::fmt::Display for StakeSmtCellData {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "smt_root", self.smt_root())?;
+        write!(f, ", {}: {}", "version", self.version())?;
+        write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl ::core::default::Default for StakeSmtCellData {
+    fn default() -> Self {
+        let v: Vec<u8> = vec![
+            81, 0, 0, 0, 16, 0, 0, 0, 48, 0, 0, 0, 49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        StakeSmtCellData::new_unchecked(v.into())
+    }
+}
+impl StakeSmtCellData {
+    pub const FIELD_COUNT: usize = 3;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn smt_root(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn version(&self) -> Byte {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        let end = molecule::unpack_number(&slice[12..]) as usize;
+        Byte::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn metadata_type_id(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[16..]) as usize;
+            Byte32::new_unchecked(self.0.slice(start..end))
+        } else {
+            Byte32::new_unchecked(self.0.slice(start..))
+        }
+    }
+    pub fn as_reader<'r>(&'r self) -> StakeSmtCellDataReader<'r> {
+        StakeSmtCellDataReader::new_unchecked(self.as_slice())
+    }
+}
+impl molecule::prelude::Entity for StakeSmtCellData {
+    type Builder = StakeSmtCellDataBuilder;
+    const NAME: &'static str = "StakeSmtCellData";
+    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
+        StakeSmtCellData(data)
+    }
+    fn as_bytes(&self) -> molecule::bytes::Bytes {
+        self.0.clone()
+    }
+    fn as_slice(&self) -> &[u8] {
+        &self.0[..]
+    }
+    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        StakeSmtCellDataReader::from_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        StakeSmtCellDataReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn new_builder() -> Self::Builder {
+        ::core::default::Default::default()
+    }
+    fn as_builder(self) -> Self::Builder {
+        Self::new_builder()
+            .smt_root(self.smt_root())
+            .version(self.version())
+            .metadata_type_id(self.metadata_type_id())
+    }
+}
+#[derive(Clone, Copy)]
+pub struct StakeSmtCellDataReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for StakeSmtCellDataReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl<'r> ::core::fmt::Debug for StakeSmtCellDataReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl<'r> ::core::fmt::Display for StakeSmtCellDataReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "smt_root", self.smt_root())?;
+        write!(f, ", {}: {}", "version", self.version())?;
+        write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl<'r> StakeSmtCellDataReader<'r> {
+    pub const FIELD_COUNT: usize = 3;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn smt_root(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn version(&self) -> ByteReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        let end = molecule::unpack_number(&slice[12..]) as usize;
+        ByteReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[16..]) as usize;
+            Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+        } else {
+            Byte32Reader::new_unchecked(&self.as_slice()[start..])
+        }
+    }
+}
+impl<'r> molecule::prelude::Reader<'r> for StakeSmtCellDataReader<'r> {
+    type Entity = StakeSmtCellData;
+    const NAME: &'static str = "StakeSmtCellDataReader";
+    fn to_entity(&self) -> Self::Entity {
+        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
+    }
+    fn new_unchecked(slice: &'r [u8]) -> Self {
+        StakeSmtCellDataReader(slice)
+    }
+    fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+        use molecule::verification_error as ve;
+        let slice_len = slice.len();
+        if slice_len < molecule::NUMBER_SIZE {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
+        }
+        let total_size = molecule::unpack_number(slice) as usize;
+        if slice_len != total_size {
+            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
+        }
+        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
+            return Ok(());
+        }
+        if slice_len < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
+        }
+        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
+        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        if slice_len < offset_first {
+            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
+        }
+        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
+        if field_count < Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        } else if !compatible && field_count > Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        };
+        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
+            .chunks_exact(molecule::NUMBER_SIZE)
+            .map(|x| molecule::unpack_number(x) as usize)
+            .collect();
+        offsets.push(total_size);
+        if offsets.windows(2).any(|i| i[0] > i[1]) {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        Byte32Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        ByteReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        Ok(())
+    }
+}
+#[derive(Debug, Default)]
+pub struct StakeSmtCellDataBuilder {
+    pub(crate) smt_root: Byte32,
+    pub(crate) version: Byte,
+    pub(crate) metadata_type_id: Byte32,
+}
+impl StakeSmtCellDataBuilder {
+    pub const FIELD_COUNT: usize = 3;
+    pub fn smt_root(mut self, v: Byte32) -> Self {
+        self.smt_root = v;
+        self
+    }
+    pub fn version(mut self, v: Byte) -> Self {
+        self.version = v;
+        self
+    }
+    pub fn metadata_type_id(mut self, v: Byte32) -> Self {
+        self.metadata_type_id = v;
+        self
+    }
+}
+impl molecule::prelude::Builder for StakeSmtCellDataBuilder {
+    type Entity = StakeSmtCellData;
+    const NAME: &'static str = "StakeSmtCellDataBuilder";
+    fn expected_length(&self) -> usize {
+        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
+            + self.smt_root.as_slice().len()
+            + self.version.as_slice().len()
+            + self.metadata_type_id.as_slice().len()
+    }
+    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
+        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
+        offsets.push(total_size);
+        total_size += self.smt_root.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.version.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.metadata_type_id.as_slice().len();
+        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
+        for offset in offsets.into_iter() {
+            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
+        }
+        writer.write_all(self.smt_root.as_slice())?;
+        writer.write_all(self.version.as_slice())?;
+        writer.write_all(self.metadata_type_id.as_slice())?;
+        Ok(())
+    }
+    fn build(&self) -> Self::Entity {
+        let mut inner = Vec::with_capacity(self.expected_length());
+        self.write(&mut inner)
+            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
+        StakeSmtCellData::new_unchecked(inner.into())
+    }
+}
+#[derive(Clone)]
+pub struct StakeInfo(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for StakeInfo {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl ::core::fmt::Debug for StakeInfo {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl ::core::fmt::Display for StakeInfo {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "addr", self.addr())?;
+        write!(f, ", {}: {}", "amount", self.amount())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl ::core::default::Default for StakeInfo {
+    fn default() -> Self {
+        let v: Vec<u8> = vec![
+            48, 0, 0, 0, 12, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        StakeInfo::new_unchecked(v.into())
+    }
+}
+impl StakeInfo {
+    pub const FIELD_COUNT: usize = 2;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn addr(&self) -> Identity {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Identity::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn amount(&self) -> Uint128 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[12..]) as usize;
+            Uint128::new_unchecked(self.0.slice(start..end))
+        } else {
+            Uint128::new_unchecked(self.0.slice(start..))
+        }
+    }
+    pub fn as_reader<'r>(&'r self) -> StakeInfoReader<'r> {
+        StakeInfoReader::new_unchecked(self.as_slice())
+    }
+}
+impl molecule::prelude::Entity for StakeInfo {
+    type Builder = StakeInfoBuilder;
+    const NAME: &'static str = "StakeInfo";
+    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
+        StakeInfo(data)
+    }
+    fn as_bytes(&self) -> molecule::bytes::Bytes {
+        self.0.clone()
+    }
+    fn as_slice(&self) -> &[u8] {
+        &self.0[..]
+    }
+    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        StakeInfoReader::from_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        StakeInfoReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn new_builder() -> Self::Builder {
+        ::core::default::Default::default()
+    }
+    fn as_builder(self) -> Self::Builder {
+        Self::new_builder().addr(self.addr()).amount(self.amount())
+    }
+}
+#[derive(Clone, Copy)]
+pub struct StakeInfoReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for StakeInfoReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl<'r> ::core::fmt::Debug for StakeInfoReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl<'r> ::core::fmt::Display for StakeInfoReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "addr", self.addr())?;
+        write!(f, ", {}: {}", "amount", self.amount())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl<'r> StakeInfoReader<'r> {
+    pub const FIELD_COUNT: usize = 2;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn addr(&self) -> IdentityReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        IdentityReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn amount(&self) -> Uint128Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[12..]) as usize;
+            Uint128Reader::new_unchecked(&self.as_slice()[start..end])
+        } else {
+            Uint128Reader::new_unchecked(&self.as_slice()[start..])
         }
     }
 }
@@ -241,30 +1413,24 @@ impl<'r> molecule::prelude::Reader<'r> for StakeInfoReader<'r> {
         if offsets.windows(2).any(|i| i[0] > i[1]) {
             return ve!(Self, OffsetsNotMatch);
         }
-        ByteReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        IdentityReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
         Uint128Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        Uint64Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct StakeInfoBuilder {
-    pub(crate) is_increase: Byte,
+    pub(crate) addr: Identity,
     pub(crate) amount: Uint128,
-    pub(crate) inauguration_epoch: Uint64,
 }
 impl StakeInfoBuilder {
-    pub const FIELD_COUNT: usize = 3;
-    pub fn is_increase(mut self, v: Byte) -> Self {
-        self.is_increase = v;
+    pub const FIELD_COUNT: usize = 2;
+    pub fn addr(mut self, v: Identity) -> Self {
+        self.addr = v;
         self
     }
     pub fn amount(mut self, v: Uint128) -> Self {
         self.amount = v;
-        self
-    }
-    pub fn inauguration_epoch(mut self, v: Uint64) -> Self {
-        self.inauguration_epoch = v;
         self
     }
 }
@@ -273,26 +1439,22 @@ impl molecule::prelude::Builder for StakeInfoBuilder {
     const NAME: &'static str = "StakeInfoBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
-            + self.is_increase.as_slice().len()
+            + self.addr.as_slice().len()
             + self.amount.as_slice().len()
-            + self.inauguration_epoch.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
         let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
         offsets.push(total_size);
-        total_size += self.is_increase.as_slice().len();
+        total_size += self.addr.as_slice().len();
         offsets.push(total_size);
         total_size += self.amount.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.inauguration_epoch.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
-        writer.write_all(self.is_increase.as_slice())?;
+        writer.write_all(self.addr.as_slice())?;
         writer.write_all(self.amount.as_slice())?;
-        writer.write_all(self.inauguration_epoch.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {
@@ -303,8 +1465,8 @@ impl molecule::prelude::Builder for StakeInfoBuilder {
     }
 }
 #[derive(Clone)]
-pub struct StakeLockArgs(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for StakeLockArgs {
+pub struct StakeInfos(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for StakeInfos {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -313,76 +1475,75 @@ impl ::core::fmt::LowerHex for StakeLockArgs {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for StakeLockArgs {
+impl ::core::fmt::Debug for StakeInfos {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for StakeLockArgs {
+impl ::core::fmt::Display for StakeInfos {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "stake_smt_type_id", self.stake_smt_type_id())?;
-        write!(f, ", {}: {}", "staker_identity", self.staker_identity())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
+        write!(f, "{} [", Self::NAME)?;
+        for i in 0..self.len() {
+            if i == 0 {
+                write!(f, "{}", self.get_unchecked(i))?;
+            } else {
+                write!(f, ", {}", self.get_unchecked(i))?;
+            }
         }
-        write!(f, " }}")
+        write!(f, "]")
     }
 }
-impl ::core::default::Default for StakeLockArgs {
+impl ::core::default::Default for StakeInfos {
     fn default() -> Self {
-        let v: Vec<u8> = vec![
-            64, 0, 0, 0, 12, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0,
-        ];
-        StakeLockArgs::new_unchecked(v.into())
+        let v: Vec<u8> = vec![4, 0, 0, 0];
+        StakeInfos::new_unchecked(v.into())
     }
 }
-impl StakeLockArgs {
-    pub const FIELD_COUNT: usize = 2;
+impl StakeInfos {
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
-    pub fn field_count(&self) -> usize {
+    pub fn item_count(&self) -> usize {
         if self.total_size() == molecule::NUMBER_SIZE {
             0
         } else {
             (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
         }
     }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
+    pub fn len(&self) -> usize {
+        self.item_count()
     }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
-    pub fn stake_smt_type_id(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        let end = molecule::unpack_number(&slice[8..]) as usize;
-        Byte32::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn staker_identity(&self) -> Identity {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[8..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[12..]) as usize;
-            Identity::new_unchecked(self.0.slice(start..end))
+    pub fn get(&self, idx: usize) -> Option<StakeInfo> {
+        if idx >= self.len() {
+            None
         } else {
-            Identity::new_unchecked(self.0.slice(start..))
+            Some(self.get_unchecked(idx))
         }
     }
-    pub fn as_reader<'r>(&'r self) -> StakeLockArgsReader<'r> {
-        StakeLockArgsReader::new_unchecked(self.as_slice())
+    pub fn get_unchecked(&self, idx: usize) -> StakeInfo {
+        let slice = self.as_slice();
+        let start_idx = molecule::NUMBER_SIZE * (1 + idx);
+        let start = molecule::unpack_number(&slice[start_idx..]) as usize;
+        if idx == self.len() - 1 {
+            StakeInfo::new_unchecked(self.0.slice(start..))
+        } else {
+            let end_idx = start_idx + molecule::NUMBER_SIZE;
+            let end = molecule::unpack_number(&slice[end_idx..]) as usize;
+            StakeInfo::new_unchecked(self.0.slice(start..end))
+        }
+    }
+    pub fn as_reader<'r>(&'r self) -> StakeInfosReader<'r> {
+        StakeInfosReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for StakeLockArgs {
-    type Builder = StakeLockArgsBuilder;
-    const NAME: &'static str = "StakeLockArgs";
+impl molecule::prelude::Entity for StakeInfos {
+    type Builder = StakeInfosBuilder;
+    const NAME: &'static str = "StakeInfos";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        StakeLockArgs(data)
+        StakeInfos(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -391,23 +1552,21 @@ impl molecule::prelude::Entity for StakeLockArgs {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        StakeLockArgsReader::from_slice(slice).map(|reader| reader.to_entity())
+        StakeInfosReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        StakeLockArgsReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+        StakeInfosReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
     }
     fn as_builder(self) -> Self::Builder {
-        Self::new_builder()
-            .stake_smt_type_id(self.stake_smt_type_id())
-            .staker_identity(self.staker_identity())
+        Self::new_builder().extend(self.into_iter())
     }
 }
 #[derive(Clone, Copy)]
-pub struct StakeLockArgsReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for StakeLockArgsReader<'r> {
+pub struct StakeInfosReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for StakeInfosReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -416,66 +1575,69 @@ impl<'r> ::core::fmt::LowerHex for StakeLockArgsReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for StakeLockArgsReader<'r> {
+impl<'r> ::core::fmt::Debug for StakeInfosReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for StakeLockArgsReader<'r> {
+impl<'r> ::core::fmt::Display for StakeInfosReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "stake_smt_type_id", self.stake_smt_type_id())?;
-        write!(f, ", {}: {}", "staker_identity", self.staker_identity())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
+        write!(f, "{} [", Self::NAME)?;
+        for i in 0..self.len() {
+            if i == 0 {
+                write!(f, "{}", self.get_unchecked(i))?;
+            } else {
+                write!(f, ", {}", self.get_unchecked(i))?;
+            }
         }
-        write!(f, " }}")
+        write!(f, "]")
     }
 }
-impl<'r> StakeLockArgsReader<'r> {
-    pub const FIELD_COUNT: usize = 2;
+impl<'r> StakeInfosReader<'r> {
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
-    pub fn field_count(&self) -> usize {
+    pub fn item_count(&self) -> usize {
         if self.total_size() == molecule::NUMBER_SIZE {
             0
         } else {
             (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
         }
     }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
+    pub fn len(&self) -> usize {
+        self.item_count()
     }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
-    pub fn stake_smt_type_id(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        let end = molecule::unpack_number(&slice[8..]) as usize;
-        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn staker_identity(&self) -> IdentityReader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[8..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[12..]) as usize;
-            IdentityReader::new_unchecked(&self.as_slice()[start..end])
+    pub fn get(&self, idx: usize) -> Option<StakeInfoReader<'r>> {
+        if idx >= self.len() {
+            None
         } else {
-            IdentityReader::new_unchecked(&self.as_slice()[start..])
+            Some(self.get_unchecked(idx))
+        }
+    }
+    pub fn get_unchecked(&self, idx: usize) -> StakeInfoReader<'r> {
+        let slice = self.as_slice();
+        let start_idx = molecule::NUMBER_SIZE * (1 + idx);
+        let start = molecule::unpack_number(&slice[start_idx..]) as usize;
+        if idx == self.len() - 1 {
+            StakeInfoReader::new_unchecked(&self.as_slice()[start..])
+        } else {
+            let end_idx = start_idx + molecule::NUMBER_SIZE;
+            let end = molecule::unpack_number(&slice[end_idx..]) as usize;
+            StakeInfoReader::new_unchecked(&self.as_slice()[start..end])
         }
     }
 }
-impl<'r> molecule::prelude::Reader<'r> for StakeLockArgsReader<'r> {
-    type Entity = StakeLockArgs;
-    const NAME: &'static str = "StakeLockArgsReader";
+impl<'r> molecule::prelude::Reader<'r> for StakeInfosReader<'r> {
+    type Entity = StakeInfos;
+    const NAME: &'static str = "StakeInfosReader";
     fn to_entity(&self) -> Self::Entity {
         Self::Entity::new_unchecked(self.as_slice().to_owned().into())
     }
     fn new_unchecked(slice: &'r [u8]) -> Self {
-        StakeLockArgsReader(slice)
+        StakeInfosReader(slice)
     }
     fn as_slice(&self) -> &'r [u8] {
         self.0
@@ -490,11 +1652,16 @@ impl<'r> molecule::prelude::Reader<'r> for StakeLockArgsReader<'r> {
         if slice_len != total_size {
             return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
         }
-        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
+        if slice_len == molecule::NUMBER_SIZE {
             return Ok(());
         }
         if slice_len < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
+            return ve!(
+                Self,
+                TotalSizeNotMatch,
+                molecule::NUMBER_SIZE * 2,
+                slice_len
+            );
         }
         let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
         if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
@@ -503,12 +1670,6 @@ impl<'r> molecule::prelude::Reader<'r> for StakeLockArgsReader<'r> {
         if slice_len < offset_first {
             return ve!(Self, HeaderIsBroken, offset_first, slice_len);
         }
-        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
-        if field_count < Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        } else if !compatible && field_count > Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        };
         let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
             .chunks_exact(molecule::NUMBER_SIZE)
             .map(|x| molecule::unpack_number(x) as usize)
@@ -517,60 +1678,134 @@ impl<'r> molecule::prelude::Reader<'r> for StakeLockArgsReader<'r> {
         if offsets.windows(2).any(|i| i[0] > i[1]) {
             return ve!(Self, OffsetsNotMatch);
         }
-        Byte32Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        IdentityReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        for pair in offsets.windows(2) {
+            let start = pair[0];
+            let end = pair[1];
+            StakeInfoReader::verify(&slice[start..end], compatible)?;
+        }
         Ok(())
     }
 }
 #[derive(Debug, Default)]
-pub struct StakeLockArgsBuilder {
-    pub(crate) stake_smt_type_id: Byte32,
-    pub(crate) staker_identity: Identity,
-}
-impl StakeLockArgsBuilder {
-    pub const FIELD_COUNT: usize = 2;
-    pub fn stake_smt_type_id(mut self, v: Byte32) -> Self {
-        self.stake_smt_type_id = v;
+pub struct StakeInfosBuilder(pub(crate) Vec<StakeInfo>);
+impl StakeInfosBuilder {
+    pub fn set(mut self, v: Vec<StakeInfo>) -> Self {
+        self.0 = v;
         self
     }
-    pub fn staker_identity(mut self, v: Identity) -> Self {
-        self.staker_identity = v;
+    pub fn push(mut self, v: StakeInfo) -> Self {
+        self.0.push(v);
         self
     }
+    pub fn extend<T: ::core::iter::IntoIterator<Item = StakeInfo>>(mut self, iter: T) -> Self {
+        for elem in iter {
+            self.0.push(elem);
+        }
+        self
+    }
+    pub fn replace(&mut self, index: usize, v: StakeInfo) -> Option<StakeInfo> {
+        self.0
+            .get_mut(index)
+            .map(|item| ::core::mem::replace(item, v))
+    }
 }
-impl molecule::prelude::Builder for StakeLockArgsBuilder {
-    type Entity = StakeLockArgs;
-    const NAME: &'static str = "StakeLockArgsBuilder";
+impl molecule::prelude::Builder for StakeInfosBuilder {
+    type Entity = StakeInfos;
+    const NAME: &'static str = "StakeInfosBuilder";
     fn expected_length(&self) -> usize {
-        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
-            + self.stake_smt_type_id.as_slice().len()
-            + self.staker_identity.as_slice().len()
+        molecule::NUMBER_SIZE * (self.0.len() + 1)
+            + self
+                .0
+                .iter()
+                .map(|inner| inner.as_slice().len())
+                .sum::<usize>()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
-        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
-        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
-        offsets.push(total_size);
-        total_size += self.stake_smt_type_id.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.staker_identity.as_slice().len();
-        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
-        for offset in offsets.into_iter() {
-            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
+        let item_count = self.0.len();
+        if item_count == 0 {
+            writer.write_all(&molecule::pack_number(
+                molecule::NUMBER_SIZE as molecule::Number,
+            ))?;
+        } else {
+            let (total_size, offsets) = self.0.iter().fold(
+                (
+                    molecule::NUMBER_SIZE * (item_count + 1),
+                    Vec::with_capacity(item_count),
+                ),
+                |(start, mut offsets), inner| {
+                    offsets.push(start);
+                    (start + inner.as_slice().len(), offsets)
+                },
+            );
+            writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
+            for offset in offsets.into_iter() {
+                writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
+            }
+            for inner in self.0.iter() {
+                writer.write_all(inner.as_slice())?;
+            }
         }
-        writer.write_all(self.stake_smt_type_id.as_slice())?;
-        writer.write_all(self.staker_identity.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {
         let mut inner = Vec::with_capacity(self.expected_length());
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        StakeLockArgs::new_unchecked(inner.into())
+        StakeInfos::new_unchecked(inner.into())
+    }
+}
+pub struct StakeInfosIterator(StakeInfos, usize, usize);
+impl ::core::iter::Iterator for StakeInfosIterator {
+    type Item = StakeInfo;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.1 >= self.2 {
+            None
+        } else {
+            let ret = self.0.get_unchecked(self.1);
+            self.1 += 1;
+            Some(ret)
+        }
+    }
+}
+impl ::core::iter::ExactSizeIterator for StakeInfosIterator {
+    fn len(&self) -> usize {
+        self.2 - self.1
+    }
+}
+impl ::core::iter::IntoIterator for StakeInfos {
+    type Item = StakeInfo;
+    type IntoIter = StakeInfosIterator;
+    fn into_iter(self) -> Self::IntoIter {
+        let len = self.len();
+        StakeInfosIterator(self, 0, len)
+    }
+}
+impl<'r> StakeInfosReader<'r> {
+    pub fn iter<'t>(&'t self) -> StakeInfosReaderIterator<'t, 'r> {
+        StakeInfosReaderIterator(&self, 0, self.len())
+    }
+}
+pub struct StakeInfosReaderIterator<'t, 'r>(&'t StakeInfosReader<'r>, usize, usize);
+impl<'t: 'r, 'r> ::core::iter::Iterator for StakeInfosReaderIterator<'t, 'r> {
+    type Item = StakeInfoReader<'t>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.1 >= self.2 {
+            None
+        } else {
+            let ret = self.0.get_unchecked(self.1);
+            self.1 += 1;
+            Some(ret)
+        }
+    }
+}
+impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for StakeInfosReaderIterator<'t, 'r> {
+    fn len(&self) -> usize {
+        self.2 - self.1
     }
 }
 #[derive(Clone)]
-pub struct StakeAtLockCellData(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for StakeAtLockCellData {
+pub struct StakeSmtUpdateInfo(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for StakeSmtUpdateInfo {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -579,25 +1814,17 @@ impl ::core::fmt::LowerHex for StakeAtLockCellData {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for StakeAtLockCellData {
+impl ::core::fmt::Debug for StakeSmtUpdateInfo {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for StakeAtLockCellData {
+impl ::core::fmt::Display for StakeSmtUpdateInfo {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "version", self.version())?;
-        write!(f, ", {}: {}", "l1_address", self.l1_address())?;
-        write!(f, ", {}: {}", "l2_address", self.l2_address())?;
-        write!(f, ", {}: {}", "stake_info", self.stake_info())?;
-        write!(
-            f,
-            ", {}: {}",
-            "checkpoint_type_id",
-            self.checkpoint_type_id()
-        )?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(f, "{}: {}", "all_stake_infos", self.all_stake_infos())?;
+        write!(f, ", {}: {}", "old_epoch_proof", self.old_epoch_proof())?;
+        write!(f, ", {}: {}", "new_epoch_proof", self.new_epoch_proof())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -605,22 +1832,16 @@ impl ::core::fmt::Display for StakeAtLockCellData {
         write!(f, " }}")
     }
 }
-impl ::core::default::Default for StakeAtLockCellData {
+impl ::core::default::Default for StakeSmtUpdateInfo {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            174, 0, 0, 0, 28, 0, 0, 0, 29, 0, 0, 0, 49, 0, 0, 0, 69, 0, 0, 0, 110, 0, 0, 0, 142, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0,
+            28, 0, 0, 0, 16, 0, 0, 0, 20, 0, 0, 0, 24, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        StakeAtLockCellData::new_unchecked(v.into())
+        StakeSmtUpdateInfo::new_unchecked(v.into())
     }
 }
-impl StakeAtLockCellData {
-    pub const FIELD_COUNT: usize = 6;
+impl StakeSmtUpdateInfo {
+    pub const FIELD_COUNT: usize = 3;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -637,55 +1858,37 @@ impl StakeAtLockCellData {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn version(&self) -> Byte {
+    pub fn all_stake_infos(&self) -> StakeInfos {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
-        Byte::new_unchecked(self.0.slice(start..end))
+        StakeInfos::new_unchecked(self.0.slice(start..end))
     }
-    pub fn l1_address(&self) -> Identity {
+    pub fn old_epoch_proof(&self) -> Bytes {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        Identity::new_unchecked(self.0.slice(start..end))
+        Bytes::new_unchecked(self.0.slice(start..end))
     }
-    pub fn l2_address(&self) -> Identity {
+    pub fn new_epoch_proof(&self) -> Bytes {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
-        let end = molecule::unpack_number(&slice[16..]) as usize;
-        Identity::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn stake_info(&self) -> StakeInfo {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
-        let end = molecule::unpack_number(&slice[20..]) as usize;
-        StakeInfo::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn checkpoint_type_id(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[20..]) as usize;
-        let end = molecule::unpack_number(&slice[24..]) as usize;
-        Byte32::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn xudt_type_id(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[24..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[28..]) as usize;
-            Byte32::new_unchecked(self.0.slice(start..end))
+            let end = molecule::unpack_number(&slice[16..]) as usize;
+            Bytes::new_unchecked(self.0.slice(start..end))
         } else {
-            Byte32::new_unchecked(self.0.slice(start..))
+            Bytes::new_unchecked(self.0.slice(start..))
         }
     }
-    pub fn as_reader<'r>(&'r self) -> StakeAtLockCellDataReader<'r> {
-        StakeAtLockCellDataReader::new_unchecked(self.as_slice())
+    pub fn as_reader<'r>(&'r self) -> StakeSmtUpdateInfoReader<'r> {
+        StakeSmtUpdateInfoReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for StakeAtLockCellData {
-    type Builder = StakeAtLockCellDataBuilder;
-    const NAME: &'static str = "StakeAtLockCellData";
+impl molecule::prelude::Entity for StakeSmtUpdateInfo {
+    type Builder = StakeSmtUpdateInfoBuilder;
+    const NAME: &'static str = "StakeSmtUpdateInfo";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        StakeAtLockCellData(data)
+        StakeSmtUpdateInfo(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -694,27 +1897,24 @@ impl molecule::prelude::Entity for StakeAtLockCellData {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        StakeAtLockCellDataReader::from_slice(slice).map(|reader| reader.to_entity())
+        StakeSmtUpdateInfoReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        StakeAtLockCellDataReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+        StakeSmtUpdateInfoReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
     }
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
-            .version(self.version())
-            .l1_address(self.l1_address())
-            .l2_address(self.l2_address())
-            .stake_info(self.stake_info())
-            .checkpoint_type_id(self.checkpoint_type_id())
-            .xudt_type_id(self.xudt_type_id())
+            .all_stake_infos(self.all_stake_infos())
+            .old_epoch_proof(self.old_epoch_proof())
+            .new_epoch_proof(self.new_epoch_proof())
     }
 }
 #[derive(Clone, Copy)]
-pub struct StakeAtLockCellDataReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for StakeAtLockCellDataReader<'r> {
+pub struct StakeSmtUpdateInfoReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for StakeSmtUpdateInfoReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -723,25 +1923,17 @@ impl<'r> ::core::fmt::LowerHex for StakeAtLockCellDataReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for StakeAtLockCellDataReader<'r> {
+impl<'r> ::core::fmt::Debug for StakeSmtUpdateInfoReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for StakeAtLockCellDataReader<'r> {
+impl<'r> ::core::fmt::Display for StakeSmtUpdateInfoReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "version", self.version())?;
-        write!(f, ", {}: {}", "l1_address", self.l1_address())?;
-        write!(f, ", {}: {}", "l2_address", self.l2_address())?;
-        write!(f, ", {}: {}", "stake_info", self.stake_info())?;
-        write!(
-            f,
-            ", {}: {}",
-            "checkpoint_type_id",
-            self.checkpoint_type_id()
-        )?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(f, "{}: {}", "all_stake_infos", self.all_stake_infos())?;
+        write!(f, ", {}: {}", "old_epoch_proof", self.old_epoch_proof())?;
+        write!(f, ", {}: {}", "new_epoch_proof", self.new_epoch_proof())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -749,8 +1941,8 @@ impl<'r> ::core::fmt::Display for StakeAtLockCellDataReader<'r> {
         write!(f, " }}")
     }
 }
-impl<'r> StakeAtLockCellDataReader<'r> {
-    pub const FIELD_COUNT: usize = 6;
+impl<'r> StakeSmtUpdateInfoReader<'r> {
+    pub const FIELD_COUNT: usize = 3;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -767,55 +1959,37 @@ impl<'r> StakeAtLockCellDataReader<'r> {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn version(&self) -> ByteReader<'r> {
+    pub fn all_stake_infos(&self) -> StakeInfosReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
-        ByteReader::new_unchecked(&self.as_slice()[start..end])
+        StakeInfosReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn l1_address(&self) -> IdentityReader<'r> {
+    pub fn old_epoch_proof(&self) -> BytesReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        IdentityReader::new_unchecked(&self.as_slice()[start..end])
+        BytesReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn l2_address(&self) -> IdentityReader<'r> {
+    pub fn new_epoch_proof(&self) -> BytesReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
-        let end = molecule::unpack_number(&slice[16..]) as usize;
-        IdentityReader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn stake_info(&self) -> StakeInfoReader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
-        let end = molecule::unpack_number(&slice[20..]) as usize;
-        StakeInfoReader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn checkpoint_type_id(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[20..]) as usize;
-        let end = molecule::unpack_number(&slice[24..]) as usize;
-        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn xudt_type_id(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[24..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[28..]) as usize;
-            Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+            let end = molecule::unpack_number(&slice[16..]) as usize;
+            BytesReader::new_unchecked(&self.as_slice()[start..end])
         } else {
-            Byte32Reader::new_unchecked(&self.as_slice()[start..])
+            BytesReader::new_unchecked(&self.as_slice()[start..])
         }
     }
 }
-impl<'r> molecule::prelude::Reader<'r> for StakeAtLockCellDataReader<'r> {
-    type Entity = StakeAtLockCellData;
-    const NAME: &'static str = "StakeAtLockCellDataReader";
+impl<'r> molecule::prelude::Reader<'r> for StakeSmtUpdateInfoReader<'r> {
+    type Entity = StakeSmtUpdateInfo;
+    const NAME: &'static str = "StakeSmtUpdateInfoReader";
     fn to_entity(&self) -> Self::Entity {
         Self::Entity::new_unchecked(self.as_slice().to_owned().into())
     }
     fn new_unchecked(slice: &'r [u8]) -> Self {
-        StakeAtLockCellDataReader(slice)
+        StakeSmtUpdateInfoReader(slice)
     }
     fn as_slice(&self) -> &'r [u8] {
         self.0
@@ -857,458 +2031,64 @@ impl<'r> molecule::prelude::Reader<'r> for StakeAtLockCellDataReader<'r> {
         if offsets.windows(2).any(|i| i[0] > i[1]) {
             return ve!(Self, OffsetsNotMatch);
         }
-        ByteReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        IdentityReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        IdentityReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
-        StakeInfoReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
+        StakeInfosReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        BytesReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        BytesReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
-pub struct StakeAtLockCellDataBuilder {
-    pub(crate) version: Byte,
-    pub(crate) l1_address: Identity,
-    pub(crate) l2_address: Identity,
-    pub(crate) stake_info: StakeInfo,
-    pub(crate) checkpoint_type_id: Byte32,
-    pub(crate) xudt_type_id: Byte32,
+pub struct StakeSmtUpdateInfoBuilder {
+    pub(crate) all_stake_infos: StakeInfos,
+    pub(crate) old_epoch_proof: Bytes,
+    pub(crate) new_epoch_proof: Bytes,
 }
-impl StakeAtLockCellDataBuilder {
-    pub const FIELD_COUNT: usize = 6;
-    pub fn version(mut self, v: Byte) -> Self {
-        self.version = v;
+impl StakeSmtUpdateInfoBuilder {
+    pub const FIELD_COUNT: usize = 3;
+    pub fn all_stake_infos(mut self, v: StakeInfos) -> Self {
+        self.all_stake_infos = v;
         self
     }
-    pub fn l1_address(mut self, v: Identity) -> Self {
-        self.l1_address = v;
+    pub fn old_epoch_proof(mut self, v: Bytes) -> Self {
+        self.old_epoch_proof = v;
         self
     }
-    pub fn l2_address(mut self, v: Identity) -> Self {
-        self.l2_address = v;
-        self
-    }
-    pub fn stake_info(mut self, v: StakeInfo) -> Self {
-        self.stake_info = v;
-        self
-    }
-    pub fn checkpoint_type_id(mut self, v: Byte32) -> Self {
-        self.checkpoint_type_id = v;
-        self
-    }
-    pub fn xudt_type_id(mut self, v: Byte32) -> Self {
-        self.xudt_type_id = v;
+    pub fn new_epoch_proof(mut self, v: Bytes) -> Self {
+        self.new_epoch_proof = v;
         self
     }
 }
-impl molecule::prelude::Builder for StakeAtLockCellDataBuilder {
-    type Entity = StakeAtLockCellData;
-    const NAME: &'static str = "StakeAtLockCellDataBuilder";
+impl molecule::prelude::Builder for StakeSmtUpdateInfoBuilder {
+    type Entity = StakeSmtUpdateInfo;
+    const NAME: &'static str = "StakeSmtUpdateInfoBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
-            + self.version.as_slice().len()
-            + self.l1_address.as_slice().len()
-            + self.l2_address.as_slice().len()
-            + self.stake_info.as_slice().len()
-            + self.checkpoint_type_id.as_slice().len()
-            + self.xudt_type_id.as_slice().len()
+            + self.all_stake_infos.as_slice().len()
+            + self.old_epoch_proof.as_slice().len()
+            + self.new_epoch_proof.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
         let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
         offsets.push(total_size);
-        total_size += self.version.as_slice().len();
+        total_size += self.all_stake_infos.as_slice().len();
         offsets.push(total_size);
-        total_size += self.l1_address.as_slice().len();
+        total_size += self.old_epoch_proof.as_slice().len();
         offsets.push(total_size);
-        total_size += self.l2_address.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.stake_info.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.checkpoint_type_id.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.xudt_type_id.as_slice().len();
+        total_size += self.new_epoch_proof.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
-        writer.write_all(self.version.as_slice())?;
-        writer.write_all(self.l1_address.as_slice())?;
-        writer.write_all(self.l2_address.as_slice())?;
-        writer.write_all(self.stake_info.as_slice())?;
-        writer.write_all(self.checkpoint_type_id.as_slice())?;
-        writer.write_all(self.xudt_type_id.as_slice())?;
+        writer.write_all(self.all_stake_infos.as_slice())?;
+        writer.write_all(self.old_epoch_proof.as_slice())?;
+        writer.write_all(self.new_epoch_proof.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {
         let mut inner = Vec::with_capacity(self.expected_length());
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        StakeAtLockCellData::new_unchecked(inner.into())
-    }
-}
-#[derive(Clone)]
-pub struct StakeSMTCellData(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for StakeSMTCellData {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        use molecule::hex_string;
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        write!(f, "{}", hex_string(self.as_slice()))
-    }
-}
-impl ::core::fmt::Debug for StakeSMTCellData {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{}({:#x})", Self::NAME, self)
-    }
-}
-impl ::core::fmt::Display for StakeSMTCellData {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "smt_root", self.smt_root())?;
-        write!(f, ", {}: {}", "version", self.version())?;
-        write!(
-            f,
-            ", {}: {}",
-            "checkpoint_type_id",
-            self.checkpoint_type_id()
-        )?;
-        write!(
-            f,
-            ", {}: {}",
-            "delegate_smt_type_id",
-            self.delegate_smt_type_id()
-        )?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
-        }
-        write!(f, " }}")
-    }
-}
-impl ::core::default::Default for StakeSMTCellData {
-    fn default() -> Self {
-        let v: Vec<u8> = vec![
-            153, 0, 0, 0, 24, 0, 0, 0, 56, 0, 0, 0, 57, 0, 0, 0, 89, 0, 0, 0, 121, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ];
-        StakeSMTCellData::new_unchecked(v.into())
-    }
-}
-impl StakeSMTCellData {
-    pub const FIELD_COUNT: usize = 5;
-    pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
-    }
-    pub fn field_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
-    }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
-    }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
-    }
-    pub fn smt_root(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        let end = molecule::unpack_number(&slice[8..]) as usize;
-        Byte32::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn version(&self) -> Byte {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[8..]) as usize;
-        let end = molecule::unpack_number(&slice[12..]) as usize;
-        Byte::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn checkpoint_type_id(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
-        let end = molecule::unpack_number(&slice[16..]) as usize;
-        Byte32::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn delegate_smt_type_id(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
-        let end = molecule::unpack_number(&slice[20..]) as usize;
-        Byte32::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn xudt_type_id(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[20..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[24..]) as usize;
-            Byte32::new_unchecked(self.0.slice(start..end))
-        } else {
-            Byte32::new_unchecked(self.0.slice(start..))
-        }
-    }
-    pub fn as_reader<'r>(&'r self) -> StakeSMTCellDataReader<'r> {
-        StakeSMTCellDataReader::new_unchecked(self.as_slice())
-    }
-}
-impl molecule::prelude::Entity for StakeSMTCellData {
-    type Builder = StakeSMTCellDataBuilder;
-    const NAME: &'static str = "StakeSMTCellData";
-    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        StakeSMTCellData(data)
-    }
-    fn as_bytes(&self) -> molecule::bytes::Bytes {
-        self.0.clone()
-    }
-    fn as_slice(&self) -> &[u8] {
-        &self.0[..]
-    }
-    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        StakeSMTCellDataReader::from_slice(slice).map(|reader| reader.to_entity())
-    }
-    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        StakeSMTCellDataReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
-    }
-    fn new_builder() -> Self::Builder {
-        ::core::default::Default::default()
-    }
-    fn as_builder(self) -> Self::Builder {
-        Self::new_builder()
-            .smt_root(self.smt_root())
-            .version(self.version())
-            .checkpoint_type_id(self.checkpoint_type_id())
-            .delegate_smt_type_id(self.delegate_smt_type_id())
-            .xudt_type_id(self.xudt_type_id())
-    }
-}
-#[derive(Clone, Copy)]
-pub struct StakeSMTCellDataReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for StakeSMTCellDataReader<'r> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        use molecule::hex_string;
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        write!(f, "{}", hex_string(self.as_slice()))
-    }
-}
-impl<'r> ::core::fmt::Debug for StakeSMTCellDataReader<'r> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{}({:#x})", Self::NAME, self)
-    }
-}
-impl<'r> ::core::fmt::Display for StakeSMTCellDataReader<'r> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "smt_root", self.smt_root())?;
-        write!(f, ", {}: {}", "version", self.version())?;
-        write!(
-            f,
-            ", {}: {}",
-            "checkpoint_type_id",
-            self.checkpoint_type_id()
-        )?;
-        write!(
-            f,
-            ", {}: {}",
-            "delegate_smt_type_id",
-            self.delegate_smt_type_id()
-        )?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
-        }
-        write!(f, " }}")
-    }
-}
-impl<'r> StakeSMTCellDataReader<'r> {
-    pub const FIELD_COUNT: usize = 5;
-    pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
-    }
-    pub fn field_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
-    }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
-    }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
-    }
-    pub fn smt_root(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        let end = molecule::unpack_number(&slice[8..]) as usize;
-        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn version(&self) -> ByteReader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[8..]) as usize;
-        let end = molecule::unpack_number(&slice[12..]) as usize;
-        ByteReader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn checkpoint_type_id(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
-        let end = molecule::unpack_number(&slice[16..]) as usize;
-        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn delegate_smt_type_id(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
-        let end = molecule::unpack_number(&slice[20..]) as usize;
-        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn xudt_type_id(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[20..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[24..]) as usize;
-            Byte32Reader::new_unchecked(&self.as_slice()[start..end])
-        } else {
-            Byte32Reader::new_unchecked(&self.as_slice()[start..])
-        }
-    }
-}
-impl<'r> molecule::prelude::Reader<'r> for StakeSMTCellDataReader<'r> {
-    type Entity = StakeSMTCellData;
-    const NAME: &'static str = "StakeSMTCellDataReader";
-    fn to_entity(&self) -> Self::Entity {
-        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
-    }
-    fn new_unchecked(slice: &'r [u8]) -> Self {
-        StakeSMTCellDataReader(slice)
-    }
-    fn as_slice(&self) -> &'r [u8] {
-        self.0
-    }
-    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
-        use molecule::verification_error as ve;
-        let slice_len = slice.len();
-        if slice_len < molecule::NUMBER_SIZE {
-            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
-        }
-        let total_size = molecule::unpack_number(slice) as usize;
-        if slice_len != total_size {
-            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
-        }
-        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
-            return Ok(());
-        }
-        if slice_len < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
-        }
-        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
-        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        if slice_len < offset_first {
-            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
-        }
-        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
-        if field_count < Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        } else if !compatible && field_count > Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        };
-        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
-            .chunks_exact(molecule::NUMBER_SIZE)
-            .map(|x| molecule::unpack_number(x) as usize)
-            .collect();
-        offsets.push(total_size);
-        if offsets.windows(2).any(|i| i[0] > i[1]) {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        Byte32Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        ByteReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
-        Ok(())
-    }
-}
-#[derive(Debug, Default)]
-pub struct StakeSMTCellDataBuilder {
-    pub(crate) smt_root: Byte32,
-    pub(crate) version: Byte,
-    pub(crate) checkpoint_type_id: Byte32,
-    pub(crate) delegate_smt_type_id: Byte32,
-    pub(crate) xudt_type_id: Byte32,
-}
-impl StakeSMTCellDataBuilder {
-    pub const FIELD_COUNT: usize = 5;
-    pub fn smt_root(mut self, v: Byte32) -> Self {
-        self.smt_root = v;
-        self
-    }
-    pub fn version(mut self, v: Byte) -> Self {
-        self.version = v;
-        self
-    }
-    pub fn checkpoint_type_id(mut self, v: Byte32) -> Self {
-        self.checkpoint_type_id = v;
-        self
-    }
-    pub fn delegate_smt_type_id(mut self, v: Byte32) -> Self {
-        self.delegate_smt_type_id = v;
-        self
-    }
-    pub fn xudt_type_id(mut self, v: Byte32) -> Self {
-        self.xudt_type_id = v;
-        self
-    }
-}
-impl molecule::prelude::Builder for StakeSMTCellDataBuilder {
-    type Entity = StakeSMTCellData;
-    const NAME: &'static str = "StakeSMTCellDataBuilder";
-    fn expected_length(&self) -> usize {
-        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
-            + self.smt_root.as_slice().len()
-            + self.version.as_slice().len()
-            + self.checkpoint_type_id.as_slice().len()
-            + self.delegate_smt_type_id.as_slice().len()
-            + self.xudt_type_id.as_slice().len()
-    }
-    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
-        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
-        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
-        offsets.push(total_size);
-        total_size += self.smt_root.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.version.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.checkpoint_type_id.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.delegate_smt_type_id.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.xudt_type_id.as_slice().len();
-        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
-        for offset in offsets.into_iter() {
-            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
-        }
-        writer.write_all(self.smt_root.as_slice())?;
-        writer.write_all(self.version.as_slice())?;
-        writer.write_all(self.checkpoint_type_id.as_slice())?;
-        writer.write_all(self.delegate_smt_type_id.as_slice())?;
-        writer.write_all(self.xudt_type_id.as_slice())?;
-        Ok(())
-    }
-    fn build(&self) -> Self::Entity {
-        let mut inner = Vec::with_capacity(self.expected_length());
-        self.write(&mut inner)
-            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        StakeSMTCellData::new_unchecked(inner.into())
+        StakeSmtUpdateInfo::new_unchecked(inner.into())
     }
 }

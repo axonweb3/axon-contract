@@ -31,9 +31,8 @@ vector DelegatorInfos <DelegatorInfo>;
 // So the cell data is decode from offset 16.
 table DelegateAtCellData {
     version:            byte,
-    checkpoint_type_id: Byte32,
-    xudt_type_id:       Byte32,
     delegator_infos:    DelegatorInfos,
+    metadata_type_id: Byte32,
 }
 
 table StakerSmtRoot {
@@ -46,8 +45,5 @@ vector StakerSmtRoots <StakerSmtRoot>;
 table DelegateSmtCellData {
     version:            byte,
     smt_roots:          StakerSmtRoots,  // smt root of all delegator infos
-    checkpoint_type_id: Byte32,
-    xudt_type_id:       Byte32,
-    delegate_type_id:   Byte32,
-    reward_type_id:     Byte32,
+    metadata_type_id: Byte32,
 }

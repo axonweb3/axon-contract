@@ -2,9 +2,14 @@
 members = [
     "tests",
     "common/blst",
+    "common/secp256k1",
     "common/types",
     "common/util",
+    "contracts/ckb-smt",
+    "contracts/checkpoint",
+    "contracts/metadata",
     "contracts/selection",
+    "contracts/stake",
 ]
 
 [profile.release]

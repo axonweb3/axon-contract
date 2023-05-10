@@ -19,6 +19,10 @@ name = "checkpoint"
 template_type = "Rust"
 
 [[contracts]]
+name = "metadata"
+template_type = "Rust"
+
+[[contracts]]
 name = "withdrawal"
 template_type = "Rust"
 

@@ -13,11 +13,11 @@
       "name": "SelectionLockArgs",
       "fields": [
         {
-          "name": "omni_lock_hash",
+          "name": "reward_type_id",
           "type": "Byte32"
         },
         {
-          "name": "checkpoint_lock_hash",
+          "name": "omni_lock_hash",
           "type": "Byte32"
         }
       ]
