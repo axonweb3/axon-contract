@@ -21,7 +21,6 @@ table DelegateCellData {
 
 table DelegatorInfo {
     staker:             Identity,
-    is_increase:        byte, // increase or decrease 
     delegate_amount:    Uint128,
     inauguration_epoch: Uint64,
 }
