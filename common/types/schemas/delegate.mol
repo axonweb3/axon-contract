@@ -1,41 +1,45 @@
 import basic;
 
-table DelegateLimit {
-    threshold:          Uint128,
-    max_delegator_size: Uint32,
+table DelegateArgs {
+    metadata_type_id: Byte32,
+    delegator_addr:   IdentityOpt,
 }
 
-table DelegateInfo {
+table DelegateRequirement {
+    threshold:          Uint128,
+    max_delegator_size: Uint32,
     dividend_ratio: byte, // only dividend_ratio% reward will go to delegators
 }
 
 table DelegateCellData {
-    version:            byte,
-    l1_address:         Identity,
-    l2_address:         Identity,
-    delegate_limit:     DelegateLimit,
-    delegate_info:      DelegateInfo,
-    checkpoint_type_id: Byte32,
-    xudt_type_id:       Byte32,
+    version:                  byte,
+    l1_address:               Identity,
+    l2_address:               Identity,
+    delegate_requirement:     DelegateRequirement,
+    metadata_type_id:       Byte32,
 }
 
-table DelegatorInfo {
+// delegate AT cell
+table DelegateInfoDelta {
+    is_increase:        byte, // increase or decrease delegate, 1 is increase, 0 is decrease
     staker:             Identity,
-    delegate_amount:    Uint128,
+    amount:             Uint128,
+    total_amount:       Uint128, // the delegator's total delegate amount to one staker
     inauguration_epoch: Uint64,
 }
 
-vector DelegatorInfos <DelegatorInfo>;
+vector DelegateInfoDeltas <DelegateInfoDelta>;
 
 // The data[0..16] is a le_u128 means xUDT amount.
 // So the cell data is decode from offset 16.
 table DelegateAtCellData {
     version:            byte,
-    checkpoint_type_id: Byte32,
-    xudt_type_id:       Byte32,
-    delegator_infos:    DelegatorInfos,
+    l1_address:         Identity,
+    metadata_type_id:   Byte32,
+    delegator_infos:    DelegateInfoDeltas,
 }
 
+// delegate smt cell
 table StakerSmtRoot {
     staker: Identity,
     root:   Byte32,
@@ -46,8 +50,25 @@ vector StakerSmtRoots <StakerSmtRoot>;
 table DelegateSmtCellData {
     version:            byte,
     smt_roots:          StakerSmtRoots,  // smt root of all delegator infos
-    checkpoint_type_id: Byte32,
-    xudt_type_id:       Byte32,
-    delegate_type_id:   Byte32,
-    reward_type_id:     Byte32,
+    metadata_type_id:   Byte32,
+}
+
+// witness
+table DelegateInfo {
+    delegator_addr:      Identity,
+    amount:    Uint128,
+}
+vector DelegateInfos <DelegateInfo>;
+
+table StakeGroupInfo {
+    staker: Identity,
+    delegate_infos: DelegateInfos,      // calculate delegator_smt_root based on this
+    delegate_old_epoch_proof: Bytes,    // prove delegator_smt_root's existence in input
+    delegate_new_epoch_proof: Bytes,    // prove delegator_smt_root's existence in output
+}
+
+vector StakeGroupInfos <StakeGroupInfo>;
+
+table DelegateSmtUpdateInfo {
+    all_stake_group_infos: StakeGroupInfos,
 }

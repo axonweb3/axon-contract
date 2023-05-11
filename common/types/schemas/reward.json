@@ -1,0 +1,261 @@
+{
+  "namespace": "reward",
+  "imports": [
+    {
+      "name": "basic",
+      "paths": [],
+      "path_supers": 0
+    }
+  ],
+  "declarations": [
+    {
+      "type": "table",
+      "name": "RewardSmtCellData",
+      "fields": [
+        {
+          "name": "version",
+          "type": "byte"
+        },
+        {
+          "name": "claim_smt_root",
+          "type": "Byte32"
+        },
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "RewardArgs",
+      "fields": [
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "NotClaimInfo",
+      "fields": [
+        {
+          "name": "epoch",
+          "type": "Uint64"
+        },
+        {
+          "name": "proof",
+          "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "RewardDelegateInfo",
+      "fields": [
+        {
+          "name": "delegator_addr",
+          "type": "Identity"
+        },
+        {
+          "name": "amount",
+          "type": "Uint128"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "RewardDelegateInfos",
+      "item": "RewardDelegateInfo"
+    },
+    {
+      "type": "table",
+      "name": "RewardStakeInfo",
+      "fields": [
+        {
+          "name": "validator",
+          "type": "Identity"
+        },
+        {
+          "name": "propose_count",
+          "type": "Uint64"
+        },
+        {
+          "name": "staker_amount",
+          "type": "Uint128"
+        },
+        {
+          "name": "delegate_infos",
+          "type": "RewardDelegateInfos"
+        },
+        {
+          "name": "delegate_epoch_proof",
+          "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "RewardStakeInfos",
+      "item": "RewardStakeInfo"
+    },
+    {
+      "type": "table",
+      "name": "EpochRewardStakeInfo",
+      "fields": [
+        {
+          "name": "reward_stake_infos",
+          "type": "RewardStakeInfos"
+        },
+        {
+          "name": "count_proof",
+          "type": "Bytes"
+        },
+        {
+          "name": "count_root",
+          "type": "Bytes"
+        },
+        {
+          "name": "count_epoch_proof",
+          "type": "Bytes"
+        },
+        {
+          "name": "amount_proof",
+          "type": "Bytes"
+        },
+        {
+          "name": "amount_root",
+          "type": "Bytes"
+        },
+        {
+          "name": "amount_epoch_proof",
+          "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "EpochRewardStakeInfos",
+      "item": "EpochRewardStakeInfo"
+    },
+    {
+      "type": "table",
+      "name": "RewardWitness",
+      "fields": [
+        {
+          "name": "miner",
+          "type": "Identity"
+        },
+        {
+          "name": "old_not_claim_info",
+          "type": "NotClaimInfo"
+        },
+        {
+          "name": "reward_infos",
+          "type": "EpochRewardStakeInfos"
+        },
+        {
+          "name": "new_not_claim_info",
+          "type": "NotClaimInfo"
+        }
+      ]
+    },
+    {
+      "type": "array",
+      "name": "Byte4",
+      "item": "byte",
+      "item_count": 4,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte8",
+      "item": "byte",
+      "item_count": 8,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte16",
+      "item": "byte",
+      "item_count": 16,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte20",
+      "item": "byte",
+      "item_count": 20,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte32",
+      "item": "byte",
+      "item_count": 32,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte65",
+      "item": "byte",
+      "item_count": 65,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte97",
+      "item": "byte",
+      "item_count": 97,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint16",
+      "item": "byte",
+      "item_count": 2,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint32",
+      "item": "byte",
+      "item_count": 4,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint64",
+      "item": "byte",
+      "item_count": 8,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint128",
+      "item": "byte",
+      "item_count": 16,
+      "imported_depth": 1
+    },
+    {
+      "type": "fixvec",
+      "name": "Bytes",
+      "item": "byte",
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Identity",
+      "item": "byte",
+      "item_count": 20,
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "IdentityOpt",
+      "item": "Identity",
+      "imported_depth": 1
+    }
+  ]
+}

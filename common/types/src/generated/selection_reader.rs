@@ -16,14 +16,14 @@ impl From<Cursor> for SelectionLockArgs {
 }
 
 impl SelectionLockArgs {
-    pub fn omni_lock_hash(&self) -> Vec<u8> {
+    pub fn reward_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
 
 impl SelectionLockArgs {
-    pub fn checkpoint_lock_hash(&self) -> Vec<u8> {
+    pub fn omni_lock_hash(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }

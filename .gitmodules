@@ -13,3 +13,9 @@
 [submodule "contracts/common/blst/ckb-lib-secp256k1-blst/deps/blst"]
 	path = contracts/common/blst/ckb-lib-secp256k1-blst/deps/blst
 	url = https://github.com/cryptape/blst
+[submodule "contracts/ckb-smt/c/deps/sparse-merkle-tree"]
+	path = contracts/ckb-smt/c/deps/sparse-merkle-tree
+	url = https://github.com/nervosnetwork/sparse-merkle-tree.git
+[submodule "contracts/ckb-smt/c/deps/ckb-production-scripts"]
+	path = contracts/ckb-smt/c/deps/ckb-production-scripts
+	url = https://github.com/nervosnetwork/ckb-production-scripts.git

@@ -1,0 +1,14 @@
+[package]
+name = "withdraw"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ckb-std = "0.12"
+secp256k1 = { path = "../../common/secp256k1" }
+axon-types = { path = "../../common/types" }
+util = { path = "../../common/util" }
+# ckb-smt = { path = "../ckb-smt", default-features = false }
+# sparse-merkle-tree = { version = "0.6.1", default-features = false }  

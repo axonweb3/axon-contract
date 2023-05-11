@@ -1,0 +1,312 @@
+{
+  "namespace": "delegate",
+  "imports": [
+    {
+      "name": "basic",
+      "paths": [],
+      "path_supers": 0
+    }
+  ],
+  "declarations": [
+    {
+      "type": "table",
+      "name": "DelegateArgs",
+      "fields": [
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "delegator_addr",
+          "type": "IdentityOpt"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "DelegateRequirement",
+      "fields": [
+        {
+          "name": "threshold",
+          "type": "Uint128"
+        },
+        {
+          "name": "max_delegator_size",
+          "type": "Uint32"
+        },
+        {
+          "name": "dividend_ratio",
+          "type": "byte"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "DelegateCellData",
+      "fields": [
+        {
+          "name": "version",
+          "type": "byte"
+        },
+        {
+          "name": "l1_address",
+          "type": "Identity"
+        },
+        {
+          "name": "l2_address",
+          "type": "Identity"
+        },
+        {
+          "name": "delegate_requirement",
+          "type": "DelegateRequirement"
+        },
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "DelegateInfoDelta",
+      "fields": [
+        {
+          "name": "is_increase",
+          "type": "byte"
+        },
+        {
+          "name": "staker",
+          "type": "Identity"
+        },
+        {
+          "name": "amount",
+          "type": "Uint128"
+        },
+        {
+          "name": "total_amount",
+          "type": "Uint128"
+        },
+        {
+          "name": "inauguration_epoch",
+          "type": "Uint64"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "DelegateInfoDeltas",
+      "item": "DelegateInfoDelta"
+    },
+    {
+      "type": "table",
+      "name": "DelegateAtCellData",
+      "fields": [
+        {
+          "name": "version",
+          "type": "byte"
+        },
+        {
+          "name": "l1_address",
+          "type": "Identity"
+        },
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "delegator_infos",
+          "type": "DelegateInfoDeltas"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "StakerSmtRoot",
+      "fields": [
+        {
+          "name": "staker",
+          "type": "Identity"
+        },
+        {
+          "name": "root",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "StakerSmtRoots",
+      "item": "StakerSmtRoot"
+    },
+    {
+      "type": "table",
+      "name": "DelegateSmtCellData",
+      "fields": [
+        {
+          "name": "version",
+          "type": "byte"
+        },
+        {
+          "name": "smt_roots",
+          "type": "StakerSmtRoots"
+        },
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "DelegateInfo",
+      "fields": [
+        {
+          "name": "delegator_addr",
+          "type": "Identity"
+        },
+        {
+          "name": "amount",
+          "type": "Uint128"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "DelegateInfos",
+      "item": "DelegateInfo"
+    },
+    {
+      "type": "table",
+      "name": "StakeGroupInfo",
+      "fields": [
+        {
+          "name": "staker",
+          "type": "Identity"
+        },
+        {
+          "name": "delegate_infos",
+          "type": "DelegateInfos"
+        },
+        {
+          "name": "delegate_old_epoch_proof",
+          "type": "Bytes"
+        },
+        {
+          "name": "delegate_new_epoch_proof",
+          "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "StakeGroupInfos",
+      "item": "StakeGroupInfo"
+    },
+    {
+      "type": "table",
+      "name": "DelegateSmtUpdateInfo",
+      "fields": [
+        {
+          "name": "all_stake_group_infos",
+          "type": "StakeGroupInfos"
+        }
+      ]
+    },
+    {
+      "type": "array",
+      "name": "Byte4",
+      "item": "byte",
+      "item_count": 4,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte8",
+      "item": "byte",
+      "item_count": 8,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte16",
+      "item": "byte",
+      "item_count": 16,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte20",
+      "item": "byte",
+      "item_count": 20,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte32",
+      "item": "byte",
+      "item_count": 32,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte65",
+      "item": "byte",
+      "item_count": 65,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte97",
+      "item": "byte",
+      "item_count": 97,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint16",
+      "item": "byte",
+      "item_count": 2,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint32",
+      "item": "byte",
+      "item_count": 4,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint64",
+      "item": "byte",
+      "item_count": 8,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint128",
+      "item": "byte",
+      "item_count": 16,
+      "imported_depth": 1
+    },
+    {
+      "type": "fixvec",
+      "name": "Bytes",
+      "item": "byte",
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Identity",
+      "item": "byte",
+      "item_count": 20,
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "IdentityOpt",
+      "item": "Identity",
+      "imported_depth": 1
+    }
+  ]
+}

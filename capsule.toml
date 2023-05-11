@@ -19,6 +19,10 @@ name = "checkpoint"
 template_type = "Rust"
 
 [[contracts]]
+name = "metadata"
+template_type = "Rust"
+
+[[contracts]]
 name = "withdrawal"
 template_type = "Rust"
 
@@ -27,13 +31,13 @@ name = "stake"
 template_type = "Rust"
 
 [[contracts]]
-name = "crosschain-metadata"
+name = "delegate"
 template_type = "Rust"
 
 [[contracts]]
-name = "crosschain-request"
+name = "reward"
 template_type = "Rust"
 
 [[contracts]]
-name = "crosschain-lock"
+name = "withdraw"
 template_type = "Rust"

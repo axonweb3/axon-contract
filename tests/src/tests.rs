@@ -1,10 +1,6 @@
 use super::*;
-use ckb_testtool::ckb_types::{
-    bytes::Bytes,
-    core::{TransactionBuilder},
-    packed::*,
-    prelude::*,
-};
+use axon_types::selection::SelectionLockArgs;
+use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
@@ -27,9 +23,9 @@ fn test_selection_success() {
         .out_point(always_success_out_point)
         .build();
     let omni_lock_hash = always_success_lock_script.calc_script_hash();
-    let selection_args = axon::SelectionLockArgs::new_builder()
+    let selection_args = SelectionLockArgs::new_builder()
         .omni_lock_hash(axon_byte32(&omni_lock_hash))
-        .checkpoint_lock_hash(axon_byte32(&Byte32::default()))
+        .reward_type_id(axon_byte32(&Byte32::default()))
         .build();
 
     // prepare scripts

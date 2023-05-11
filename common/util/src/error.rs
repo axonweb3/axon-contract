@@ -12,12 +12,81 @@ pub enum Error {
     BadWitnessInputType = 10,
     BadWitnessLock,
     SignatureMismatch,
+    LockScriptEmpty,
     TypeScriptEmpty,
+    InputOutputAtAmountNotEqual,
     ATCellShouldEmpty,
     BadScriptArgs,
+    UnknownMode,
+    WitnessLockError,
+    UpdateDataError,
+
+    // SMT
+    MerkleProof,
+    SmterrorCodeErrorInsufficientCapacity,
+    SmterrorCodeErrorNotFound,
+    SmterrorCodeErrorInvalidStack,
+    SmterrorCodeErrorInvalidSibling,
+    SmterrorCodeErrorInvalidProof,
 
     // selection contract
-    OmniCheckpointCountError = 20,
+    OmniRewardCountError = 30,
+
+    // stake AT type script
+    StakeDataEmpty,
+    MisMatchMetadataTypeId,
+    UpdateModeError,
+    BadSudtDataFormat,
+    BadInaugurationEpoch,
+    BadStakeChange,
+    RedeemExceedLimit,
+    BadStakeStakeChange,
+    BadStakeRedeemChange,
+    IllegalDefaultStakeInfo,
+    IllegalInputStakeInfo,
+    IllegalOutputStakeInfo,
+    BadRedeem,
+    BadElectionTime,
+    OldStakeInfosErr,
+    StaleStakeInfo,
+    NewStakeInfosErr,
+    BadInputStakeSmtCellCount,
+    BadOutputStakeSmtCellCount,
+    BadInputMetadataCellCount,
+    BadOutputMetadataCellCount,
+    MismatchXudtTypeId,
+
+    // delegate
+    FirstRedeemError,
+    BadDelegateChange,
+    StaleDelegateInfo,
+    IllegalDefaultDelegateInfo,
+
+    // checkpoint
+    CheckpointDataEmpty,
+    CheckpointCellError,
+    CheckpointCapacityMismatch,
+    CheckpointDataMismatch,
+    CheckpointDataError,
+    ProofRlpError, // mock multisig verify
+
+    // metadata
+    MetadataNoStakeSmt,
+    MetadataEpochWrong,
+    MetadataSizeWrong,
+    MetadataInputOutputMismatch,
+    NotLastCheckpoint,
+    StakerNonExist,
+    StakerNotFound,
+
+    // withdraw
+    WrongOutWithdrawArraySize,
+    WrongLockEpoch,
+    WrongOutWithdrawEpoch,
+    WrongOutWithdraw,
+    WrongIncreasedXudt,
+    WithdrawTotalAmountError,
+    OutLessThanIn,
 }
 
 impl From<SysError> for Error {
@@ -29,6 +98,19 @@ impl From<SysError> for Error {
             LengthNotEnough(_) => Self::LengthNotEnough,
             Encoding => Self::Encoding,
             Unknown(err_code) => panic!("unexpected sys error {}", err_code),
+        }
+    }
+}
+
+impl From<u32> for Error {
+    fn from(err: u32) -> Self {
+        match err {
+            80 => Self::SmterrorCodeErrorInsufficientCapacity,
+            81 => Self::SmterrorCodeErrorNotFound,
+            82 => Self::SmterrorCodeErrorInvalidStack,
+            83 => Self::SmterrorCodeErrorInvalidSibling,
+            84 => Self::SmterrorCodeErrorInvalidProof,
+            _ => panic!("unexpected smt error"),
         }
     }
 }

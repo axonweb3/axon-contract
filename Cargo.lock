@@ -139,6 +139,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "checkpoint"
+version = "0.1.0"
+dependencies = [
+ "axon-types",
+ "bit-vec",
+ "blst 0.1.0",
+ "ckb-std",
+ "keccak-hash 0.8.0",
+ "rlp",
+ "util",
+]
+
+[[package]]
 name = "ckb-always-success-script"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -191,7 +204,7 @@ dependencies = [
  "faster-hex",
  "lazy_static",
  "rand 0.7.3",
- "secp256k1",
+ "secp256k1 0.24.3",
  "thiserror",
 ]
 
@@ -389,6 +402,14 @@ dependencies = [
  "ckb-vm",
  "faster-hex",
  "serde",
+]
+
+[[package]]
+name = "ckb-smt"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "cty",
 ]
 
 [[package]]
@@ -597,6 +618,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 
 [[package]]
+name = "delegate"
+version = "0.1.0"
+dependencies = [
+ "axon-types",
+ "ckb-std",
+ "secp256k1 0.1.0",
+ "util",
+]
+
+[[package]]
 name = "derive_more"
 version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -626,6 +657,15 @@ name = "faster-hex"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51e2ce894d53b295cf97b05685aa077950ff3e8541af83217fc720a6437169f8"
+
+[[package]]
+name = "fixed-hash"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfcf0ed7fe52a17a03854ec54a9f76d6d84508d1c0e66bc1793301c73fc8493c"
+dependencies = [
+ "static_assertions",
+]
 
 [[package]]
 name = "fixed-hash"
@@ -758,11 +798,21 @@ checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
 
 [[package]]
 name = "keccak-hash"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce2bd4c29270e724d3eaadf7bdc8700af4221fc0ed771b855eadcd1b98d52851"
+dependencies = [
+ "primitive-types 0.10.1",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "keccak-hash"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b286e6b663fb926e1eeb68528e69cb70ed46c6d65871a21b2215ae8154c6d3c"
 dependencies = [
- "primitive-types",
+ "primitive-types 0.12.1",
  "tiny-keccak",
 ]
 
@@ -828,6 +878,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f1ac8428ec02d6caa5a79c15e851d84d5dc7a00df0429a8aa860d104f0a81be"
 dependencies = [
  "cfg-if 0.1.10",
+]
+
+[[package]]
+name = "metadata"
+version = "0.1.0"
+dependencies = [
+ "axon-types",
+ "ckb-smt",
+ "ckb-std",
+ "secp256k1 0.1.0",
+ "util",
 ]
 
 [[package]]
@@ -994,11 +1055,21 @@ checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 
 [[package]]
 name = "primitive-types"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05e4722c697a58a99d5d06a08c30821d7c082a4632198de1eaa5a6c22ef42373"
+dependencies = [
+ "fixed-hash 0.7.0",
+ "uint",
+]
+
+[[package]]
+name = "primitive-types"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f3486ccba82358b11a77516035647c34ba167dfa53312630de83b12bd4f3d66"
 dependencies = [
- "fixed-hash",
+ "fixed-hash 0.8.0",
  "uint",
 ]
 
@@ -1128,6 +1199,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
+name = "reward"
+version = "0.1.0"
+dependencies = [
+ "axon-types",
+ "ckb-smt",
+ "ckb-std",
+ "secp256k1 0.1.0",
+ "util",
+]
+
+[[package]]
 name = "rlp"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1192,6 +1274,10 @@ dependencies = [
  "quote",
  "syn 1.0.109",
 ]
+
+[[package]]
+name = "secp256k1"
+version = "0.1.0"
 
 [[package]]
 name = "secp256k1"
@@ -1270,6 +1356,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 
 [[package]]
+name = "stake"
+version = "0.1.0"
+dependencies = [
+ "axon-types",
+ "ckb-smt",
+ "ckb-std",
+ "secp256k1 0.1.0",
+ "util",
+]
+
+[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1301,12 +1398,13 @@ dependencies = [
 name = "tests"
 version = "0.1.0"
 dependencies = [
+ "axon-types",
  "bit-vec",
  "blst 0.3.10",
  "ckb-system-scripts",
  "ckb-testtool",
  "hex",
- "keccak-hash",
+ "keccak-hash 0.10.0",
  "molecule",
  "rand 0.8.5",
  "rlp",
@@ -1381,7 +1479,9 @@ checksum = "e5464a87b239f13a63a501f2701565754bae92d243d4bb7eb12f6d57d2269bf4"
 name = "util"
 version = "0.1.0"
 dependencies = [
+ "axon-types",
  "blake2b-ref 0.3.1",
+ "ckb-smt",
  "ckb-std",
  "hex",
 ]
@@ -1521,6 +1621,16 @@ name = "windows_x86_64_msvc"
 version = "0.42.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
+
+[[package]]
+name = "withdraw"
+version = "0.1.0"
+dependencies = [
+ "axon-types",
+ "ckb-std",
+ "secp256k1 0.1.0",
+ "util",
+]
 
 [[package]]
 name = "zeroize"

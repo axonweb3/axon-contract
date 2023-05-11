@@ -607,8 +607,8 @@ impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for ProposeCountsReaderIterator
     }
 }
 #[derive(Clone)]
-pub struct CheckpointLockCellData(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for CheckpointLockCellData {
+pub struct CheckpointCellData(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for CheckpointCellData {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -617,12 +617,12 @@ impl ::core::fmt::LowerHex for CheckpointLockCellData {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for CheckpointLockCellData {
+impl ::core::fmt::Debug for CheckpointCellData {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for CheckpointLockCellData {
+impl ::core::fmt::Display for CheckpointCellData {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "version", self.version())?;
@@ -636,7 +636,7 @@ impl ::core::fmt::Display for CheckpointLockCellData {
             self.latest_block_height()
         )?;
         write!(f, ", {}: {}", "latest_block_hash", self.latest_block_hash())?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
         write!(f, ", {}: {}", "timestamp", self.timestamp())?;
         write!(f, ", {}: {}", "propose_count", self.propose_count())?;
         let extra_count = self.count_extra_fields();
@@ -646,7 +646,7 @@ impl ::core::fmt::Display for CheckpointLockCellData {
         write!(f, " }}")
     }
 }
-impl ::core::default::Default for CheckpointLockCellData {
+impl ::core::default::Default for CheckpointCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
             193, 0, 0, 0, 40, 0, 0, 0, 41, 0, 0, 0, 49, 0, 0, 0, 53, 0, 0, 0, 85, 0, 0, 0, 117, 0,
@@ -657,10 +657,10 @@ impl ::core::default::Default for CheckpointLockCellData {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
-        CheckpointLockCellData::new_unchecked(v.into())
+        CheckpointCellData::new_unchecked(v.into())
     }
 }
-impl CheckpointLockCellData {
+impl CheckpointCellData {
     pub const FIELD_COUNT: usize = 9;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
@@ -714,7 +714,7 @@ impl CheckpointLockCellData {
         let end = molecule::unpack_number(&slice[28..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn xudt_type_id(&self) -> Byte32 {
+    pub fn metadata_type_id(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[28..]) as usize;
         let end = molecule::unpack_number(&slice[32..]) as usize;
@@ -736,15 +736,15 @@ impl CheckpointLockCellData {
             ProposeCounts::new_unchecked(self.0.slice(start..))
         }
     }
-    pub fn as_reader<'r>(&'r self) -> CheckpointLockCellDataReader<'r> {
-        CheckpointLockCellDataReader::new_unchecked(self.as_slice())
+    pub fn as_reader<'r>(&'r self) -> CheckpointCellDataReader<'r> {
+        CheckpointCellDataReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for CheckpointLockCellData {
-    type Builder = CheckpointLockCellDataBuilder;
-    const NAME: &'static str = "CheckpointLockCellData";
+impl molecule::prelude::Entity for CheckpointCellData {
+    type Builder = CheckpointCellDataBuilder;
+    const NAME: &'static str = "CheckpointCellData";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        CheckpointLockCellData(data)
+        CheckpointCellData(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -753,10 +753,10 @@ impl molecule::prelude::Entity for CheckpointLockCellData {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        CheckpointLockCellDataReader::from_slice(slice).map(|reader| reader.to_entity())
+        CheckpointCellDataReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        CheckpointLockCellDataReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+        CheckpointCellDataReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
@@ -769,14 +769,14 @@ impl molecule::prelude::Entity for CheckpointLockCellData {
             .state_root(self.state_root())
             .latest_block_height(self.latest_block_height())
             .latest_block_hash(self.latest_block_hash())
-            .xudt_type_id(self.xudt_type_id())
+            .metadata_type_id(self.metadata_type_id())
             .timestamp(self.timestamp())
             .propose_count(self.propose_count())
     }
 }
 #[derive(Clone, Copy)]
-pub struct CheckpointLockCellDataReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for CheckpointLockCellDataReader<'r> {
+pub struct CheckpointCellDataReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for CheckpointCellDataReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -785,12 +785,12 @@ impl<'r> ::core::fmt::LowerHex for CheckpointLockCellDataReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for CheckpointLockCellDataReader<'r> {
+impl<'r> ::core::fmt::Debug for CheckpointCellDataReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for CheckpointLockCellDataReader<'r> {
+impl<'r> ::core::fmt::Display for CheckpointCellDataReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "version", self.version())?;
@@ -804,7 +804,7 @@ impl<'r> ::core::fmt::Display for CheckpointLockCellDataReader<'r> {
             self.latest_block_height()
         )?;
         write!(f, ", {}: {}", "latest_block_hash", self.latest_block_hash())?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
         write!(f, ", {}: {}", "timestamp", self.timestamp())?;
         write!(f, ", {}: {}", "propose_count", self.propose_count())?;
         let extra_count = self.count_extra_fields();
@@ -814,7 +814,7 @@ impl<'r> ::core::fmt::Display for CheckpointLockCellDataReader<'r> {
         write!(f, " }}")
     }
 }
-impl<'r> CheckpointLockCellDataReader<'r> {
+impl<'r> CheckpointCellDataReader<'r> {
     pub const FIELD_COUNT: usize = 9;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
@@ -868,7 +868,7 @@ impl<'r> CheckpointLockCellDataReader<'r> {
         let end = molecule::unpack_number(&slice[28..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn xudt_type_id(&self) -> Byte32Reader<'r> {
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[28..]) as usize;
         let end = molecule::unpack_number(&slice[32..]) as usize;
@@ -891,14 +891,14 @@ impl<'r> CheckpointLockCellDataReader<'r> {
         }
     }
 }
-impl<'r> molecule::prelude::Reader<'r> for CheckpointLockCellDataReader<'r> {
-    type Entity = CheckpointLockCellData;
-    const NAME: &'static str = "CheckpointLockCellDataReader";
+impl<'r> molecule::prelude::Reader<'r> for CheckpointCellDataReader<'r> {
+    type Entity = CheckpointCellData;
+    const NAME: &'static str = "CheckpointCellDataReader";
     fn to_entity(&self) -> Self::Entity {
         Self::Entity::new_unchecked(self.as_slice().to_owned().into())
     }
     fn new_unchecked(slice: &'r [u8]) -> Self {
-        CheckpointLockCellDataReader(slice)
+        CheckpointCellDataReader(slice)
     }
     fn as_slice(&self) -> &'r [u8] {
         self.0
@@ -953,18 +953,18 @@ impl<'r> molecule::prelude::Reader<'r> for CheckpointLockCellDataReader<'r> {
     }
 }
 #[derive(Debug, Default)]
-pub struct CheckpointLockCellDataBuilder {
+pub struct CheckpointCellDataBuilder {
     pub(crate) version: Byte,
     pub(crate) epoch: Uint64,
     pub(crate) period: Uint32,
     pub(crate) state_root: Byte32,
     pub(crate) latest_block_height: Byte32,
     pub(crate) latest_block_hash: Byte32,
-    pub(crate) xudt_type_id: Byte32,
+    pub(crate) metadata_type_id: Byte32,
     pub(crate) timestamp: Uint64,
     pub(crate) propose_count: ProposeCounts,
 }
-impl CheckpointLockCellDataBuilder {
+impl CheckpointCellDataBuilder {
     pub const FIELD_COUNT: usize = 9;
     pub fn version(mut self, v: Byte) -> Self {
         self.version = v;
@@ -990,8 +990,8 @@ impl CheckpointLockCellDataBuilder {
         self.latest_block_hash = v;
         self
     }
-    pub fn xudt_type_id(mut self, v: Byte32) -> Self {
-        self.xudt_type_id = v;
+    pub fn metadata_type_id(mut self, v: Byte32) -> Self {
+        self.metadata_type_id = v;
         self
     }
     pub fn timestamp(mut self, v: Uint64) -> Self {
@@ -1003,9 +1003,9 @@ impl CheckpointLockCellDataBuilder {
         self
     }
 }
-impl molecule::prelude::Builder for CheckpointLockCellDataBuilder {
-    type Entity = CheckpointLockCellData;
-    const NAME: &'static str = "CheckpointLockCellDataBuilder";
+impl molecule::prelude::Builder for CheckpointCellDataBuilder {
+    type Entity = CheckpointCellData;
+    const NAME: &'static str = "CheckpointCellDataBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
             + self.version.as_slice().len()
@@ -1014,7 +1014,7 @@ impl molecule::prelude::Builder for CheckpointLockCellDataBuilder {
             + self.state_root.as_slice().len()
             + self.latest_block_height.as_slice().len()
             + self.latest_block_hash.as_slice().len()
-            + self.xudt_type_id.as_slice().len()
+            + self.metadata_type_id.as_slice().len()
             + self.timestamp.as_slice().len()
             + self.propose_count.as_slice().len()
     }
@@ -1034,7 +1034,7 @@ impl molecule::prelude::Builder for CheckpointLockCellDataBuilder {
         offsets.push(total_size);
         total_size += self.latest_block_hash.as_slice().len();
         offsets.push(total_size);
-        total_size += self.xudt_type_id.as_slice().len();
+        total_size += self.metadata_type_id.as_slice().len();
         offsets.push(total_size);
         total_size += self.timestamp.as_slice().len();
         offsets.push(total_size);
@@ -1049,7 +1049,7 @@ impl molecule::prelude::Builder for CheckpointLockCellDataBuilder {
         writer.write_all(self.state_root.as_slice())?;
         writer.write_all(self.latest_block_height.as_slice())?;
         writer.write_all(self.latest_block_hash.as_slice())?;
-        writer.write_all(self.xudt_type_id.as_slice())?;
+        writer.write_all(self.metadata_type_id.as_slice())?;
         writer.write_all(self.timestamp.as_slice())?;
         writer.write_all(self.propose_count.as_slice())?;
         Ok(())
@@ -1058,12 +1058,12 @@ impl molecule::prelude::Builder for CheckpointLockCellDataBuilder {
         let mut inner = Vec::with_capacity(self.expected_length());
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        CheckpointLockCellData::new_unchecked(inner.into())
+        CheckpointCellData::new_unchecked(inner.into())
     }
 }
 #[derive(Clone)]
-pub struct CheckpointLockWitnessLock(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for CheckpointLockWitnessLock {
+pub struct CheckpointWitness(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for CheckpointWitness {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -1072,12 +1072,12 @@ impl ::core::fmt::LowerHex for CheckpointLockWitnessLock {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for CheckpointLockWitnessLock {
+impl ::core::fmt::Debug for CheckpointWitness {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for CheckpointLockWitnessLock {
+impl ::core::fmt::Display for CheckpointWitness {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "proposal", self.proposal())?;
@@ -1089,15 +1089,15 @@ impl ::core::fmt::Display for CheckpointLockWitnessLock {
         write!(f, " }}")
     }
 }
-impl ::core::default::Default for CheckpointLockWitnessLock {
+impl ::core::default::Default for CheckpointWitness {
     fn default() -> Self {
         let v: Vec<u8> = vec![
             20, 0, 0, 0, 12, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        CheckpointLockWitnessLock::new_unchecked(v.into())
+        CheckpointWitness::new_unchecked(v.into())
     }
 }
-impl CheckpointLockWitnessLock {
+impl CheckpointWitness {
     pub const FIELD_COUNT: usize = 2;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
@@ -1131,15 +1131,15 @@ impl CheckpointLockWitnessLock {
             Bytes::new_unchecked(self.0.slice(start..))
         }
     }
-    pub fn as_reader<'r>(&'r self) -> CheckpointLockWitnessLockReader<'r> {
-        CheckpointLockWitnessLockReader::new_unchecked(self.as_slice())
+    pub fn as_reader<'r>(&'r self) -> CheckpointWitnessReader<'r> {
+        CheckpointWitnessReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for CheckpointLockWitnessLock {
-    type Builder = CheckpointLockWitnessLockBuilder;
-    const NAME: &'static str = "CheckpointLockWitnessLock";
+impl molecule::prelude::Entity for CheckpointWitness {
+    type Builder = CheckpointWitnessBuilder;
+    const NAME: &'static str = "CheckpointWitness";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        CheckpointLockWitnessLock(data)
+        CheckpointWitness(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -1148,11 +1148,10 @@ impl molecule::prelude::Entity for CheckpointLockWitnessLock {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        CheckpointLockWitnessLockReader::from_slice(slice).map(|reader| reader.to_entity())
+        CheckpointWitnessReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        CheckpointLockWitnessLockReader::from_compatible_slice(slice)
-            .map(|reader| reader.to_entity())
+        CheckpointWitnessReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
@@ -1164,8 +1163,8 @@ impl molecule::prelude::Entity for CheckpointLockWitnessLock {
     }
 }
 #[derive(Clone, Copy)]
-pub struct CheckpointLockWitnessLockReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for CheckpointLockWitnessLockReader<'r> {
+pub struct CheckpointWitnessReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for CheckpointWitnessReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -1174,12 +1173,12 @@ impl<'r> ::core::fmt::LowerHex for CheckpointLockWitnessLockReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for CheckpointLockWitnessLockReader<'r> {
+impl<'r> ::core::fmt::Debug for CheckpointWitnessReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for CheckpointLockWitnessLockReader<'r> {
+impl<'r> ::core::fmt::Display for CheckpointWitnessReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "proposal", self.proposal())?;
@@ -1191,7 +1190,7 @@ impl<'r> ::core::fmt::Display for CheckpointLockWitnessLockReader<'r> {
         write!(f, " }}")
     }
 }
-impl<'r> CheckpointLockWitnessLockReader<'r> {
+impl<'r> CheckpointWitnessReader<'r> {
     pub const FIELD_COUNT: usize = 2;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
@@ -1226,14 +1225,14 @@ impl<'r> CheckpointLockWitnessLockReader<'r> {
         }
     }
 }
-impl<'r> molecule::prelude::Reader<'r> for CheckpointLockWitnessLockReader<'r> {
-    type Entity = CheckpointLockWitnessLock;
-    const NAME: &'static str = "CheckpointLockWitnessLockReader";
+impl<'r> molecule::prelude::Reader<'r> for CheckpointWitnessReader<'r> {
+    type Entity = CheckpointWitness;
+    const NAME: &'static str = "CheckpointWitnessReader";
     fn to_entity(&self) -> Self::Entity {
         Self::Entity::new_unchecked(self.as_slice().to_owned().into())
     }
     fn new_unchecked(slice: &'r [u8]) -> Self {
-        CheckpointLockWitnessLockReader(slice)
+        CheckpointWitnessReader(slice)
     }
     fn as_slice(&self) -> &'r [u8] {
         self.0
@@ -1281,11 +1280,11 @@ impl<'r> molecule::prelude::Reader<'r> for CheckpointLockWitnessLockReader<'r> {
     }
 }
 #[derive(Debug, Default)]
-pub struct CheckpointLockWitnessLockBuilder {
+pub struct CheckpointWitnessBuilder {
     pub(crate) proposal: Bytes,
     pub(crate) proof: Bytes,
 }
-impl CheckpointLockWitnessLockBuilder {
+impl CheckpointWitnessBuilder {
     pub const FIELD_COUNT: usize = 2;
     pub fn proposal(mut self, v: Bytes) -> Self {
         self.proposal = v;
@@ -1296,9 +1295,9 @@ impl CheckpointLockWitnessLockBuilder {
         self
     }
 }
-impl molecule::prelude::Builder for CheckpointLockWitnessLockBuilder {
-    type Entity = CheckpointLockWitnessLock;
-    const NAME: &'static str = "CheckpointLockWitnessLockBuilder";
+impl molecule::prelude::Builder for CheckpointWitnessBuilder {
+    type Entity = CheckpointWitness;
+    const NAME: &'static str = "CheckpointWitnessBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
             + self.proposal.as_slice().len()
@@ -1323,6 +1322,244 @@ impl molecule::prelude::Builder for CheckpointLockWitnessLockBuilder {
         let mut inner = Vec::with_capacity(self.expected_length());
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        CheckpointLockWitnessLock::new_unchecked(inner.into())
+        CheckpointWitness::new_unchecked(inner.into())
+    }
+}
+#[derive(Clone)]
+pub struct CheckpointArgs(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for CheckpointArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl ::core::fmt::Debug for CheckpointArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl ::core::fmt::Display for CheckpointArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "type_id_hash", self.type_id_hash())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl ::core::default::Default for CheckpointArgs {
+    fn default() -> Self {
+        let v: Vec<u8> = vec![
+            40, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        CheckpointArgs::new_unchecked(v.into())
+    }
+}
+impl CheckpointArgs {
+    pub const FIELD_COUNT: usize = 1;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn type_id_hash(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[8..]) as usize;
+            Byte32::new_unchecked(self.0.slice(start..end))
+        } else {
+            Byte32::new_unchecked(self.0.slice(start..))
+        }
+    }
+    pub fn as_reader<'r>(&'r self) -> CheckpointArgsReader<'r> {
+        CheckpointArgsReader::new_unchecked(self.as_slice())
+    }
+}
+impl molecule::prelude::Entity for CheckpointArgs {
+    type Builder = CheckpointArgsBuilder;
+    const NAME: &'static str = "CheckpointArgs";
+    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
+        CheckpointArgs(data)
+    }
+    fn as_bytes(&self) -> molecule::bytes::Bytes {
+        self.0.clone()
+    }
+    fn as_slice(&self) -> &[u8] {
+        &self.0[..]
+    }
+    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        CheckpointArgsReader::from_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        CheckpointArgsReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn new_builder() -> Self::Builder {
+        ::core::default::Default::default()
+    }
+    fn as_builder(self) -> Self::Builder {
+        Self::new_builder().type_id_hash(self.type_id_hash())
+    }
+}
+#[derive(Clone, Copy)]
+pub struct CheckpointArgsReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for CheckpointArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl<'r> ::core::fmt::Debug for CheckpointArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl<'r> ::core::fmt::Display for CheckpointArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "type_id_hash", self.type_id_hash())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl<'r> CheckpointArgsReader<'r> {
+    pub const FIELD_COUNT: usize = 1;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn type_id_hash(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[8..]) as usize;
+            Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+        } else {
+            Byte32Reader::new_unchecked(&self.as_slice()[start..])
+        }
+    }
+}
+impl<'r> molecule::prelude::Reader<'r> for CheckpointArgsReader<'r> {
+    type Entity = CheckpointArgs;
+    const NAME: &'static str = "CheckpointArgsReader";
+    fn to_entity(&self) -> Self::Entity {
+        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
+    }
+    fn new_unchecked(slice: &'r [u8]) -> Self {
+        CheckpointArgsReader(slice)
+    }
+    fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+        use molecule::verification_error as ve;
+        let slice_len = slice.len();
+        if slice_len < molecule::NUMBER_SIZE {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
+        }
+        let total_size = molecule::unpack_number(slice) as usize;
+        if slice_len != total_size {
+            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
+        }
+        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
+            return Ok(());
+        }
+        if slice_len < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
+        }
+        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
+        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        if slice_len < offset_first {
+            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
+        }
+        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
+        if field_count < Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        } else if !compatible && field_count > Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        };
+        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
+            .chunks_exact(molecule::NUMBER_SIZE)
+            .map(|x| molecule::unpack_number(x) as usize)
+            .collect();
+        offsets.push(total_size);
+        if offsets.windows(2).any(|i| i[0] > i[1]) {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        Byte32Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        Ok(())
+    }
+}
+#[derive(Debug, Default)]
+pub struct CheckpointArgsBuilder {
+    pub(crate) type_id_hash: Byte32,
+}
+impl CheckpointArgsBuilder {
+    pub const FIELD_COUNT: usize = 1;
+    pub fn type_id_hash(mut self, v: Byte32) -> Self {
+        self.type_id_hash = v;
+        self
+    }
+}
+impl molecule::prelude::Builder for CheckpointArgsBuilder {
+    type Entity = CheckpointArgs;
+    const NAME: &'static str = "CheckpointArgsBuilder";
+    fn expected_length(&self) -> usize {
+        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1) + self.type_id_hash.as_slice().len()
+    }
+    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
+        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
+        offsets.push(total_size);
+        total_size += self.type_id_hash.as_slice().len();
+        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
+        for offset in offsets.into_iter() {
+            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
+        }
+        writer.write_all(self.type_id_hash.as_slice())?;
+        Ok(())
+    }
+    fn build(&self) -> Self::Entity {
+        let mut inner = Vec::with_capacity(self.expected_length());
+        self.write(&mut inner)
+            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
+        CheckpointArgs::new_unchecked(inner.into())
     }
 }
