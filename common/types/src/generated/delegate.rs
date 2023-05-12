@@ -937,6 +937,7 @@ impl ::core::fmt::Display for DelegatorInfo {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "staker", self.staker())?;
+        write!(f, ", {}: {}", "is_increase", self.is_increase())?;
         write!(f, ", {}: {}", "delegate_amount", self.delegate_amount())?;
         write!(
             f,
@@ -954,15 +955,15 @@ impl ::core::fmt::Display for DelegatorInfo {
 impl ::core::default::Default for DelegatorInfo {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            60, 0, 0, 0, 16, 0, 0, 0, 36, 0, 0, 0, 52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            65, 0, 0, 0, 20, 0, 0, 0, 40, 0, 0, 0, 41, 0, 0, 0, 57, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         DelegatorInfo::new_unchecked(v.into())
     }
 }
 impl DelegatorInfo {
-    pub const FIELD_COUNT: usize = 3;
+    pub const FIELD_COUNT: usize = 4;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -985,17 +986,23 @@ impl DelegatorInfo {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Identity::new_unchecked(self.0.slice(start..end))
     }
-    pub fn delegate_amount(&self) -> Uint128 {
+    pub fn is_increase(&self) -> Byte {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
+        Byte::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn delegate_amount(&self) -> Uint128 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let end = molecule::unpack_number(&slice[16..]) as usize;
         Uint128::new_unchecked(self.0.slice(start..end))
     }
     pub fn inauguration_epoch(&self) -> Uint64 {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let start = molecule::unpack_number(&slice[16..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[16..]) as usize;
+            let end = molecule::unpack_number(&slice[20..]) as usize;
             Uint64::new_unchecked(self.0.slice(start..end))
         } else {
             Uint64::new_unchecked(self.0.slice(start..))
@@ -1029,6 +1036,7 @@ impl molecule::prelude::Entity for DelegatorInfo {
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
             .staker(self.staker())
+            .is_increase(self.is_increase())
             .delegate_amount(self.delegate_amount())
             .inauguration_epoch(self.inauguration_epoch())
     }
@@ -1053,6 +1061,7 @@ impl<'r> ::core::fmt::Display for DelegatorInfoReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "staker", self.staker())?;
+        write!(f, ", {}: {}", "is_increase", self.is_increase())?;
         write!(f, ", {}: {}", "delegate_amount", self.delegate_amount())?;
         write!(
             f,
@@ -1068,7 +1077,7 @@ impl<'r> ::core::fmt::Display for DelegatorInfoReader<'r> {
     }
 }
 impl<'r> DelegatorInfoReader<'r> {
-    pub const FIELD_COUNT: usize = 3;
+    pub const FIELD_COUNT: usize = 4;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1091,17 +1100,23 @@ impl<'r> DelegatorInfoReader<'r> {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         IdentityReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn delegate_amount(&self) -> Uint128Reader<'r> {
+    pub fn is_increase(&self) -> ByteReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
+        ByteReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn delegate_amount(&self) -> Uint128Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let end = molecule::unpack_number(&slice[16..]) as usize;
         Uint128Reader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn inauguration_epoch(&self) -> Uint64Reader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let start = molecule::unpack_number(&slice[16..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[16..]) as usize;
+            let end = molecule::unpack_number(&slice[20..]) as usize;
             Uint64Reader::new_unchecked(&self.as_slice()[start..end])
         } else {
             Uint64Reader::new_unchecked(&self.as_slice()[start..])
@@ -1158,21 +1173,27 @@ impl<'r> molecule::prelude::Reader<'r> for DelegatorInfoReader<'r> {
             return ve!(Self, OffsetsNotMatch);
         }
         IdentityReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        Uint128Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        Uint64Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        ByteReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        Uint128Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        Uint64Reader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct DelegatorInfoBuilder {
     pub(crate) staker: Identity,
+    pub(crate) is_increase: Byte,
     pub(crate) delegate_amount: Uint128,
     pub(crate) inauguration_epoch: Uint64,
 }
 impl DelegatorInfoBuilder {
-    pub const FIELD_COUNT: usize = 3;
+    pub const FIELD_COUNT: usize = 4;
     pub fn staker(mut self, v: Identity) -> Self {
         self.staker = v;
+        self
+    }
+    pub fn is_increase(mut self, v: Byte) -> Self {
+        self.is_increase = v;
         self
     }
     pub fn delegate_amount(mut self, v: Uint128) -> Self {
@@ -1190,6 +1211,7 @@ impl molecule::prelude::Builder for DelegatorInfoBuilder {
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
             + self.staker.as_slice().len()
+            + self.is_increase.as_slice().len()
             + self.delegate_amount.as_slice().len()
             + self.inauguration_epoch.as_slice().len()
     }
@@ -1199,6 +1221,8 @@ impl molecule::prelude::Builder for DelegatorInfoBuilder {
         offsets.push(total_size);
         total_size += self.staker.as_slice().len();
         offsets.push(total_size);
+        total_size += self.is_increase.as_slice().len();
+        offsets.push(total_size);
         total_size += self.delegate_amount.as_slice().len();
         offsets.push(total_size);
         total_size += self.inauguration_epoch.as_slice().len();
@@ -1207,6 +1231,7 @@ impl molecule::prelude::Builder for DelegatorInfoBuilder {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
         writer.write_all(self.staker.as_slice())?;
+        writer.write_all(self.is_increase.as_slice())?;
         writer.write_all(self.delegate_amount.as_slice())?;
         writer.write_all(self.inauguration_epoch.as_slice())?;
         Ok(())
