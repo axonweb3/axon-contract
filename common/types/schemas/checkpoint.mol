@@ -12,7 +12,7 @@ table CheckpointLockCellData {
     epoch:               Uint64,
     period:              Uint32,
     state_root:          Byte32,
-    latest_block_height: Byte32,
+    latest_block_height: Uint64,
     latest_block_hash:   Byte32,
     xudt_type_id:        Byte32,
     timestamp:           Uint64,
