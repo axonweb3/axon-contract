@@ -4,7 +4,7 @@ target/*
 contracts/**/target/*
 
 # C
-contracts/c/build/*
+contracts/ckb-smt/c/build/*
 common/secp256k1/ckb-lib-secp256k1/build/*
 common/blst/ckb-lib-secp256k1-blst/build/*
 

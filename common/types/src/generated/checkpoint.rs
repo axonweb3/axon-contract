@@ -649,13 +649,12 @@ impl ::core::fmt::Display for CheckpointCellData {
 impl ::core::default::Default for CheckpointCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            193, 0, 0, 0, 40, 0, 0, 0, 41, 0, 0, 0, 49, 0, 0, 0, 53, 0, 0, 0, 85, 0, 0, 0, 117, 0,
-            0, 0, 149, 0, 0, 0, 181, 0, 0, 0, 189, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            169, 0, 0, 0, 40, 0, 0, 0, 41, 0, 0, 0, 49, 0, 0, 0, 53, 0, 0, 0, 85, 0, 0, 0, 93, 0,
+            0, 0, 125, 0, 0, 0, 157, 0, 0, 0, 165, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
         CheckpointCellData::new_unchecked(v.into())
     }
@@ -702,11 +701,11 @@ impl CheckpointCellData {
         let end = molecule::unpack_number(&slice[20..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn latest_block_height(&self) -> Byte32 {
+    pub fn latest_block_height(&self) -> Uint64 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[20..]) as usize;
         let end = molecule::unpack_number(&slice[24..]) as usize;
-        Byte32::new_unchecked(self.0.slice(start..end))
+        Uint64::new_unchecked(self.0.slice(start..end))
     }
     pub fn latest_block_hash(&self) -> Byte32 {
         let slice = self.as_slice();
@@ -856,11 +855,11 @@ impl<'r> CheckpointCellDataReader<'r> {
         let end = molecule::unpack_number(&slice[20..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn latest_block_height(&self) -> Byte32Reader<'r> {
+    pub fn latest_block_height(&self) -> Uint64Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[20..]) as usize;
         let end = molecule::unpack_number(&slice[24..]) as usize;
-        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+        Uint64Reader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn latest_block_hash(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
@@ -944,7 +943,7 @@ impl<'r> molecule::prelude::Reader<'r> for CheckpointCellDataReader<'r> {
         Uint64Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         Uint32Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         Byte32Reader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
+        Uint64Reader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
         Byte32Reader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
         Byte32Reader::verify(&slice[offsets[6]..offsets[7]], compatible)?;
         Uint64Reader::verify(&slice[offsets[7]..offsets[8]], compatible)?;
@@ -958,7 +957,7 @@ pub struct CheckpointCellDataBuilder {
     pub(crate) epoch: Uint64,
     pub(crate) period: Uint32,
     pub(crate) state_root: Byte32,
-    pub(crate) latest_block_height: Byte32,
+    pub(crate) latest_block_height: Uint64,
     pub(crate) latest_block_hash: Byte32,
     pub(crate) metadata_type_id: Byte32,
     pub(crate) timestamp: Uint64,
@@ -982,7 +981,7 @@ impl CheckpointCellDataBuilder {
         self.state_root = v;
         self
     }
-    pub fn latest_block_height(mut self, v: Byte32) -> Self {
+    pub fn latest_block_height(mut self, v: Uint64) -> Self {
         self.latest_block_height = v;
         self
     }
