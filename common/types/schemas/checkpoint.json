@@ -49,7 +49,7 @@
         },
         {
           "name": "latest_block_height",
-          "type": "Byte32"
+          "type": "Uint64"
         },
         {
           "name": "latest_block_hash",

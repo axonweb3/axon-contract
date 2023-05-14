@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -91,7 +92,7 @@ impl CheckpointCellData {
 }
 
 impl CheckpointCellData {
-    pub fn latest_block_height(&self) -> Vec<u8> {
+    pub fn latest_block_height(&self) -> u64 {
         let cur = self.cursor.table_slice_by_index(4).unwrap();
         cur.into()
     }
