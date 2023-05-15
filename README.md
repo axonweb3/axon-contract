@@ -16,8 +16,8 @@ build blst archive:
 
 The docker version has some problem, so we have to execute the following beforehand to update `no_asm.h` & `vect.h` mannually.
 ```
-cd common/blst/ckb-lib-secp256k1-blst/blst/deps
-git apply ../../blst.patch
+cd common/blst/ckb-lib-secp256k1-blst/deps
+git apply ../blst.patch
 ```
 
 Then, 

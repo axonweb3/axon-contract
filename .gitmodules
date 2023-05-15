@@ -1,15 +1,27 @@
-[submodule "contracts/common/secp256k1/ckb-lib-secp256k1/deps/ckb-c-stdlib"]
-	path = contracts/common/secp256k1/ckb-lib-secp256k1/deps/ckb-c-stdlib
+[submodule "contracts/ckb-smt/c/deps/sparse-merkle-tree"]
+	path = contracts/ckb-smt/c/deps/sparse-merkle-tree
+	url = https://github.com/nervosnetwork/sparse-merkle-tree.git
+[submodule "contracts/ckb-smt/c/deps/ckb-production-scripts"]
+	path = contracts/ckb-smt/c/deps/ckb-production-scripts
+	url = https://github.com/nervosnetwork/ckb-production-scripts.git
+[submodule "common/secp256k1/ckb-lib-secp256k1/deps/ckb-c-stdlib"]
+	path = common/secp256k1/ckb-lib-secp256k1/deps/ckb-c-stdlib
 	url = https://github.com/nervosnetwork/ckb-c-stdlib
-[submodule "contracts/common/secp256k1/ckb-lib-secp256k1/deps/secp256k1"]
-	path = contracts/common/secp256k1/ckb-lib-secp256k1/deps/secp256k1
+[submodule "common/secp256k1/ckb-lib-secp256k1/deps/secp256k1"]
+	path = common/secp256k1/ckb-lib-secp256k1/deps/secp256k1
 	url = https://github.com/nervosnetwork/secp256k1
-[submodule "contracts/common/blst/ckb-lib-secp256k1-blst/deps/secp256k1"]
-	path = contracts/common/blst/ckb-lib-secp256k1-blst/deps/secp256k1
-	url = https://github.com/nervosnetwork/secp256k1
-[submodule "contracts/common/blst/ckb-lib-secp256k1-blst/deps/ckb-c-stdlib"]
-	path = contracts/common/blst/ckb-lib-secp256k1-blst/deps/ckb-c-stdlib
+[submodule "common/blst/ckb-lib-secp256k1-blst/deps/ckb-c-stdlib"]
+	path = common/blst/ckb-lib-secp256k1-blst/deps/ckb-c-stdlib
 	url = https://github.com/nervosnetwork/ckb-c-stdlib
-[submodule "contracts/common/blst/ckb-lib-secp256k1-blst/deps/blst"]
-	path = contracts/common/blst/ckb-lib-secp256k1-blst/deps/blst
+[submodule "common/blst/ckb-lib-secp256k1-blst/deps/secp256k1"]
+	path = common/blst/ckb-lib-secp256k1-blst/deps/secp256k1
+	url = https://github.com/nervosnetwork/secp256k1
+[submodule "common/blst/ckb-lib-secp256k1-blst/deps/blst"]
+	path = common/blst/ckb-lib-secp256k1-blst/deps/blst
 	url = https://github.com/cryptape/blst
+[submodule "contracts/ckb-smt/c/deps/ckb-c-stdlib"]
+	path = contracts/ckb-smt/c/deps/ckb-c-stdlib
+	url = https://github.com/nervosnetwork/ckb-c-stdlib
+[submodule "contracts/ckb-smt/c/deps/molecule"]
+	path = contracts/ckb-smt/c/deps/molecule
+	url = https://github.com/nervosnetwork/molecule

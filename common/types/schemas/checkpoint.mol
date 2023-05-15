@@ -7,19 +7,23 @@ table ProposeCount {
 
 vector ProposeCounts <ProposeCount>;
 
-table CheckpointLockCellData {
+table CheckpointCellData {
     version:             byte,
     epoch:               Uint64,
     period:              Uint32,
     state_root:          Byte32,
     latest_block_height: Uint64,
     latest_block_hash:   Byte32,
-    xudt_type_id:        Byte32,
+    metadata_type_id:    Byte32,
     timestamp:           Uint64,
     propose_count:       ProposeCounts,
 }
 
-table CheckpointLockWitnessLock {
+table CheckpointWitness {
     proposal: Bytes,
     proof:    Bytes,
+}
+
+table CheckpointArgs {
+	type_id_hash:   Byte32,
 }

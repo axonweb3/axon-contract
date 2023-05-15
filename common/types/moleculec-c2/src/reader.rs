@@ -57,7 +57,7 @@ pub struct Union {
 
 pub fn read_at(cur: &Cursor, buf: &mut [u8]) -> Result<usize, Error> {
     let read_len = min(cur.size, buf.len() as usize);
-    let mut ds = &mut *cur.data_source.borrow_mut();
+    let ds = &mut *cur.data_source.borrow_mut();
     if read_len > ds.max_cache_size {
         return ds.reader.read(buf, cur.offset);
     }

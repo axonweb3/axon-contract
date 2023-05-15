@@ -6,7 +6,7 @@
 # docker_image = "thewawar/ckb-capsule:2021-12-25"
 
 # capsule version
-version = "0.9.0"
+version = "0.10.0"
 # path of deployment config file
 deployment = "deployment.toml"
 
@@ -19,6 +19,10 @@ name = "checkpoint"
 template_type = "Rust"
 
 [[contracts]]
+name = "metadata"
+template_type = "Rust"
+
+[[contracts]]
 name = "withdrawal"
 template_type = "Rust"
 
@@ -27,13 +31,13 @@ name = "stake"
 template_type = "Rust"
 
 [[contracts]]
-name = "crosschain-metadata"
+name = "delegate"
 template_type = "Rust"
 
 [[contracts]]
-name = "crosschain-request"
+name = "reward"
 template_type = "Rust"
 
 [[contracts]]
-name = "crosschain-lock"
+name = "withdraw"
 template_type = "Rust"

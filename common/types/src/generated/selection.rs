@@ -21,13 +21,8 @@ impl ::core::fmt::Debug for SelectionLockArgs {
 impl ::core::fmt::Display for SelectionLockArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "omni_lock_hash", self.omni_lock_hash())?;
-        write!(
-            f,
-            ", {}: {}",
-            "checkpoint_lock_hash",
-            self.checkpoint_lock_hash()
-        )?;
+        write!(f, "{}: {}", "reward_type_id", self.reward_type_id())?;
+        write!(f, ", {}: {}", "omni_lock_hash", self.omni_lock_hash())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -63,13 +58,13 @@ impl SelectionLockArgs {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn omni_lock_hash(&self) -> Byte32 {
+    pub fn reward_type_id(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn checkpoint_lock_hash(&self) -> Byte32 {
+    pub fn omni_lock_hash(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         if self.has_extra_fields() {
@@ -106,8 +101,8 @@ impl molecule::prelude::Entity for SelectionLockArgs {
     }
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
+            .reward_type_id(self.reward_type_id())
             .omni_lock_hash(self.omni_lock_hash())
-            .checkpoint_lock_hash(self.checkpoint_lock_hash())
     }
 }
 #[derive(Clone, Copy)]
@@ -129,13 +124,8 @@ impl<'r> ::core::fmt::Debug for SelectionLockArgsReader<'r> {
 impl<'r> ::core::fmt::Display for SelectionLockArgsReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "omni_lock_hash", self.omni_lock_hash())?;
-        write!(
-            f,
-            ", {}: {}",
-            "checkpoint_lock_hash",
-            self.checkpoint_lock_hash()
-        )?;
+        write!(f, "{}: {}", "reward_type_id", self.reward_type_id())?;
+        write!(f, ", {}: {}", "omni_lock_hash", self.omni_lock_hash())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -161,13 +151,13 @@ impl<'r> SelectionLockArgsReader<'r> {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn omni_lock_hash(&self) -> Byte32Reader<'r> {
+    pub fn reward_type_id(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn checkpoint_lock_hash(&self) -> Byte32Reader<'r> {
+    pub fn omni_lock_hash(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         if self.has_extra_fields() {
@@ -234,17 +224,17 @@ impl<'r> molecule::prelude::Reader<'r> for SelectionLockArgsReader<'r> {
 }
 #[derive(Debug, Default)]
 pub struct SelectionLockArgsBuilder {
+    pub(crate) reward_type_id: Byte32,
     pub(crate) omni_lock_hash: Byte32,
-    pub(crate) checkpoint_lock_hash: Byte32,
 }
 impl SelectionLockArgsBuilder {
     pub const FIELD_COUNT: usize = 2;
-    pub fn omni_lock_hash(mut self, v: Byte32) -> Self {
-        self.omni_lock_hash = v;
+    pub fn reward_type_id(mut self, v: Byte32) -> Self {
+        self.reward_type_id = v;
         self
     }
-    pub fn checkpoint_lock_hash(mut self, v: Byte32) -> Self {
-        self.checkpoint_lock_hash = v;
+    pub fn omni_lock_hash(mut self, v: Byte32) -> Self {
+        self.omni_lock_hash = v;
         self
     }
 }
@@ -253,22 +243,22 @@ impl molecule::prelude::Builder for SelectionLockArgsBuilder {
     const NAME: &'static str = "SelectionLockArgsBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
+            + self.reward_type_id.as_slice().len()
             + self.omni_lock_hash.as_slice().len()
-            + self.checkpoint_lock_hash.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
         let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
         offsets.push(total_size);
-        total_size += self.omni_lock_hash.as_slice().len();
+        total_size += self.reward_type_id.as_slice().len();
         offsets.push(total_size);
-        total_size += self.checkpoint_lock_hash.as_slice().len();
+        total_size += self.omni_lock_hash.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
+        writer.write_all(self.reward_type_id.as_slice())?;
         writer.write_all(self.omni_lock_hash.as_slice())?;
-        writer.write_all(self.checkpoint_lock_hash.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {
