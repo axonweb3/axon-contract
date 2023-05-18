@@ -97,14 +97,14 @@ impl StakeAtCellData {
 }
 
 impl StakeAtCellData {
-    pub fn stake_info(&self) -> StakeInfoDelta {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(3).unwrap();
         cur.into()
     }
 }
 
 impl StakeAtCellData {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
+    pub fn delta(&self) -> StakeInfoDelta {
         let cur = self.cursor.table_slice_by_index(4).unwrap();
         cur.into()
     }
@@ -121,14 +121,14 @@ impl From<Cursor> for StakeSmtCellData {
 }
 
 impl StakeSmtCellData {
-    pub fn smt_root(&self) -> Vec<u8> {
+    pub fn version(&self) -> u8 {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
 
 impl StakeSmtCellData {
-    pub fn version(&self) -> u8 {
+    pub fn smt_root(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }

@@ -17,13 +17,13 @@ table StakeAtCellData {
     version:            byte,
     l1_address:         Identity,
     l2_address:         Identity,
-    stake_info:         StakeInfoDelta, 
     metadata_type_id:   Byte32,
+    delta:              StakeInfoDelta, 
 }
 
 table StakeSmtCellData {
-    smt_root:             Byte32, // smt root of all staker infos
     version:              byte,
+    smt_root:             Byte32, // smt root of all staker infos
     metadata_type_id:     Byte32,
 }
 

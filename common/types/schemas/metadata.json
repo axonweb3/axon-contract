@@ -112,7 +112,7 @@
     },
     {
       "type": "table",
-      "name": "MetaTypeIds",
+      "name": "TypeIds",
       "fields": [
         {
           "name": "metadata_type_id",
@@ -128,10 +128,6 @@
         },
         {
           "name": "delegate_smt_type_id",
-          "type": "Byte32"
-        },
-        {
-          "name": "withdraw_type_id",
           "type": "Byte32"
         },
         {
@@ -162,7 +158,7 @@
         },
         {
           "name": "type_ids",
-          "type": "MetaTypeIds"
+          "type": "TypeIds"
         },
         {
           "name": "metadata",

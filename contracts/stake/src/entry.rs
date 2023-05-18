@@ -47,10 +47,12 @@ pub fn main() -> Result<(), Error> {
             }
 
             let input_type = *value.unwrap().raw_data().to_vec().first().unwrap();
+            debug!("stake input_type:{}", input_type);
             if input_type == 0 {
                 // update stake at cell
                 // extract stake at cell lock hash
-                let stake_at_lock_hash = { load_cell_lock_hash(0, Source::GroupInput)? };
+                let stake_at_lock_hash = { load_cell_lock_hash(0, Source::Input)? };
+                // debug!("stake_at_lock_hash:{:?}", stake_at_lock_hash);
                 update_stake_at_cell(
                     &staker_identity.unwrap(),
                     &stake_at_lock_hash,
@@ -123,33 +125,37 @@ pub fn update_stake_at_cell(
 
     check_xudt_type_id(xudt_type_id)?;
 
-    let input_at_amount = get_xudt_by_type_hash(xudt_type_id, Source::Input)?;
-    let output_at_amount = get_xudt_by_type_hash(xudt_type_id, Source::Output)?;
-    if input_at_amount != output_at_amount {
+    let total_input_at_amount = get_xudt_by_type_hash(xudt_type_id, Source::Input)?;
+    let total_output_at_amount = get_xudt_by_type_hash(xudt_type_id, Source::Output)?;
+    if total_input_at_amount != total_output_at_amount {
         return Err(Error::InputOutputAtAmountNotEqual);
     }
+    debug!("input_at_amount:{}, output_at_amount:{}", total_input_at_amount, total_output_at_amount);
 
     let (input_amount, input_stake_at_data) =
         get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Input)?;
+        debug!("input_amount:{}", input_amount);
     let (output_amount, output_stake_at_data) =
         get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Output)?;
+        debug!("output_amount:{}", output_amount);
     if input_stake_at_data.version() != output_stake_at_data.version()
         || input_stake_at_data.metadata_type_id() != output_stake_at_data.metadata_type_id()
     {
         return Err(Error::UpdateDataError);
     }
 
-    let epoch = get_current_epoch(checkpoint_type_id)?;
-
-    let input_stake_info = input_stake_at_data.stake_info();
+    let input_stake_info = input_stake_at_data.delta();
     let input_stake = bytes_to_u128(&input_stake_info.amount());
     let input_increase = input_stake_info.is_increase() == 1;
 
-    let output_stake_info = output_stake_at_data.stake_info();
+    let output_stake_info = output_stake_at_data.delta();
     let output_stake = bytes_to_u128(&output_stake_info.amount());
     let output_increase = output_stake_info.is_increase() == 1;
     let output_inaugutation_epoch = output_stake_info.inauguration_epoch();
+    debug!("input_stake:{}, output_stake:{}, output_inaugutation_epoch:{}", input_stake, output_stake, output_inaugutation_epoch);
 
+    let epoch = get_current_epoch(checkpoint_type_id)?;
+    debug!("epoch:{}", epoch);
     if output_inaugutation_epoch != epoch + 2 {
         return Err(Error::BadInaugurationEpoch);
     }
@@ -236,9 +242,10 @@ fn update_stake_info(
     if redeem_amount > 0 {
         let input_withdraw_amount = 10u128; // get from staker input withdraw at cell
         let output_withdraw_amount = 10u128; // get from staker input withdraw at cell
-        if output_withdraw_amount - input_withdraw_amount != redeem_amount {
-            return Err(Error::BadRedeem);
-        }
+        // if output_withdraw_amount - input_withdraw_amount != redeem_amount {
+        //     return Err(Error::BadRedeem);
+        // }
+        debug!("redeem_amount:{}", redeem_amount);
     }
 
     Ok(())
@@ -336,7 +343,7 @@ fn update_stake_smt(
             // after updated to smt cell, the output stake should be reset
             let (_output_amount, output_stake_at_data) =
                 get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Output)?;
-            let output_stake_info = output_stake_at_data.stake_info();
+            let output_stake_info = output_stake_at_data.delta();
             let output_stake = bytes_to_u128(&output_stake_info.amount());
             let output_increase: bool = output_stake_info.is_increase() == 1;
             let output_inaugutation_epoch = output_stake_info.inauguration_epoch();

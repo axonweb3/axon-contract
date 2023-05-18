@@ -5,7 +5,7 @@ use alloc::{collections::BTreeSet, vec::Vec};
 use axon_types::{
     checkpoint_reader,
     delegate_reader::{self, DelegateInfoDelta, DelegateSmtCellData},
-    metadata_reader::{self, MetaTypeIds, MetadataCellData},
+    metadata_reader::{self, TypeIds, MetadataCellData},
     stake_reader::{self, StakeInfoDelta, StakeInfos, StakeSmtCellData},
     withdraw_reader, Cursor,
 };
@@ -174,22 +174,35 @@ pub fn get_checkpoint_from_celldeps(
         .enumerate()
         .for_each(|(i, type_hash)| {
             if type_hash.unwrap_or([0u8; 32]) == checkpoint_type_hash.as_slice() {
+                debug!("checkpoint type hash: {:?}", checkpoint_type_hash);
                 assert!(checkpoint_data.is_none());
                 checkpoint_data = {
-                    let data = load_cell_data(i, Source::CellDep).unwrap();
-                    let checkpoint_data: checkpoint_reader::CheckpointCellData =
-                        Cursor::from(data).into();
-                    Some(checkpoint_data)
+                    debug!("checkpoint data index: {}", i);
+                    let data = load_cell_data(i, Source::CellDep);
+                    match data {
+                        Ok(data) => {
+                            debug!("checkpoint data len: {}", data.len());
+                            let checkpoint_data: checkpoint_reader::CheckpointCellData =
+                                Cursor::from(data).into();
+                            Some(checkpoint_data)
+                        },
+                        Err(err) => {
+                            debug!("checkpoint data error: {:?}", err);
+                            None
+                        }
+                    }
                 };
             }
         });
-    if checkpoint_data.is_none() {
-        return Err(Error::CheckpointDataEmpty);
-    }
-    Ok(checkpoint_data.unwrap())
+
+    match checkpoint_data {
+        Some(checkpoint_data) => Ok(checkpoint_data),
+        None => Err(Error::CheckpointDataEmpty),
+    }        
 }
 
 pub fn get_current_epoch(checkpoint_type_id: &Vec<u8>) -> Result<u64, Error> {
+    debug!("get_current_epoch checkpoint_type_id: {:?}", checkpoint_type_id);
     let checkpoint_data = get_checkpoint_from_celldeps(checkpoint_type_id)?;
     Ok(checkpoint_data.epoch())
 }
@@ -201,6 +214,7 @@ pub fn get_xudt_by_type_hash(type_hash: &Vec<u8>, source: Source) -> Result<u128
         .map(|(i, cell_type_hash)| {
             if cell_type_hash.unwrap_or([0u8; 32]) == type_hash[..] {
                 let data = load_cell_data(i, source).unwrap();
+                debug!("sudt cell data len: {}", data.len());
                 if data.len() < 16 {
                     return Err(Error::BadSudtDataFormat);
                 }
@@ -218,11 +232,13 @@ pub fn get_stake_at_data_by_lock_hash(
 ) -> Result<(u128, stake_reader::StakeAtCellData), Error> {
     let mut sudt = None;
     let mut stake_at_data = None;
-    QueryIter::new(load_cell_type_hash, source)
+    QueryIter::new(load_cell_lock_hash, source)
         .enumerate()
         .for_each(|(i, lock_hash)| {
-            if &lock_hash.unwrap_or([0u8; 32]) == cell_lock_hash {
+            // debug!("get_stake_at_data_by_lock_hash lock_hash: {:?}", lock_hash);
+            if lock_hash == cell_lock_hash[..] {
                 let data = load_cell_data(i, source).unwrap();
+                debug!("get_stake_at_data_by_lock_hash data len:{}", data.len());
                 if data.len() >= 16 {
                     sudt = Some(bytes_to_u128(&data[..16].to_vec()));
                     assert!(stake_at_data.is_none());
@@ -338,10 +354,10 @@ pub fn get_stake_update_infos(
                         Cursor::from(data[16..].to_vec()).into();
                     stake_data
                 };
-                let stake_info = stake_at_data.stake_info();
+                let stake_info_delta = stake_at_data.delta();
                 // get address from lock script args
                 let address: [u8; 20] = stake_at_data.l1_address().as_slice().try_into().unwrap();
-                stake_update_infos.push((address, lock_hash, stake_info));
+                stake_update_infos.push((address, lock_hash, stake_info_delta));
             }
         });
 
@@ -456,10 +472,14 @@ pub fn get_metada_data_by_type_id(
             }
         });
 
-    Ok(metadata.unwrap())
+    if metadata.is_none() {
+        Err(Error::MetadataNotFound)
+    } else {
+        Ok(metadata.unwrap())        
+    }
 }
 
-pub fn get_type_ids(metadata_type_id: &[u8; 32], source: Source) -> Result<MetaTypeIds, Error> {
+pub fn get_type_ids(metadata_type_id: &[u8; 32], source: Source) -> Result<TypeIds, Error> {
     let metadata = get_metada_data_by_type_id(metadata_type_id, source)?;
     Ok(metadata.type_ids())
 }

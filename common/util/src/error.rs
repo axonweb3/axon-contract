@@ -78,6 +78,7 @@ pub enum Error {
     NotLastCheckpoint,
     StakerNonExist,
     StakerNotFound,
+    MetadataNotFound,
 
     // withdraw
     WrongOutWithdrawArraySize,

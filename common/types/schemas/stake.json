@@ -57,12 +57,12 @@
           "type": "Identity"
         },
         {
-          "name": "stake_info",
-          "type": "StakeInfoDelta"
-        },
-        {
           "name": "metadata_type_id",
           "type": "Byte32"
+        },
+        {
+          "name": "delta",
+          "type": "StakeInfoDelta"
         }
       ]
     },
@@ -71,12 +71,12 @@
       "name": "StakeSmtCellData",
       "fields": [
         {
-          "name": "smt_root",
-          "type": "Byte32"
-        },
-        {
           "name": "version",
           "type": "byte"
+        },
+        {
+          "name": "smt_root",
+          "type": "Byte32"
         },
         {
           "name": "metadata_type_id",

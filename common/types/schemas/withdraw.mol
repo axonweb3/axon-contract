@@ -15,7 +15,6 @@ table WithdrawAtCellData {
     withdraw_infos:     WithdrawInfos,
 }
 
-
 table WithdrawArgs {
     metadata_type_id: Byte32,
     addr: Identity,

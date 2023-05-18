@@ -7,7 +7,7 @@ use alloc::{collections::BTreeSet, vec};
 
 use axon_types::metadata_reader::{ElectionSmtProof, StakeSmtElectionInfo};
 use axon_types::{
-    checkpoint_reader::CheckpointCellData, metadata_reader::MetaTypeIds,
+    checkpoint_reader::CheckpointCellData, metadata_reader::TypeIds,
     metadata_reader::MetadataCellData, metadata_reader::ValidatorList,
 };
 use ckb_smt::smt::{Pair, Tree};
@@ -180,7 +180,7 @@ fn verify_propose_counts(
     Ok(())
 }
 
-fn verify_eletion(type_ids: &MetaTypeIds) -> Result<(), Error> {
+fn verify_eletion(type_ids: &TypeIds) -> Result<(), Error> {
     let stake_smt_type_id = type_ids.stake_smt_type_id();
     // check stake smt cell in input and output
     let mut stake_smt_cell_count = 0;
@@ -296,7 +296,7 @@ pub fn verify_2layer_smt(
 }
 
 // should be checked in metadata script
-fn verify_election_metadata(type_ids: &MetaTypeIds, quorum_size: u16) -> Result<(), Error> {
+fn verify_election_metadata(type_ids: &TypeIds, quorum_size: u16) -> Result<(), Error> {
     // get stake & delegate data of epoch n + 1 & n + 2,  from witness of stake smt cell
     let election_infos = {
         let witness_args = load_witness_args(0, Source::GroupInput);
@@ -408,7 +408,7 @@ pub fn verify_stake_delegate(
     eletion_info: &ElectionSmtProof,
     epoch: u64,
     miners: &mut BTreeSet<MinerGroupInfoObject>,
-    type_ids: &MetaTypeIds,
+    type_ids: &TypeIds,
     source: Source,
 ) -> Result<(), Error> {
     let miner_infos = eletion_info.miners();
@@ -460,7 +460,7 @@ pub fn verify_stake_delegate(
 fn verify_new_validators(
     validators: &BTreeSet<MinerGroupInfoObject>,
     epoch: u64,
-    type_ids: &MetaTypeIds,
+    type_ids: &TypeIds,
     eletion_infos: &StakeSmtElectionInfo,
 ) -> Result<(), Error> {
     let mut stake_infos = BTreeSet::new();

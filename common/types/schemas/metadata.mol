@@ -29,12 +29,11 @@ table Metadata {
     block_height:    Uint64,  // no need?
 }
 
-table MetaTypeIds {
+table TypeIds {
     metadata_type_id:     Byte32,
     checkpoint_type_id:   Byte32,
     stake_smt_type_id:    Byte32,
     delegate_smt_type_id: Byte32,
-    withdraw_type_id:     Byte32,
     reward_type_id:       Byte32,
     xudt_type_id:         Byte32,
 }
@@ -43,7 +42,7 @@ table MetadataCellData {
     version:                byte,
     epoch:                  Uint64, // needless?
     propose_count_smt_root: Byte32,
-    type_ids:               MetaTypeIds,
+    type_ids:               TypeIds,
     metadata:               MetadataList, // metadata of current and next epoch 
 }
 

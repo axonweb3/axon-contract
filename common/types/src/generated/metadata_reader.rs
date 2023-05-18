@@ -212,61 +212,54 @@ impl Metadata {
     }
 }
 
-pub struct MetaTypeIds {
+pub struct TypeIds {
     pub cursor: Cursor,
 }
 
-impl From<Cursor> for MetaTypeIds {
+impl From<Cursor> for TypeIds {
     fn from(cursor: Cursor) -> Self {
-        MetaTypeIds { cursor }
+        TypeIds { cursor }
     }
 }
 
-impl MetaTypeIds {
+impl TypeIds {
     pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
 
-impl MetaTypeIds {
+impl TypeIds {
     pub fn checkpoint_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }
 }
 
-impl MetaTypeIds {
+impl TypeIds {
     pub fn stake_smt_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(2).unwrap();
         cur.into()
     }
 }
 
-impl MetaTypeIds {
+impl TypeIds {
     pub fn delegate_smt_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(3).unwrap();
         cur.into()
     }
 }
 
-impl MetaTypeIds {
-    pub fn withdraw_type_id(&self) -> Vec<u8> {
+impl TypeIds {
+    pub fn reward_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(4).unwrap();
         cur.into()
     }
 }
 
-impl MetaTypeIds {
-    pub fn reward_type_id(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(5).unwrap();
-        cur.into()
-    }
-}
-
-impl MetaTypeIds {
+impl TypeIds {
     pub fn xudt_type_id(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(6).unwrap();
+        let cur = self.cursor.table_slice_by_index(5).unwrap();
         cur.into()
     }
 }
@@ -303,7 +296,7 @@ impl MetadataCellData {
 }
 
 impl MetadataCellData {
-    pub fn type_ids(&self) -> MetaTypeIds {
+    pub fn type_ids(&self) -> TypeIds {
         let cur = self.cursor.table_slice_by_index(3).unwrap();
         cur.into()
     }
