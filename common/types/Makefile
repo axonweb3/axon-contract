@@ -10,6 +10,7 @@ schema:
 	moleculec --language rust --schema-file ${SCHEMA_PATH}/delegate.mol > ${SCHEMA_DEST_PATH}/delegate.rs
 	moleculec --language rust --schema-file ${SCHEMA_PATH}/reward.mol > ${SCHEMA_DEST_PATH}/reward.rs
 	moleculec --language rust --schema-file ${SCHEMA_PATH}/withdraw.mol > ${SCHEMA_DEST_PATH}/withdraw.rs
+	moleculec --language rust --schema-file ${SCHEMA_PATH}/issue.mol > ${SCHEMA_DEST_PATH}/issue.rs
 	cd src
 	cargo fmt
 
@@ -29,3 +30,5 @@ mc2:
 	/root/git/moleculec-c2/target/release/moleculec-c2  --rust --input ${SCHEMA_PATH}/withdraw.json | rustfmt > ${SCHEMA_DEST_PATH}/withdraw_reader.rs
 	moleculec --language - --schema-file ${SCHEMA_PATH}/reward.mol --format json > ${SCHEMA_PATH}/reward.json
 	/root/git/moleculec-c2/target/release/moleculec-c2  --rust --input ${SCHEMA_PATH}/reward.json | rustfmt > ${SCHEMA_DEST_PATH}/reward_reader.rs
+	moleculec --language - --schema-file ${SCHEMA_PATH}/issue.mol --format json > ${SCHEMA_PATH}/issue.json
+	/root/git/moleculec-c2/target/release/moleculec-c2  --rust --input ${SCHEMA_PATH}/issue.json | rustfmt > ${SCHEMA_DEST_PATH}/issue_reader.rs
