@@ -354,7 +354,7 @@ fn verify_election_metadata(type_ids: &TypeIds, quorum_size: u16) -> Result<(), 
         }
 
         // update staker's delegators
-        let mut new_delegators: Vec<DelegateInfoObject> = miner.delegators.clone();
+        let mut new_delegators: Vec<LockInfo> = miner.delegators.clone();
         if miner_n1.is_some() {
             for delegator in &miner_n1.unwrap().delegators {
                 let delegator_n1 = miner
@@ -420,8 +420,8 @@ pub fn verify_stake_delegate(
         let miner_group_obj = MinerGroupInfoObject::new(miner_info);
 
         stake_infos.insert(LockInfo {
-            identity: miner_group_obj.staker,
-            stake_amount: miner_group_obj.stake_amount.unwrap(),
+            addr: miner_group_obj.staker,
+            amount: miner_group_obj.stake_amount.unwrap(),
         });
         miners.insert(miner_group_obj);
     }
@@ -432,7 +432,7 @@ pub fn verify_stake_delegate(
         type_ids.stake_smt_type_id().as_slice().try_into().unwrap(),
         source,
     )?;
-    verify_2layer_smt_stake(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
+    util::smt::verify_2layer_smt(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
 
     let new_miners = miners.clone();
     for miner in new_miners {
@@ -451,7 +451,7 @@ pub fn verify_stake_delegate(
             &miner.staker,
             source,
         )?;
-        verify_2layer_smt_delegate(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
+        util::smt::verify_2layer_smt(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
     }
 
     Ok(())
@@ -478,7 +478,7 @@ fn verify_new_validators(
         type_ids.stake_smt_type_id().as_slice().try_into().unwrap(),
         Source::GroupOutput,
     )?;
-    verify_2layer_smt(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
+    util::smt::verify_2layer_smt(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
 
     let new_miners = validators.clone();
     let epoch_proofs = eletion_infos.new_delegate_proofs();
@@ -505,7 +505,7 @@ fn verify_new_validators(
             &miner.staker,
             Source::Output,
         )?;
-        verify_2layer_smt(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
+        util::smt::verify_2layer_smt(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
     }
 
     Ok(())

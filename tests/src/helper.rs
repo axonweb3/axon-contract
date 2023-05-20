@@ -2,7 +2,7 @@
 
 use std::{collections::BTreeSet, convert::TryInto};
 
-use axon_types::basic;
+use axon_types::{basic, metadata::MetadataList};
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, SecretKey};
 use ckb_testtool::{
     ckb_crypto::secp::Privkey,
@@ -147,6 +147,7 @@ pub fn axon_metadata_data(
     xudt_type_id: &packed::Byte32,
     checkpoint_type_id: &packed::Byte32,
     stake_smt_type_id: &packed::Byte32,
+    metadata_list: MetadataList,
 ) -> axon_types::metadata::MetadataCellData {
     // build CheckpointCellData from scrach
     let type_ids = axon_types::metadata::TypeIds::new_builder()
@@ -158,6 +159,7 @@ pub fn axon_metadata_data(
     axon_types::metadata::MetadataCellData::new_builder()
         .version(0.into())
         .epoch(axon_u64(1))
+        .metadata(metadata_list)
         .type_ids(type_ids)
         .build()
 }
@@ -202,7 +204,7 @@ pub fn axon_stake_smt_cell_data(
     });
     println!("root: {:?}", root);
     // build smt tree
-    let mut tree = SMT::default();
+    // let mut tree = SMT::default();
 
     axon_types::stake::StakeSmtCellData::new_builder()
         .version(0.into())

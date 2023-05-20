@@ -1343,7 +1343,7 @@ impl ::core::fmt::Debug for CheckpointArgs {
 impl ::core::fmt::Display for CheckpointArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "type_id_hash", self.type_id_hash())?;
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -1378,7 +1378,7 @@ impl CheckpointArgs {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn type_id_hash(&self) -> Byte32 {
+    pub fn metadata_type_id(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         if self.has_extra_fields() {
@@ -1414,7 +1414,7 @@ impl molecule::prelude::Entity for CheckpointArgs {
         ::core::default::Default::default()
     }
     fn as_builder(self) -> Self::Builder {
-        Self::new_builder().type_id_hash(self.type_id_hash())
+        Self::new_builder().metadata_type_id(self.metadata_type_id())
     }
 }
 #[derive(Clone, Copy)]
@@ -1436,7 +1436,7 @@ impl<'r> ::core::fmt::Debug for CheckpointArgsReader<'r> {
 impl<'r> ::core::fmt::Display for CheckpointArgsReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "type_id_hash", self.type_id_hash())?;
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -1462,7 +1462,7 @@ impl<'r> CheckpointArgsReader<'r> {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn type_id_hash(&self) -> Byte32Reader<'r> {
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         if self.has_extra_fields() {
@@ -1528,12 +1528,12 @@ impl<'r> molecule::prelude::Reader<'r> for CheckpointArgsReader<'r> {
 }
 #[derive(Debug, Default)]
 pub struct CheckpointArgsBuilder {
-    pub(crate) type_id_hash: Byte32,
+    pub(crate) metadata_type_id: Byte32,
 }
 impl CheckpointArgsBuilder {
     pub const FIELD_COUNT: usize = 1;
-    pub fn type_id_hash(mut self, v: Byte32) -> Self {
-        self.type_id_hash = v;
+    pub fn metadata_type_id(mut self, v: Byte32) -> Self {
+        self.metadata_type_id = v;
         self
     }
 }
@@ -1541,18 +1541,18 @@ impl molecule::prelude::Builder for CheckpointArgsBuilder {
     type Entity = CheckpointArgs;
     const NAME: &'static str = "CheckpointArgsBuilder";
     fn expected_length(&self) -> usize {
-        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1) + self.type_id_hash.as_slice().len()
+        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1) + self.metadata_type_id.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
         let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
         offsets.push(total_size);
-        total_size += self.type_id_hash.as_slice().len();
+        total_size += self.metadata_type_id.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
-        writer.write_all(self.type_id_hash.as_slice())?;
+        writer.write_all(self.metadata_type_id.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {

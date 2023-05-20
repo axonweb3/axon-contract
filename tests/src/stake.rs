@@ -6,6 +6,7 @@ use crate::smt::{
 };
 
 use super::*;
+use axon_types::metadata::{Metadata, MetadataList};
 use axon_types::stake::*;
 use bit_vec::BitVec;
 use ckb_system_scripts::BUNDLED_CELL;
@@ -144,11 +145,16 @@ fn test_stake_at_increase_success() {
     ];
 
     // prepare metadata cell_dep
+    let metadata = Metadata::new_builder()
+        .epoch_len(axon_u32(100))
+        .build();
+    let metadata_list = MetadataList::new_builder().push(metadata).build();
     let meta_data = axon_metadata_data(
         &metadata_type_script.clone().calc_script_hash(),
         &stake_at_type_script.calc_script_hash(),
         &checkpoint_type_script.calc_script_hash(),
         &stake_at_type_script.calc_script_hash(), // needless here
+        metadata_list,
     );
     let metadata_script_dep = CellDep::new_builder()
         .out_point(
@@ -366,11 +372,16 @@ fn test_stake_smt_success() {
     ];
 
     // prepare metadata cell_dep
+    let metadata = Metadata::new_builder()
+        .epoch_len(axon_u32(100))
+        .build();
+    let metadata_list = MetadataList::new_builder().push(metadata).build();
     let meta_data = axon_metadata_data(
         &metadata_type_script.clone().calc_script_hash(),
         &stake_at_type_script.calc_script_hash(),
         &checkpoint_type_script.calc_script_hash(),
         &stake_smt_type_script.calc_script_hash(),
+        metadata_list,
     );
     let metadata_script_dep = CellDep::new_builder()
         .out_point(

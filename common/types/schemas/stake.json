@@ -49,6 +49,10 @@
           "type": "byte"
         },
         {
+          "name": "l1_pub_key",
+          "type": "Byte65"
+        },
+        {
           "name": "l1_address",
           "type": "Identity"
         },

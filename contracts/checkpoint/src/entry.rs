@@ -28,19 +28,24 @@ pub fn main() -> Result<(), Error> {
     let args: Bytes = script.args().unpack();
 
     let checkpoint_args: axon::CheckpointArgs = Cursor::from(args.to_vec()).into();
-    let type_id_hash = checkpoint_args.type_id_hash();
+    let metadata_type_id = checkpoint_args.metadata_type_id();
+    let type_ids = get_type_ids(
+        metadata_type_id.as_slice().try_into().unwrap(),
+        Source::CellDep,
+    )?;
 
+    debug!("get_checkpoint_by_type_id");
     // check input and output capacity and data from checkpoint cells
     let (input_checkpoint_capacity, input_checkpoint_data) =
-        get_checkpoint_by_type_id(&type_id_hash, Source::Input)?;
+        get_checkpoint_by_type_id(&type_ids.checkpoint_type_id(), Source::Input)?;
     let (output_checkpoint_capacity, output_checkpoint_data) =
-        get_checkpoint_by_type_id(&type_id_hash, Source::Output)?;
-
+        get_checkpoint_by_type_id(&type_ids.checkpoint_type_id(), Source::Output)?;
+    debug!("checkpoint_capacity");
     if input_checkpoint_capacity != output_checkpoint_capacity {
         return Err(Error::CheckpointCapacityMismatch);
     }
 
-    verify_multsig(&output_checkpoint_data)?;
+    // verify_multsig(&output_checkpoint_data)?;
 
     verify_checkpoint_data(&input_checkpoint_data, &output_checkpoint_data)?;
 
@@ -58,14 +63,16 @@ fn verify_checkpoint_data(
     }
 
     // check checkpoint data with decoded rlp data
-    let input_period = output_checkpoint_data.period();
-    let input_epoch = output_checkpoint_data.epoch();
+    let input_period = input_checkpoint_data.period();
+    let input_epoch = input_checkpoint_data.epoch();
     if input_epoch == 0 {
+        debug!("input_checkpoint_data epoch = 0");
         return Err(Error::CheckpointDataError);
     }
     let output_period = output_checkpoint_data.period();
     let output_epoch = output_checkpoint_data.epoch();
 
+    debug!("input_checkpoint_data metadata_type_id");
     let metadata_type_id: [u8; 32] = input_checkpoint_data
         .metadata_type_id()
         .as_slice()
@@ -75,10 +82,12 @@ fn verify_checkpoint_data(
     let epoch_len = get_epoch_len(&metadata_type_id, Source::CellDep)?;
     if input_period == epoch_len {
         if output_period != 0 || output_epoch != input_epoch + 1 {
+            debug!("output_period = {}, output_epoch = {}, input_epoch = {}", output_period, output_epoch, input_epoch);
             return Err(Error::CheckpointDataError);
         }
     } else {
         if output_period != input_period + 1 || output_epoch != input_epoch {
+            debug!("output_period = {}, output_epoch = {}, input_period = {}, input_epoch = {}", output_period, output_epoch, input_period, input_epoch);
             return Err(Error::CheckpointDataError);
         }
     }

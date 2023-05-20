@@ -8,7 +8,7 @@ use ckb_std::debug;
 
 use crate::{error::Error, helper::bytes_to_h256};
 
-#[derive(Clone, Default, Eq, PartialOrd, Debug)]
+#[derive(Clone, Copy, Default, Eq, PartialOrd, Debug)]
 pub struct LockInfo {
     pub addr: [u8; 20], // address of locker(staker or delegator), smt key
     pub amount: u128,   // amount locked, smt value
@@ -82,13 +82,13 @@ pub fn verify_smt_leaf(
 }
 
 pub fn verify_2layer_smt(
-    stake_infos: &BTreeSet<LockInfo>,
+    lock_infos: &BTreeSet<LockInfo>,
     epoch: u64,
     top_proof: &Vec<u8>,
     top_root: &[u8; 32],
 ) -> Result<(), Error> {
     // construct old stake smt root & verify
-    let bottom_root = build_smt_tree_and_get_root(stake_infos)?;
+    let bottom_root = build_smt_tree_and_get_root(lock_infos)?;
     verify_smt_leaf(epoch, &bottom_root, top_root, top_proof)?;
     Ok(())
 }

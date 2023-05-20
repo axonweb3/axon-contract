@@ -59,7 +59,7 @@ impl PartialEq for DelegateInfoObject {
 pub struct MinerGroupInfoObject {
     pub staker: [u8; 20],
     pub stake_amount: Option<u128>,
-    pub delegators: Vec<DelegateInfoObject>,
+    pub delegators: Vec<LockInfo>,
     pub delegator_epoch_proof: Vec<u8>,
 }
 
@@ -71,7 +71,7 @@ impl MinerGroupInfoObject {
             let delegator_info = &delegator_infos.get(i);
             let mut addr = [0u8; 20];
             addr.copy_from_slice(&delegator_info.addr());
-            let delegate_info_obj = DelegateInfoObject {
+            let delegate_info_obj = LockInfo {
                 addr: addr,
                 amount: bytes_to_u128(&delegator_info.amount()),
             };
@@ -414,10 +414,11 @@ pub fn get_checkpoint_by_type_id(
             Ok(())
         })
         .collect::<Result<Vec<_>, _>>()?;
-    if celldata.is_none() {
-        return Err(Error::CheckpointCellError);
+
+    match celldata {
+        Some(celldata) => Ok((capacity, celldata)),
+        None => Err(Error::CheckpointCellError),
     }
-    Ok((capacity, celldata.unwrap()))
 }
 
 pub fn get_valid_stakeinfos_from_celldeps(
@@ -445,16 +446,17 @@ pub fn get_metada_data_by_type_id(
         .enumerate()
         .for_each(|(i, lock_hash)| {
             if &lock_hash.unwrap_or([0u8; 32]) == cell_type_id {
+                debug!("get_metada_data_by_type_id index: {}", i);
                 let data = load_cell_data(i, source).unwrap();
+                debug!("get_metada_data_by_type_id index: {}", i);
                 metadata = Some(Cursor::from(data[..].to_vec()).into());
             }
         });
 
-    if metadata.is_none() {
-        Err(Error::MetadataNotFound)
-    } else {
-        Ok(metadata.unwrap())
-    }
+    match metadata {
+        Some(metadata) => Ok(metadata),
+        None => Err(Error::MetadataNotFound),
+    } 
 }
 
 pub fn get_type_ids(metadata_type_id: &[u8; 32], source: Source) -> Result<TypeIds, Error> {

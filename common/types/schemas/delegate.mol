@@ -8,7 +8,7 @@ table DelegateArgs {
 table DelegateRequirement {
     threshold:          Uint128,
     max_delegator_size: Uint32,
-    dividend_ratio: byte, // only dividend_ratio% reward will go to delegators
+    commission_rate:    byte, // the stake will get commission_rate% reward of delegator as fee
 }
 
 table DelegateCellData {
@@ -16,7 +16,7 @@ table DelegateCellData {
     l1_address:               Identity,
     l2_address:               Identity,
     delegate_requirement:     DelegateRequirement,
-    metadata_type_id:       Byte32,
+    metadata_type_id:         Byte32,
 }
 
 // delegate AT cell

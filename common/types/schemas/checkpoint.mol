@@ -25,5 +25,5 @@ table CheckpointWitness {
 }
 
 table CheckpointArgs {
-	type_id_hash:   Byte32,
+	metadata_type_id:   Byte32, // just to differentiate from other chain
 }

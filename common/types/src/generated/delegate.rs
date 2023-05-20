@@ -293,7 +293,7 @@ impl ::core::fmt::Display for DelegateRequirement {
             "max_delegator_size",
             self.max_delegator_size()
         )?;
-        write!(f, ", {}: {}", "dividend_ratio", self.dividend_ratio())?;
+        write!(f, ", {}: {}", "commission_rate", self.commission_rate())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -340,7 +340,7 @@ impl DelegateRequirement {
         let end = molecule::unpack_number(&slice[12..]) as usize;
         Uint32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn dividend_ratio(&self) -> Byte {
+    pub fn commission_rate(&self) -> Byte {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         if self.has_extra_fields() {
@@ -379,7 +379,7 @@ impl molecule::prelude::Entity for DelegateRequirement {
         Self::new_builder()
             .threshold(self.threshold())
             .max_delegator_size(self.max_delegator_size())
-            .dividend_ratio(self.dividend_ratio())
+            .commission_rate(self.commission_rate())
     }
 }
 #[derive(Clone, Copy)]
@@ -408,7 +408,7 @@ impl<'r> ::core::fmt::Display for DelegateRequirementReader<'r> {
             "max_delegator_size",
             self.max_delegator_size()
         )?;
-        write!(f, ", {}: {}", "dividend_ratio", self.dividend_ratio())?;
+        write!(f, ", {}: {}", "commission_rate", self.commission_rate())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -446,7 +446,7 @@ impl<'r> DelegateRequirementReader<'r> {
         let end = molecule::unpack_number(&slice[12..]) as usize;
         Uint32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn dividend_ratio(&self) -> ByteReader<'r> {
+    pub fn commission_rate(&self) -> ByteReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         if self.has_extra_fields() {
@@ -516,7 +516,7 @@ impl<'r> molecule::prelude::Reader<'r> for DelegateRequirementReader<'r> {
 pub struct DelegateRequirementBuilder {
     pub(crate) threshold: Uint128,
     pub(crate) max_delegator_size: Uint32,
-    pub(crate) dividend_ratio: Byte,
+    pub(crate) commission_rate: Byte,
 }
 impl DelegateRequirementBuilder {
     pub const FIELD_COUNT: usize = 3;
@@ -528,8 +528,8 @@ impl DelegateRequirementBuilder {
         self.max_delegator_size = v;
         self
     }
-    pub fn dividend_ratio(mut self, v: Byte) -> Self {
-        self.dividend_ratio = v;
+    pub fn commission_rate(mut self, v: Byte) -> Self {
+        self.commission_rate = v;
         self
     }
 }
@@ -540,7 +540,7 @@ impl molecule::prelude::Builder for DelegateRequirementBuilder {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
             + self.threshold.as_slice().len()
             + self.max_delegator_size.as_slice().len()
-            + self.dividend_ratio.as_slice().len()
+            + self.commission_rate.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
@@ -550,14 +550,14 @@ impl molecule::prelude::Builder for DelegateRequirementBuilder {
         offsets.push(total_size);
         total_size += self.max_delegator_size.as_slice().len();
         offsets.push(total_size);
-        total_size += self.dividend_ratio.as_slice().len();
+        total_size += self.commission_rate.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
         writer.write_all(self.threshold.as_slice())?;
         writer.write_all(self.max_delegator_size.as_slice())?;
-        writer.write_all(self.dividend_ratio.as_slice())?;
+        writer.write_all(self.commission_rate.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {

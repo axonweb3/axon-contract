@@ -15,6 +15,7 @@ table StakeInfoDelta {
 // So the cell data is decode from offset 16.
 table StakeAtCellData {
     version:            byte,
+    l1_pub_key:         Byte65,
     l1_address:         Identity,
     l2_address:         Identity,
     metadata_type_id:   Byte32,

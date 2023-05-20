@@ -82,29 +82,36 @@ impl StakeAtCellData {
 }
 
 impl StakeAtCellData {
-    pub fn l1_address(&self) -> Vec<u8> {
+    pub fn l1_pub_key(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }
 }
 
 impl StakeAtCellData {
-    pub fn l2_address(&self) -> Vec<u8> {
+    pub fn l1_address(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(2).unwrap();
         cur.into()
     }
 }
 
 impl StakeAtCellData {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
+    pub fn l2_address(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(3).unwrap();
         cur.into()
     }
 }
 
 impl StakeAtCellData {
-    pub fn delta(&self) -> StakeInfoDelta {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(4).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtCellData {
+    pub fn delta(&self) -> StakeInfoDelta {
+        let cur = self.cursor.table_slice_by_index(5).unwrap();
         cur.into()
     }
 }

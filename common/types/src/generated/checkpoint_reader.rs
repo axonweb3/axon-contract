@@ -162,7 +162,7 @@ impl From<Cursor> for CheckpointArgs {
 }
 
 impl CheckpointArgs {
-    pub fn type_id_hash(&self) -> Vec<u8> {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }

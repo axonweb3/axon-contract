@@ -58,7 +58,7 @@ impl DelegateRequirement {
 }
 
 impl DelegateRequirement {
-    pub fn dividend_ratio(&self) -> u8 {
+    pub fn commission_rate(&self) -> u8 {
         let cur = self.cursor.table_slice_by_index(2).unwrap();
         cur.into()
     }
