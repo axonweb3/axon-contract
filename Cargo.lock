@@ -1356,6 +1356,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 
 [[package]]
+name = "sparse-merkle-tree"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8851f6c92491ebe5528eabc1244292175a739eb0162974f9f9670a7dc748748b"
+dependencies = [
+ "blake2b-rs",
+ "cc",
+ "cfg-if 0.1.10",
+]
+
+[[package]]
 name = "stake"
 version = "0.1.0"
 dependencies = [
@@ -1400,6 +1411,7 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "bit-vec",
+ "blake2b-rs",
  "blst 0.3.10",
  "ckb-system-scripts",
  "ckb-testtool",
@@ -1408,6 +1420,8 @@ dependencies = [
  "molecule",
  "rand 0.8.5",
  "rlp",
+ "sparse-merkle-tree",
+ "util",
 ]
 
 [[package]]

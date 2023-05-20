@@ -36,6 +36,7 @@ table TypeIds {
     delegate_smt_type_id: Byte32,
     reward_type_id:       Byte32,
     xudt_type_id:         Byte32,
+    withdraw_code_hash:   Byte32,
 }
 
 table MetadataCellData {

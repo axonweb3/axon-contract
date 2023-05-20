@@ -1654,6 +1654,12 @@ impl ::core::fmt::Display for TypeIds {
         )?;
         write!(f, ", {}: {}", "reward_type_id", self.reward_type_id())?;
         write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "withdraw_code_hash",
+            self.withdraw_code_hash()
+        )?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -1664,20 +1670,21 @@ impl ::core::fmt::Display for TypeIds {
 impl ::core::default::Default for TypeIds {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            220, 0, 0, 0, 28, 0, 0, 0, 60, 0, 0, 0, 92, 0, 0, 0, 124, 0, 0, 0, 156, 0, 0, 0, 188,
+            0, 1, 0, 0, 32, 0, 0, 0, 64, 0, 0, 0, 96, 0, 0, 0, 128, 0, 0, 0, 160, 0, 0, 0, 192, 0,
+            0, 0, 224, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         TypeIds::new_unchecked(v.into())
     }
 }
 impl TypeIds {
-    pub const FIELD_COUNT: usize = 6;
+    pub const FIELD_COUNT: usize = 7;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1727,8 +1734,14 @@ impl TypeIds {
     pub fn xudt_type_id(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[24..]) as usize;
+        let end = molecule::unpack_number(&slice[28..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn withdraw_code_hash(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[28..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[28..]) as usize;
+            let end = molecule::unpack_number(&slice[32..]) as usize;
             Byte32::new_unchecked(self.0.slice(start..end))
         } else {
             Byte32::new_unchecked(self.0.slice(start..))
@@ -1767,6 +1780,7 @@ impl molecule::prelude::Entity for TypeIds {
             .delegate_smt_type_id(self.delegate_smt_type_id())
             .reward_type_id(self.reward_type_id())
             .xudt_type_id(self.xudt_type_id())
+            .withdraw_code_hash(self.withdraw_code_hash())
     }
 }
 #[derive(Clone, Copy)]
@@ -1804,6 +1818,12 @@ impl<'r> ::core::fmt::Display for TypeIdsReader<'r> {
         )?;
         write!(f, ", {}: {}", "reward_type_id", self.reward_type_id())?;
         write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "withdraw_code_hash",
+            self.withdraw_code_hash()
+        )?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -1812,7 +1832,7 @@ impl<'r> ::core::fmt::Display for TypeIdsReader<'r> {
     }
 }
 impl<'r> TypeIdsReader<'r> {
-    pub const FIELD_COUNT: usize = 6;
+    pub const FIELD_COUNT: usize = 7;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1862,8 +1882,14 @@ impl<'r> TypeIdsReader<'r> {
     pub fn xudt_type_id(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[24..]) as usize;
+        let end = molecule::unpack_number(&slice[28..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn withdraw_code_hash(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[28..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[28..]) as usize;
+            let end = molecule::unpack_number(&slice[32..]) as usize;
             Byte32Reader::new_unchecked(&self.as_slice()[start..end])
         } else {
             Byte32Reader::new_unchecked(&self.as_slice()[start..])
@@ -1925,6 +1951,7 @@ impl<'r> molecule::prelude::Reader<'r> for TypeIdsReader<'r> {
         Byte32Reader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
         Byte32Reader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
         Byte32Reader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[6]..offsets[7]], compatible)?;
         Ok(())
     }
 }
@@ -1936,9 +1963,10 @@ pub struct TypeIdsBuilder {
     pub(crate) delegate_smt_type_id: Byte32,
     pub(crate) reward_type_id: Byte32,
     pub(crate) xudt_type_id: Byte32,
+    pub(crate) withdraw_code_hash: Byte32,
 }
 impl TypeIdsBuilder {
-    pub const FIELD_COUNT: usize = 6;
+    pub const FIELD_COUNT: usize = 7;
     pub fn metadata_type_id(mut self, v: Byte32) -> Self {
         self.metadata_type_id = v;
         self
@@ -1963,6 +1991,10 @@ impl TypeIdsBuilder {
         self.xudt_type_id = v;
         self
     }
+    pub fn withdraw_code_hash(mut self, v: Byte32) -> Self {
+        self.withdraw_code_hash = v;
+        self
+    }
 }
 impl molecule::prelude::Builder for TypeIdsBuilder {
     type Entity = TypeIds;
@@ -1975,6 +2007,7 @@ impl molecule::prelude::Builder for TypeIdsBuilder {
             + self.delegate_smt_type_id.as_slice().len()
             + self.reward_type_id.as_slice().len()
             + self.xudt_type_id.as_slice().len()
+            + self.withdraw_code_hash.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
@@ -1991,6 +2024,8 @@ impl molecule::prelude::Builder for TypeIdsBuilder {
         total_size += self.reward_type_id.as_slice().len();
         offsets.push(total_size);
         total_size += self.xudt_type_id.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.withdraw_code_hash.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
@@ -2001,6 +2036,7 @@ impl molecule::prelude::Builder for TypeIdsBuilder {
         writer.write_all(self.delegate_smt_type_id.as_slice())?;
         writer.write_all(self.reward_type_id.as_slice())?;
         writer.write_all(self.xudt_type_id.as_slice())?;
+        writer.write_all(self.withdraw_code_hash.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {
@@ -2049,17 +2085,18 @@ impl ::core::fmt::Display for MetadataCellData {
 impl ::core::default::Default for MetadataCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            33, 1, 0, 0, 24, 0, 0, 0, 25, 0, 0, 0, 33, 0, 0, 0, 65, 0, 0, 0, 29, 1, 0, 0, 0, 0, 0,
+            69, 1, 0, 0, 24, 0, 0, 0, 25, 0, 0, 0, 33, 0, 0, 0, 65, 0, 0, 0, 65, 1, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 220, 0, 0, 0, 28, 0, 0, 0, 60, 0, 0, 0, 92, 0, 0, 0, 124, 0,
-            0, 0, 156, 0, 0, 0, 188, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 32, 0, 0, 0, 64, 0, 0, 0, 96, 0, 0, 0, 128, 0,
+            0, 0, 160, 0, 0, 0, 192, 0, 0, 0, 224, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            4, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
         MetadataCellData::new_unchecked(v.into())
     }

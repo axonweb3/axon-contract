@@ -10,6 +10,5 @@ ckb-std = "0.12"
 blake2b-ref = { version = "0.3", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 axon-types = {path = "../types"}
-# sparse-merkle-tree = { version = "0.6.1", default-features = false }
 ckb-smt = { path = "../../contracts/ckb-smt", default-features = false }
 

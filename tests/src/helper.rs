@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::convert::TryInto;
+use std::{collections::BTreeSet, convert::TryInto};
 
 use axon_types::basic;
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, SecretKey};
@@ -17,6 +17,13 @@ use ckb_testtool::{
 };
 use molecule::prelude::*;
 use rand::prelude::*;
+use util::{
+    error::Error,
+    helper::bytes_to_h256,
+    smt::{build_smt_tree_and_get_root, LockInfo},
+};
+
+use crate::smt::SMT;
 
 pub const MAX_CYCLES: u64 = 100_000_000;
 
@@ -139,12 +146,14 @@ pub fn axon_metadata_data(
     metadata_type_id: &packed::Byte32,
     xudt_type_id: &packed::Byte32,
     checkpoint_type_id: &packed::Byte32,
+    stake_smt_type_id: &packed::Byte32,
 ) -> axon_types::metadata::MetadataCellData {
     // build CheckpointCellData from scrach
     let type_ids = axon_types::metadata::TypeIds::new_builder()
         .metadata_type_id(axon_byte32(metadata_type_id))
         .xudt_type_id(axon_byte32(xudt_type_id))
         .checkpoint_type_id(axon_byte32(checkpoint_type_id))
+        .stake_smt_type_id(axon_byte32(stake_smt_type_id))
         .build();
     axon_types::metadata::MetadataCellData::new_builder()
         .version(0.into())
@@ -181,3 +190,70 @@ pub fn sign_tx(tx: TransactionView, key: &Privkey, mode: u8) -> TransactionView 
         .set_witnesses(signed_witnesses)
         .build()
 }
+
+pub fn axon_stake_smt_cell_data(
+    stake_infos: &BTreeSet<LockInfo>,
+    metadata_type_id: &packed::Byte32,
+) -> axon_types::stake::StakeSmtCellData {
+    // call build_smt_tree_and_get_root and print error message
+    let root = build_smt_tree_and_get_root(stake_infos).unwrap_or_else(|_err| {
+        println!("build smt tree error:");
+        [0u8; 32]
+    });
+    println!("root: {:?}", root);
+    // build smt tree
+    let mut tree = SMT::default();
+
+    axon_types::stake::StakeSmtCellData::new_builder()
+        .version(0.into())
+        .smt_root(basic::Byte32::new_unchecked(root.to_vec().into()))
+        .metadata_type_id(axon_byte32(metadata_type_id))
+        .build()
+}
+
+// pub fn get_bottom_root_smt_proof(lock_infos: &BTreeSet<LockInfo>, epoch: u64) -> Vec<u8> {
+//     // construct smt root & verify
+//     let mut tree_buf = [Pair::default(); 100];
+//     let mut tree = Tree::new(&mut tree_buf);
+//     lock_infos.iter().for_each(|lock_info| {
+//         let _ = tree
+//             .update(
+//                 &bytes_to_h256(&lock_info.addr.to_vec()),
+//                 &bytes_to_h256(&lock_info.amount.to_le_bytes().to_vec()),
+//             )
+//             .map_err(|err| {
+//                 println!("update smt tree error: {}", err);
+//             });
+//     });
+
+//     let proof = [0u8; 32];
+//     let bottom_root:[u8; 32] = match tree.calculate_root(&proof) {
+//         Ok(root) => root,
+//         Err(err) => {
+//             println!("calculate root error: {}", err);
+//             [0u8; 32]
+//         }
+//     };
+
+//     println!("proof: {:?}", proof);
+//     let mut tree_buf = [Pair::default(); 100];
+//     let mut tree = Tree::new(&mut tree_buf);
+//         let _ = tree
+//             .update(
+//                 &bytes_to_h256(&epoch.to_le_bytes().to_vec()),
+//                 &bytes_to_h256(&bottom_root.to_vec()),
+//             )
+//             .map_err(|err| {
+//                 println!("update top tree error: {}", err);
+//             });
+
+//     let proof = [0u8; 32];
+//     let bottom_root:[u8; 32] = match tree.calculate_root(&proof) {
+//         Ok(root) => root,
+//         Err(err) => {
+//             println!("calculate root error: {}", err);
+//             [0u8; 32]
+//         }
+//     };
+
+// }

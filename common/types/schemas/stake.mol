@@ -2,7 +2,7 @@ import basic;
 
 table StakeArgs {
     metadata_type_id: Byte32,
-    stake_addr:       IdentityOpt,
+    stake_addr:       IdentityOpt, // stake smt cell is None, stake at cell is Some
 }
 
 table StakeInfoDelta {

@@ -7,8 +7,8 @@ use alloc::{collections::BTreeSet, vec};
 
 use axon_types::metadata_reader::{ElectionSmtProof, StakeSmtElectionInfo};
 use axon_types::{
-    checkpoint_reader::CheckpointCellData, metadata_reader::TypeIds,
-    metadata_reader::MetadataCellData, metadata_reader::ValidatorList,
+    checkpoint_reader::CheckpointCellData, metadata_reader::MetadataCellData,
+    metadata_reader::TypeIds, metadata_reader::ValidatorList,
 };
 use ckb_smt::smt::{Pair, Tree};
 // Import CKB syscalls and structures
@@ -26,9 +26,9 @@ use axon_types::{
 };
 use util::helper::{
     get_current_epoch, get_delegate_smt_root, get_quorum_size, get_stake_smt_root,
-    verify_2layer_smt_delegate, verify_2layer_smt_stake, DelegateInfoObject, MinerGroupInfoObject,
-    StakeInfoObject,
+    MinerGroupInfoObject,
 };
+use util::smt::LockInfo;
 use util::{
     error::Error,
     helper::{
@@ -419,7 +419,7 @@ pub fn verify_stake_delegate(
         let miner_info = &miner_infos.get(i);
         let miner_group_obj = MinerGroupInfoObject::new(miner_info);
 
-        stake_infos.insert(StakeInfoObject {
+        stake_infos.insert(LockInfo {
             identity: miner_group_obj.staker,
             stake_amount: miner_group_obj.stake_amount.unwrap(),
         });
@@ -466,9 +466,9 @@ fn verify_new_validators(
     let mut stake_infos = BTreeSet::new();
     // get stake infos and miner group info
     for validator in validators {
-        stake_infos.insert(StakeInfoObject {
-            identity: validator.staker,
-            stake_amount: validator.stake_amount.unwrap(),
+        stake_infos.insert(LockInfo {
+            addr: validator.staker,
+            amount: validator.stake_amount.unwrap(),
         });
     }
 
@@ -478,7 +478,7 @@ fn verify_new_validators(
         type_ids.stake_smt_type_id().as_slice().try_into().unwrap(),
         Source::GroupOutput,
     )?;
-    verify_2layer_smt_stake(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
+    verify_2layer_smt(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
 
     let new_miners = validators.clone();
     let epoch_proofs = eletion_infos.new_delegate_proofs();
@@ -505,7 +505,7 @@ fn verify_new_validators(
             &miner.staker,
             Source::Output,
         )?;
-        verify_2layer_smt_delegate(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
+        verify_2layer_smt(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
     }
 
     Ok(())

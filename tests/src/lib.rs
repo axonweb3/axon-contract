@@ -8,6 +8,7 @@ use std::str::FromStr;
 mod helper;
 #[cfg(test)]
 mod selection;
+mod smt;
 mod stake;
 
 const TEST_ENV_VAR: &str = "CAPSULE_TEST_ENV";

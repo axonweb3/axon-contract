@@ -1,17 +1,52 @@
-pub fn verify_2layer_smt_stake(
-    stake_infos: &BTreeSet<StakeInfoObject>,
-    epoch: u64,
-    epoch_proof: &Vec<u8>,
-    epoch_root: &[u8; 32],
-) -> Result<(), Error> {
-    // construct old stake smt root & verify
+extern crate alloc;
+
+use core::cmp::Ordering;
+
+use alloc::{collections::BTreeSet, vec::Vec};
+use ckb_smt::smt::{Pair, Tree};
+use ckb_std::debug;
+
+use crate::{error::Error, helper::bytes_to_h256};
+
+#[derive(Clone, Default, Eq, PartialOrd, Debug)]
+pub struct LockInfo {
+    pub addr: [u8; 20], // address of locker(staker or delegator), smt key
+    pub amount: u128,   // amount locked, smt value
+}
+
+// impl LockInfo {
+//     pub fn new(stake_info: &stake_reader::StakeInfo) -> Self {
+//         let mut identity = [0u8; 20];
+//         identity.copy_from_slice(&stake_info.addr());
+//         Self {
+//             addr: identity,
+//             amount: bytes_to_u128(&stake_info.amount()),
+//         }
+//     }
+// }
+
+impl Ord for LockInfo {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let order = other.addr.cmp(&self.addr);
+        order
+    }
+}
+
+impl PartialEq for LockInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.addr == other.addr
+    }
+}
+
+pub fn build_smt_tree_and_get_root(lock_infos: &BTreeSet<LockInfo>) -> Result<[u8; 32], Error> {
+    // construct smt root & verify
     let mut tree_buf = [Pair::default(); 100];
     let mut tree = Tree::new(&mut tree_buf);
-    stake_infos.iter().for_each(|stake_info| {
+    lock_infos.iter().for_each(|lock_info| {
         let _ = tree
             .update(
-                &bytes_to_h256(&stake_info.identity.to_vec()),
-                &bytes_to_h256(&stake_info.stake_amount.to_le_bytes().to_vec()),
+                &bytes_to_h256(&lock_info.addr.to_vec()),
+                &bytes_to_h256(&lock_info.amount.to_le_bytes().to_vec()),
             )
             .map_err(|err| {
                 debug!("update smt tree error: {}", err);
@@ -20,80 +55,40 @@ pub fn verify_2layer_smt_stake(
     });
 
     let proof = [0u8; 32];
-    let stake_root = tree.calculate_root(&proof)?; // epoch smt value
+    let root = tree.calculate_root(&proof)?; // epoch smt value
 
+    Ok(root)
+}
+
+pub fn verify_smt_leaf(
+    key: u64,
+    value: &[u8; 32],
+    root: &[u8; 32],
+    proof: &Vec<u8>,
+) -> Result<(), Error> {
     let mut tree_buf = [Pair::default(); 100];
     let mut epoch_tree = Tree::new(&mut tree_buf[..]);
     epoch_tree
-        .update(&bytes_to_h256(&epoch.to_le_bytes().to_vec()), &stake_root)
+        .update(&bytes_to_h256(&key.to_le_bytes().to_vec()), &value)
         .map_err(|err| {
             debug!("update smt tree error: {}", err);
-            Error::MerkleProof
+            Error::SmterrorCodeErrorUpdate
         })?;
-    epoch_tree
-        .verify(&epoch_root, &epoch_proof)
-        .map_err(|err| {
-            debug!("verify top smt error: {}", err);
-            Error::OldStakeInfosErr
-        })?;
+    epoch_tree.verify(&root, &proof).map_err(|err| {
+        debug!("verify smt error: {}", err);
+        Error::SmterrorCodeErrorVerify
+    })?;
     Ok(())
 }
 
-pub fn verify_2layer_smt_delegate(
-    delegate_infos: &BTreeSet<DelegateInfoObject>,
+pub fn verify_2layer_smt(
+    stake_infos: &BTreeSet<LockInfo>,
     epoch: u64,
-    epoch_proof: &Vec<u8>,
-    epoch_root: &[u8; 32],
+    top_proof: &Vec<u8>,
+    top_root: &[u8; 32],
 ) -> Result<(), Error> {
     // construct old stake smt root & verify
-    let mut tree_buf = [Pair::default(); 100];
-    let mut tree = Tree::new(&mut tree_buf);
-    delegate_infos.iter().for_each(|stake_info| {
-        let _ = tree
-            .update(
-                &bytes_to_h256(&stake_info.addr.to_vec()),
-                &bytes_to_h256(&stake_info.amount.to_le_bytes().to_vec()),
-            )
-            .map_err(|err| {
-                debug!("update smt tree error: {}", err);
-                Error::MerkleProof
-            });
-    });
-
-    let proof = [0u8; 32];
-    let stake_root = tree.calculate_root(&proof)?; // epoch smt value
-
-    let mut tree_buf = [Pair::default(); 100];
-    let mut epoch_tree = Tree::new(&mut tree_buf[..]);
-    epoch_tree
-        .update(&bytes_to_h256(&epoch.to_le_bytes().to_vec()), &stake_root)
-        .map_err(|err| {
-            debug!("update smt tree error: {}", err);
-            Error::MerkleProof
-        })?;
-    epoch_tree
-        .verify(&epoch_root, &epoch_proof)
-        .map_err(|err| {
-            debug!("verify top smt error: {}", err);
-            Error::OldStakeInfosErr
-        })?;
+    let bottom_root = build_smt_tree_and_get_root(stake_infos)?;
+    verify_smt_leaf(epoch, &bottom_root, top_root, top_proof)?;
     Ok(())
 }
-
-// pub fn verify_2layer_smt(stake_proof: MerkleProof, stake_root: H256, staker_identity: Vec<u8>, old_stake: u128,
-//                          epoch_proof: MerkleProof, epoch_root: H256, epoch: u64) -> Result<(), Error> {
-//     if verify_smt(stake_proof, &stake_root, staker_identity.to_h256(), old_stake.to_h256()) {
-//         return Err(Error::IllegalInputStakeInfo);
-//     }
-
-//     if verify_smt(epoch_proof, &epoch_root, epoch.to_h256(), stake_root) {
-//         Err(Error::IllegalInputStakeInfo)
-//     } else {
-//         Ok(())
-//     }
-// }
-
-// pub fn verify_smt(proof: MerkleProof, root: &H256, key: H256, value: H256) -> bool {
-//     let leaves = vec![(key, value)];
-//     proof.verify::<Blake2bHasher>(root, leaves).unwrap()
-// }

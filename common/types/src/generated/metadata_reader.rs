@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -260,6 +259,13 @@ impl TypeIds {
 impl TypeIds {
     pub fn xudt_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(5).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn withdraw_code_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(6).unwrap();
         cur.into()
     }
 }
