@@ -70,8 +70,10 @@ impl PartialEq for LockInfo {
 
 pub fn build_smt_tree_and_get_root(lock_infos: &BTreeSet<LockInfo>) -> Result<[u8; 32], Error> {
     // construct smt root & verify
-    let mut tree_buf = [Pair::default(); 100];
+    let mut tree_buf = [Pair::default(); 1];
+    debug!("tree_buf len: {}", tree_buf.len());
     let mut tree = Tree::new(&mut tree_buf);
+    debug!("lock_infos len: {}", lock_infos.len());
     lock_infos.iter().for_each(|lock_info| {
         let _ = tree
             .update(
@@ -85,6 +87,7 @@ pub fn build_smt_tree_and_get_root(lock_infos: &BTreeSet<LockInfo>) -> Result<[u
     });
 
     let proof = [0u8; 32];
+    debug!("calculate_root proof len: {}", proof.len());
     let root = tree.calculate_root(&proof)?; // epoch smt value
 
     Ok(root)

@@ -3,27 +3,21 @@
 use std::{collections::BTreeSet, convert::TryInto};
 
 use axon_types::{basic, metadata::MetadataList};
-use blst::min_pk::{AggregatePublicKey, AggregateSignature, SecretKey};
 use ckb_testtool::{
     ckb_crypto::secp::Privkey,
     ckb_hash::{blake2b_256, new_blake2b},
     ckb_types::{
         bytes::Bytes,
-        core::{ScriptHashType, TransactionView},
+        core::{TransactionView},
         packed::{self, *},
         prelude::*,
         H256,
     },
 };
 use molecule::prelude::*;
-use rand::prelude::*;
 use util::{
-    error::Error,
-    helper::bytes_to_h256,
     smt::{build_smt_tree_and_get_root, LockInfo},
 };
-
-use crate::smt::SMT;
 
 pub const MAX_CYCLES: u64 = 100_000_000;
 

@@ -84,7 +84,7 @@
       ]
     },
     {
-      "type": "table",
+      "type": "struct",
       "name": "CheckpointArgs",
       "fields": [
         {

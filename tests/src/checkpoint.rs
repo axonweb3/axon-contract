@@ -1,19 +1,14 @@
-use std::collections::BTreeSet;
-use std::convert::TryInto;
-
 use crate::helper::axon_byte32;
 
 use super::*;
 use axon_types::checkpoint::*;
 use axon_types::metadata::{Metadata, MetadataList};
-use bit_vec::BitVec;
-use ckb_system_scripts::BUNDLED_CELL;
+// use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use util::smt::LockInfo;
 
 #[test]
 fn test_checkpoint_success() {

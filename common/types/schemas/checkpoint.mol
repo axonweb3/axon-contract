@@ -24,6 +24,6 @@ table CheckpointWitness {
     proof:    Bytes,
 }
 
-table CheckpointArgs {
+struct CheckpointArgs {
 	metadata_type_id:   Byte32, // just to differentiate from other chain
 }

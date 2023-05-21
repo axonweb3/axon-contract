@@ -1,22 +1,22 @@
 use std::collections::BTreeSet;
-use std::convert::TryInto;
+// use std::convert::TryInto;
 
-use crate::smt::{
-    construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
-};
+// use crate::smt::{
+    // construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
+// };
 
 use super::*;
 use axon_types::checkpoint::CheckpointCellData;
 use axon_types::metadata::{Metadata, MetadataList};
-use axon_types::stake::*;
-use bit_vec::BitVec;
-use ckb_system_scripts::BUNDLED_CELL;
-use ckb_testtool::ckb_crypto::secp::Generator;
+// use axon_types::stake::*;
+// use bit_vec::BitVec;
+// use ckb_system_scripts::BUNDLED_CELL;
+// use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use util::smt::LockInfo;
+// use util::smt::LockInfo;
 
 #[test]
 fn test_metadata_success() {
