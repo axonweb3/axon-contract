@@ -32,14 +32,6 @@ pub fn main() -> Result<(), Error> {
     let metadata_type_id = stake_args.metadata_type_id();
     let staker_identity = stake_args.stake_addr();
 
-    let type_ids = get_type_ids(
-        &metadata_type_id.as_slice().try_into().unwrap(),
-        Source::CellDep,
-    )?;
-    if metadata_type_id != type_ids.metadata_type_id() {
-        return Err(Error::MisMatchMetadataTypeId);
-    }
-
     // identify contract mode by witness
     let witness_args = load_witness_args(0, Source::GroupInput);
     match witness_args {
@@ -50,26 +42,40 @@ pub fn main() -> Result<(), Error> {
             }
 
             let input_type = *value.unwrap().raw_data().to_vec().first().unwrap();
-            debug!("stake input_type:{}", input_type);
-            if input_type == 0 {
-                // update stake at cell
-                // extract stake at cell lock hash
-                let stake_at_lock_hash = { load_cell_lock_hash(0, Source::Input)? };
-                // debug!("stake_at_lock_hash:{:?}", stake_at_lock_hash);
-                update_stake_at_cell(
-                    &staker_identity.unwrap(),
-                    &stake_at_lock_hash,
-                    &type_ids.checkpoint_type_id(),
-                    &type_ids.xudt_type_id(),
-                )?;
-            } else if input_type == 1 {
-                // kicker update stake smt cell
-                update_stake_smt(&staker_identity, &witness, &type_ids)?;
-            } else if input_type == 2 {
-                // election
-                elect_validators(&metadata_type_id.as_slice().try_into().unwrap())?;
+            let source = if input_type == 2 {
+                Source::Input
             } else {
-                return Err(Error::UnknownMode);
+                Source::CellDep
+            };
+            let type_ids = get_type_ids(&metadata_type_id.as_slice().try_into().unwrap(), source)?;
+            if metadata_type_id != type_ids.metadata_type_id() {
+                return Err(Error::MisMatchMetadataTypeId);
+            }
+
+            debug!("stake input_type:{}", input_type);
+            match input_type {
+                0 => {
+                    // update stake at cell
+                    // extract stake at cell lock hash
+                    let stake_at_lock_hash = { load_cell_lock_hash(0, Source::Input)? };
+                    // debug!("stake_at_lock_hash:{:?}", stake_at_lock_hash);
+                    update_stake_at_cell(
+                        &staker_identity.unwrap(),
+                        &stake_at_lock_hash,
+                        &type_ids.checkpoint_type_id(),
+                        &type_ids.xudt_type_id(),
+                    )?;
+                }
+                1 => {
+                    // kicker update stake smt cell
+                    update_stake_smt(&staker_identity, &witness, &type_ids)?;
+                }
+                2 => {
+                    elect_validators(&metadata_type_id.as_slice().try_into().unwrap())?;
+                }
+                _ => {
+                    return Err(Error::UnknownMode);
+                }
             }
         }
         Err(_) => {
@@ -271,6 +277,7 @@ fn verify_old_stake_infos(
 ) -> Result<(), Error> {
     let epoch_root: [u8; 32] = old_stake_smt_data.smt_root().as_slice().try_into().unwrap(); // get from input smt cell
     let epoch_proof = stake_smt_update_infos.old_epoch_proof();
+    debug!("epoch_proof:{:?}", epoch_proof);
     verify_2layer_smt(&stake_infos_set, epoch, &epoch_proof, &epoch_root)?;
     Ok(())
 }
@@ -375,6 +382,7 @@ fn update_stake_smt(
 
         // construct old stake smt root & verify
         let epoch = get_current_epoch(&checkpoint_type_id)?;
+        debug!("epoch:{}", epoch);
         let mut stake_infos_set = transform_to_set(&stake_smt_update_infos.all_stake_infos());
         verify_old_stake_infos(
             epoch,
@@ -416,11 +424,11 @@ fn update_stake_smt(
     } else {
         // staker AT cell
         // only need to verify input and output both contain the Stake SMT cell of the Chain
-        let input_smt_cell = get_cell_count(&stake_smt_type_id, Source::Input);
+        let input_smt_cell = get_cell_count_by_type_hash(&stake_smt_type_id, Source::Input);
         if input_smt_cell != 1 {
             return Err(Error::BadInputStakeSmtCellCount);
         }
-        let output_smt_cell = get_cell_count(&stake_smt_type_id, Source::Output);
+        let output_smt_cell = get_cell_count_by_type_hash(&stake_smt_type_id, Source::Output);
         if output_smt_cell != 1 {
             return Err(Error::BadOutputStakeSmtCellCount);
         }
@@ -430,11 +438,13 @@ fn update_stake_smt(
 }
 
 fn elect_validators(metadata_type_id: &[u8; 32]) -> Result<(), Error> {
-    let input_metadata_cell_cnt = get_cell_count(&metadata_type_id.to_vec(), Source::Input);
+    let input_metadata_cell_cnt =
+        get_cell_count_by_type_hash(&metadata_type_id.to_vec(), Source::Input);
     if input_metadata_cell_cnt != 1 {
         return Err(Error::BadInputMetadataCellCount);
     }
-    let output_metadata_cell_cnt = get_cell_count(&metadata_type_id.to_vec(), Source::Output);
+    let output_metadata_cell_cnt =
+        get_cell_count_by_type_hash(&metadata_type_id.to_vec(), Source::Output);
     if output_metadata_cell_cnt != 1 {
         return Err(Error::BadOutputMetadataCellCount);
     }

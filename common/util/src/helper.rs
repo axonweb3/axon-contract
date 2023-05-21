@@ -385,6 +385,18 @@ pub fn get_cell_count(type_id: &Vec<u8>, source: Source) -> u8 {
     cells_count
 }
 
+pub fn get_cell_count_by_type_hash(cell_type_hash: &Vec<u8>, source: Source) -> u8 {
+    let mut cells_count = 0u8;
+    QueryIter::new(load_cell_type_hash, source).for_each(|type_hash| match type_hash {
+        Some(type_hash) => {
+            if &type_hash == cell_type_hash.as_slice() {
+                cells_count += 1;
+            }
+        }
+        None => {}
+    });
+    cells_count
+}
 //////////////////////////////////////////////////////////
 /// used by checkpoint contract
 //////////////////////////////////////////////////////////
@@ -456,7 +468,7 @@ pub fn get_metada_data_by_type_id(
     match metadata {
         Some(metadata) => Ok(metadata),
         None => Err(Error::MetadataNotFound),
-    } 
+    }
 }
 
 pub fn get_type_ids(metadata_type_id: &[u8; 32], source: Source) -> Result<TypeIds, Error> {

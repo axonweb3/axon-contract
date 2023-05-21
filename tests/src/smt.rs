@@ -1,11 +1,38 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, convert::TryInto};
 
 use blake2b_rs::{Blake2b, Blake2bBuilder};
 use sparse_merkle_tree::{
-    blake2b::Blake2bHasher, default_store::DefaultStore, error::Error, traits::Value, MerkleProof,
-    SparseMerkleTree, H256,
+    default_store::DefaultStore,  traits::{Value, Hasher},
+    MerkleProof, SparseMerkleTree, H256, SMTBuilder,
 };
-use util::{helper::bytes_to_h256, smt::LockInfo};
+use util::{
+    smt::{verify_smt_leaf, LockInfo},
+};
+
+pub struct Blake2bHasher(Blake2b);
+
+impl Default for Blake2bHasher {
+    fn default() -> Self {
+        let blake2b = Blake2bBuilder::new(32)
+            .personal(b"ckb-default-hash")
+            .build();
+        Blake2bHasher(blake2b)
+    }
+}
+
+impl Hasher for Blake2bHasher {
+    fn write_h256(&mut self, h: &H256) {
+        self.0.update(h.as_slice());
+    }
+    fn write_byte(&mut self, b: u8) {
+        self.0.update(&[b][..]);
+    }
+    fn finish(self) -> H256 {
+        let mut hash = [0u8; 32];
+        self.0.finalize(&mut hash);
+        hash.into()
+    }
+}
 
 // define SMT
 pub type SMT = SparseMerkleTree<Blake2bHasher, Word, DefaultStore<Word>>;
@@ -93,7 +120,7 @@ pub struct TopSmtInfo {
 }
 
 // define SMT value
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Copy)]
 pub struct BottomValue(u128);
 impl Value for BottomValue {
     fn to_h256(&self) -> H256 {
@@ -111,7 +138,8 @@ impl Value for BottomValue {
 
 // helper function
 fn new_blake2b() -> Blake2b {
-    Blake2bBuilder::new(32).personal(b"SMT").build()
+    // Blake2bBuilder::new(32).personal(b"SMT").build()
+    Blake2bBuilder::new(32).personal(b"ckb-default-hash").build()
 }
 
 pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
@@ -168,28 +196,60 @@ pub fn construct_epoch_smt(top_smt_infos: &Vec<TopSmtInfo>) -> (H256, MerkleProo
 }
 
 #[test]
+fn test_ckb_smt() {
+    let mut tree = BOTTOM_SMT::default();
+    let key1 = addr_to_h256(&[0u8; 20]);
+    let leaf1 = BottomValue(100);
+    tree.update(key1.to_owned(), leaf1).expect("update");
+
+    let smt_root = *tree.root();
+    let proof = tree.merkle_proof(vec![key1]).expect("merkle proof");
+    
+    let leaves = vec![(key1, leaf1.clone().to_h256())];
+    match proof
+        .clone()
+        .verify::<Blake2bHasher>(&smt_root, leaves)
+    {
+        Ok(is_exist) => println!("verify success, exist:{}", is_exist),
+        Err(err) => println!("verify error: {}", err),
+    }
+
+    let proof = proof.clone().compile(vec![key1]).unwrap().0;
+
+    let builder = SMTBuilder::new();
+    let builder = builder.insert(&key1, &leaf1.to_h256()).unwrap();
+
+    let smt = builder.build().unwrap();
+    assert!(smt.verify(&smt_root, &proof).is_ok());
+}
+
+#[test]
 fn test_lock_info_smt() {
     let mut lock_infos = BTreeSet::<LockInfo>::new();
     lock_infos.insert(LockInfo {
         addr: [0u8; 20],
         amount: 100,
     });
-    let (bottom_smt_root, proof) = construct_lock_info_smt(&lock_infos);
-
-    let key1 = addr_to_h256(&[0u8; 20]);
-    let leaf1 = BottomValue(200).to_h256();
-    let leaves = vec![(key1, leaf1)];
-    match proof
-        .clone()
-        .verify::<Blake2bHasher>(&bottom_smt_root, leaves)
-    {
-        Ok(is_exist) => println!("verify success, exist:{}", is_exist),
-        Err(err) => println!("verify error: {}", err),
-    }
+    let (bottom_smt_root, _proof) = construct_lock_info_smt(&lock_infos);
 
     let top_smt_infos = vec![TopSmtInfo {
-        epoch: 1,
+        epoch: 3,
         smt_root: bottom_smt_root,
     }];
-    let (_top_smt_root, _proof) = construct_epoch_smt(&top_smt_infos);
+    let (top_smt_root, proof) = construct_epoch_smt(&top_smt_infos);
+
+    let key = u64_to_h256(3);
+    let proof = proof.compile(vec![key]).unwrap().0;
+
+    let result = verify_smt_leaf(
+        key.as_slice().try_into().unwrap(),
+        bottom_smt_root.as_slice().try_into().unwrap(),
+        top_smt_root.as_slice().try_into().unwrap(),
+        &proof,
+    );
+    match result {
+        Ok(_is_exist) => println!("ckb smt verify success, exist"),
+        Err(err) => println!("ckb smt verify error: {}", err as u32),
+    }
 }
+

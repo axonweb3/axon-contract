@@ -1413,6 +1413,7 @@ dependencies = [
  "bit-vec",
  "blake2b-rs",
  "blst 0.3.10",
+ "ckb-smt",
  "ckb-system-scripts",
  "ckb-testtool",
  "hex",

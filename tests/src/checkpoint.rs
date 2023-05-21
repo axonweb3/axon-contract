@@ -5,7 +5,7 @@ use crate::helper::axon_byte32;
 
 use super::*;
 use axon_types::checkpoint::*;
-use axon_types::metadata::{MetadataList, Metadata};
+use axon_types::metadata::{Metadata, MetadataList};
 use bit_vec::BitVec;
 use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
@@ -63,27 +63,23 @@ fn test_checkpoint_success() {
         .build();
 
     // prepare tx inputs and outputs
-    let inputs = vec![
-        CellInput::new_builder()
-            .previous_output(
-                context.create_cell(
-                    CellOutput::new_builder()
-                        .capacity(1000.pack())
-                        .lock(always_success_lock_script.clone())
-                        .type_(Some(checkpoint_type_script.clone()).pack())
-                        .build(),
-                    Bytes::from(input_checkpoint_data.as_bytes()),
-                ),
-            )
-            .build(),
-    ];
-    let outputs = vec![
-        CellOutput::new_builder()
-            .capacity(1000.pack())
-            .lock(always_success_lock_script.clone())
-            .type_(Some(checkpoint_type_script.clone()).pack())
-            .build(),
-    ];
+    let inputs = vec![CellInput::new_builder()
+        .previous_output(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(1000.pack())
+                    .lock(always_success_lock_script.clone())
+                    .type_(Some(checkpoint_type_script.clone()).pack())
+                    .build(),
+                Bytes::from(input_checkpoint_data.as_bytes()),
+            ),
+        )
+        .build()];
+    let outputs = vec![CellOutput::new_builder()
+        .capacity(1000.pack())
+        .lock(always_success_lock_script.clone())
+        .type_(Some(checkpoint_type_script.clone()).pack())
+        .build()];
 
     // prepare outputs_data
     let output_checkpoint_data = CheckpointCellData::new_builder()
@@ -101,9 +97,7 @@ fn test_checkpoint_success() {
     let outputs_data = vec![Bytes::from(output_checkpoint_data.as_bytes())];
 
     // prepare metadata cell_dep
-    let metadata = Metadata::new_builder()
-        .epoch_len(axon_u32(100))
-        .build();
+    let metadata = Metadata::new_builder().epoch_len(axon_u32(100)).build();
     let metadata_list = MetadataList::new_builder().push(metadata).build();
     let meta_data = axon_metadata_data(
         &metadata_type_script.clone().calc_script_hash(),

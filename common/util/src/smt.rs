@@ -3,10 +3,40 @@ extern crate alloc;
 use core::cmp::Ordering;
 
 use alloc::{collections::BTreeSet, vec::Vec};
+use blake2b_ref::{Blake2b, Blake2bBuilder};
 use ckb_smt::smt::{Pair, Tree};
 use ckb_std::debug;
 
-use crate::{error::Error, helper::bytes_to_h256};
+use crate::error::Error;
+
+// helper function
+fn new_blake2b() -> Blake2b {
+    Blake2bBuilder::new(32).personal(b"ckb-default-hash").build()
+}
+
+pub fn addr_to_h256(addr: &[u8; 20]) -> [u8; 32] {
+    let mut buf = [0u8; 32];
+    let mut hasher = new_blake2b();
+    hasher.update(addr);
+    hasher.finalize(&mut buf);
+    buf
+}
+
+pub fn u128_to_h256(amount: &u128) -> [u8; 32] {
+    let mut buf = [0u8; 32];
+    let mut hasher = new_blake2b();
+    hasher.update(&amount.to_le_bytes());
+    hasher.finalize(&mut buf);
+    buf
+}
+
+pub fn u64_to_h256(epoch: &u64) -> [u8; 32] {
+    let mut buf = [0u8; 32];
+    let mut hasher = new_blake2b();
+    hasher.update(&epoch.to_le_bytes());
+    hasher.finalize(&mut buf);
+    buf
+}
 
 #[derive(Clone, Copy, Default, Eq, PartialOrd, Debug)]
 pub struct LockInfo {
@@ -45,8 +75,8 @@ pub fn build_smt_tree_and_get_root(lock_infos: &BTreeSet<LockInfo>) -> Result<[u
     lock_infos.iter().for_each(|lock_info| {
         let _ = tree
             .update(
-                &bytes_to_h256(&lock_info.addr.to_vec()),
-                &bytes_to_h256(&lock_info.amount.to_le_bytes().to_vec()),
+                &addr_to_h256(&lock_info.addr),
+                &u128_to_h256(&lock_info.amount),
             )
             .map_err(|err| {
                 debug!("update smt tree error: {}", err);
@@ -61,21 +91,21 @@ pub fn build_smt_tree_and_get_root(lock_infos: &BTreeSet<LockInfo>) -> Result<[u
 }
 
 pub fn verify_smt_leaf(
-    key: u64,
+    key: &[u8; 32],
     value: &[u8; 32],
     root: &[u8; 32],
     proof: &Vec<u8>,
 ) -> Result<(), Error> {
-    let mut tree_buf = [Pair::default(); 100];
+    let mut tree_buf = [Pair::default(); 1];
     let mut epoch_tree = Tree::new(&mut tree_buf[..]);
     epoch_tree
-        .update(&bytes_to_h256(&key.to_le_bytes().to_vec()), &value)
+        .update(&key, &value)
         .map_err(|err| {
             debug!("update smt tree error: {}", err);
             Error::SmterrorCodeErrorUpdate
         })?;
     epoch_tree.verify(&root, &proof).map_err(|err| {
-        debug!("verify smt error: {}", err);
+        debug!("smt verify smt error: {}", err);
         Error::SmterrorCodeErrorVerify
     })?;
     Ok(())
@@ -89,6 +119,6 @@ pub fn verify_2layer_smt(
 ) -> Result<(), Error> {
     // construct old stake smt root & verify
     let bottom_root = build_smt_tree_and_get_root(lock_infos)?;
-    verify_smt_leaf(epoch, &bottom_root, top_root, top_proof)?;
+    verify_smt_leaf(&u64_to_h256(&epoch), &bottom_root, top_root, top_proof)?;
     Ok(())
 }

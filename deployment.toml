@@ -1,17 +1,17 @@
-# [[cells]]
-# name = "selection"
-# enable_type_id = true
-# location = { file = "build/release/selection" }
+[[cells]]
+name = "selection"
+enable_type_id = true
+location = { file = "build/release/selection" }
 
 # [[cells]]
 # name = "checkpoint"
 # enable_type_id = true
 # location = { file = "build/release/checkpoint" }
 
-[[cells]]
-name = "metadata"
-enable_type_id = true
-location = { file = "build/release/metadata" }
+# [[cells]]
+# name = "metadata"
+# enable_type_id = true
+# location = { file = "build/release/metadata" }
 
 # # reference to on-chain cells
 # [[cells]]

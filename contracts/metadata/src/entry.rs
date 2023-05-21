@@ -65,7 +65,9 @@ pub fn main() -> Result<(), Error> {
 
     verify_propose_counts(&checkpoint_data, &output_metadata)?;
 
-    verify_eletion(&type_ids)?;
+    verify_election(&type_ids)?;
+
+    // verify lock_info smt root of stake in epoch n + 1 is equal to n
 
     // just to pass compile
     let staker_identity = vec![0u8; 20];
@@ -180,7 +182,7 @@ fn verify_propose_counts(
     Ok(())
 }
 
-fn verify_eletion(type_ids: &TypeIds) -> Result<(), Error> {
+fn verify_election(type_ids: &TypeIds) -> Result<(), Error> {
     let stake_smt_type_id = type_ids.stake_smt_type_id();
     // check stake smt cell in input and output
     let mut stake_smt_cell_count = 0;

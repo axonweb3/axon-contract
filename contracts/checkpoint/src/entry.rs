@@ -82,12 +82,18 @@ fn verify_checkpoint_data(
     let epoch_len = get_epoch_len(&metadata_type_id, Source::CellDep)?;
     if input_period == epoch_len {
         if output_period != 0 || output_epoch != input_epoch + 1 {
-            debug!("output_period = {}, output_epoch = {}, input_epoch = {}", output_period, output_epoch, input_epoch);
+            debug!(
+                "output_period = {}, output_epoch = {}, input_epoch = {}",
+                output_period, output_epoch, input_epoch
+            );
             return Err(Error::CheckpointDataError);
         }
     } else {
         if output_period != input_period + 1 || output_epoch != input_epoch {
-            debug!("output_period = {}, output_epoch = {}, input_period = {}, input_epoch = {}", output_period, output_epoch, input_period, input_epoch);
+            debug!(
+                "output_period = {}, output_epoch = {}, input_period = {}, input_epoch = {}",
+                output_period, output_epoch, input_period, input_epoch
+            );
             return Err(Error::CheckpointDataError);
         }
     }
