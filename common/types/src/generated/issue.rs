@@ -24,7 +24,7 @@ impl ::core::fmt::Display for IssueCellData {
         write!(f, "{}: {}", "version", self.version())?;
         write!(f, ", {}: {}", "current_supply", self.current_supply())?;
         write!(f, ", {}: {}", "max_suppley", self.max_suppley())?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(f, ", {}: {}", "sudt_type_script", self.sudt_type_script())?;
         write!(f, " }}")
     }
 }
@@ -51,7 +51,7 @@ impl IssueCellData {
     pub fn max_suppley(&self) -> Byte16 {
         Byte16::new_unchecked(self.0.slice(17..33))
     }
-    pub fn xudt_type_id(&self) -> Byte32 {
+    pub fn sudt_type_script(&self) -> Byte32 {
         Byte32::new_unchecked(self.0.slice(33..65))
     }
     pub fn as_reader<'r>(&'r self) -> IssueCellDataReader<'r> {
@@ -84,7 +84,7 @@ impl molecule::prelude::Entity for IssueCellData {
             .version(self.version())
             .current_supply(self.current_supply())
             .max_suppley(self.max_suppley())
-            .xudt_type_id(self.xudt_type_id())
+            .sudt_type_script(self.sudt_type_script())
     }
 }
 #[derive(Clone, Copy)]
@@ -109,7 +109,7 @@ impl<'r> ::core::fmt::Display for IssueCellDataReader<'r> {
         write!(f, "{}: {}", "version", self.version())?;
         write!(f, ", {}: {}", "current_supply", self.current_supply())?;
         write!(f, ", {}: {}", "max_suppley", self.max_suppley())?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(f, ", {}: {}", "sudt_type_script", self.sudt_type_script())?;
         write!(f, " }}")
     }
 }
@@ -126,7 +126,7 @@ impl<'r> IssueCellDataReader<'r> {
     pub fn max_suppley(&self) -> Byte16Reader<'r> {
         Byte16Reader::new_unchecked(&self.as_slice()[17..33])
     }
-    pub fn xudt_type_id(&self) -> Byte32Reader<'r> {
+    pub fn sudt_type_script(&self) -> Byte32Reader<'r> {
         Byte32Reader::new_unchecked(&self.as_slice()[33..65])
     }
 }
@@ -156,7 +156,7 @@ pub struct IssueCellDataBuilder {
     pub(crate) version: Byte,
     pub(crate) current_supply: Byte16,
     pub(crate) max_suppley: Byte16,
-    pub(crate) xudt_type_id: Byte32,
+    pub(crate) sudt_type_script: Byte32,
 }
 impl IssueCellDataBuilder {
     pub const TOTAL_SIZE: usize = 65;
@@ -174,8 +174,8 @@ impl IssueCellDataBuilder {
         self.max_suppley = v;
         self
     }
-    pub fn xudt_type_id(mut self, v: Byte32) -> Self {
-        self.xudt_type_id = v;
+    pub fn sudt_type_script(mut self, v: Byte32) -> Self {
+        self.sudt_type_script = v;
         self
     }
 }
@@ -189,7 +189,7 @@ impl molecule::prelude::Builder for IssueCellDataBuilder {
         writer.write_all(self.version.as_slice())?;
         writer.write_all(self.current_supply.as_slice())?;
         writer.write_all(self.max_suppley.as_slice())?;
-        writer.write_all(self.xudt_type_id.as_slice())?;
+        writer.write_all(self.sudt_type_script.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {

@@ -25,7 +25,7 @@
           "type": "Byte16"
         },
         {
-          "name": "xudt_type_id",
+          "name": "sudt_type_script",
           "type": "Byte32"
         }
       ]

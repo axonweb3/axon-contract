@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -38,7 +37,7 @@ impl IssueCellData {
 }
 
 impl IssueCellData {
-    pub fn xudt_type_id(&self) -> Vec<u8> {
+    pub fn sudt_type_script(&self) -> Vec<u8> {
         let cur = self.cursor.slice_by_offset(33, 32).unwrap();
         cur.into()
     }

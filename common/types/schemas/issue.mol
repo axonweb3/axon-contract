@@ -4,5 +4,5 @@ struct IssueCellData {
     version:            byte,
     current_supply:     Byte16, // little endian number
     max_suppley:        Byte16, // little endian number，u128::MAX equals to no cap
-    xudt_type_id:       Byte32, // xUDT type script hash or xUDT type ID script hash
+    sudt_type_script:   Byte32, // sUDT type script hash
 }
