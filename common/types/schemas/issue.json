@@ -1,0 +1,130 @@
+{
+  "namespace": "issue",
+  "imports": [
+    {
+      "name": "basic",
+      "paths": [],
+      "path_supers": 0
+    }
+  ],
+  "declarations": [
+    {
+      "type": "struct",
+      "name": "IssueCellData",
+      "fields": [
+        {
+          "name": "version",
+          "type": "byte"
+        },
+        {
+          "name": "current_supply",
+          "type": "Byte16"
+        },
+        {
+          "name": "max_suppley",
+          "type": "Byte16"
+        },
+        {
+          "name": "sudt_type_script",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "array",
+      "name": "Byte4",
+      "item": "byte",
+      "item_count": 4,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte8",
+      "item": "byte",
+      "item_count": 8,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte16",
+      "item": "byte",
+      "item_count": 16,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte20",
+      "item": "byte",
+      "item_count": 20,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte32",
+      "item": "byte",
+      "item_count": 32,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte65",
+      "item": "byte",
+      "item_count": 65,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte97",
+      "item": "byte",
+      "item_count": 97,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint16",
+      "item": "byte",
+      "item_count": 2,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint32",
+      "item": "byte",
+      "item_count": 4,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint64",
+      "item": "byte",
+      "item_count": 8,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Uint128",
+      "item": "byte",
+      "item_count": 16,
+      "imported_depth": 1
+    },
+    {
+      "type": "fixvec",
+      "name": "Bytes",
+      "item": "byte",
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Identity",
+      "item": "byte",
+      "item_count": 20,
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "IdentityOpt",
+      "item": "Identity",
+      "imported_depth": 1
+    }
+  ]
+}
