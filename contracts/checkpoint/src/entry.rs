@@ -26,6 +26,7 @@ use util::{error::Error, helper::*};
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
     let args: Bytes = script.args().unpack();
+    debug!("args len: {}", args.len());
 
     let checkpoint_args: axon::CheckpointArgs = Cursor::from(args.to_vec()).into();
     let metadata_type_id = checkpoint_args.metadata_type_id();

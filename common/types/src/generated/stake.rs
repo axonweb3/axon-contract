@@ -1851,6 +1851,7 @@ impl ::core::fmt::Display for StakeSmtUpdateInfo {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "all_stake_infos", self.all_stake_infos())?;
+        write!(f, ", {}: {}", "old_bottom_proof", self.old_bottom_proof())?;
         write!(f, ", {}: {}", "old_epoch_proof", self.old_epoch_proof())?;
         write!(f, ", {}: {}", "new_epoch_proof", self.new_epoch_proof())?;
         let extra_count = self.count_extra_fields();
@@ -1863,13 +1864,14 @@ impl ::core::fmt::Display for StakeSmtUpdateInfo {
 impl ::core::default::Default for StakeSmtUpdateInfo {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            28, 0, 0, 0, 16, 0, 0, 0, 20, 0, 0, 0, 24, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            32, 0, 0, 0, 20, 0, 0, 0, 24, 0, 0, 0, 24, 0, 0, 0, 28, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
         ];
         StakeSmtUpdateInfo::new_unchecked(v.into())
     }
 }
 impl StakeSmtUpdateInfo {
-    pub const FIELD_COUNT: usize = 3;
+    pub const FIELD_COUNT: usize = 4;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1892,17 +1894,23 @@ impl StakeSmtUpdateInfo {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         StakeInfos::new_unchecked(self.0.slice(start..end))
     }
-    pub fn old_epoch_proof(&self) -> Bytes {
+    pub fn old_bottom_proof(&self) -> BytesOpt {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
+        BytesOpt::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn old_epoch_proof(&self) -> Bytes {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let end = molecule::unpack_number(&slice[16..]) as usize;
         Bytes::new_unchecked(self.0.slice(start..end))
     }
     pub fn new_epoch_proof(&self) -> Bytes {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let start = molecule::unpack_number(&slice[16..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[16..]) as usize;
+            let end = molecule::unpack_number(&slice[20..]) as usize;
             Bytes::new_unchecked(self.0.slice(start..end))
         } else {
             Bytes::new_unchecked(self.0.slice(start..))
@@ -1936,6 +1944,7 @@ impl molecule::prelude::Entity for StakeSmtUpdateInfo {
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
             .all_stake_infos(self.all_stake_infos())
+            .old_bottom_proof(self.old_bottom_proof())
             .old_epoch_proof(self.old_epoch_proof())
             .new_epoch_proof(self.new_epoch_proof())
     }
@@ -1960,6 +1969,7 @@ impl<'r> ::core::fmt::Display for StakeSmtUpdateInfoReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "all_stake_infos", self.all_stake_infos())?;
+        write!(f, ", {}: {}", "old_bottom_proof", self.old_bottom_proof())?;
         write!(f, ", {}: {}", "old_epoch_proof", self.old_epoch_proof())?;
         write!(f, ", {}: {}", "new_epoch_proof", self.new_epoch_proof())?;
         let extra_count = self.count_extra_fields();
@@ -1970,7 +1980,7 @@ impl<'r> ::core::fmt::Display for StakeSmtUpdateInfoReader<'r> {
     }
 }
 impl<'r> StakeSmtUpdateInfoReader<'r> {
-    pub const FIELD_COUNT: usize = 3;
+    pub const FIELD_COUNT: usize = 4;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1993,17 +2003,23 @@ impl<'r> StakeSmtUpdateInfoReader<'r> {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         StakeInfosReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn old_epoch_proof(&self) -> BytesReader<'r> {
+    pub fn old_bottom_proof(&self) -> BytesOptReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
+        BytesOptReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn old_epoch_proof(&self) -> BytesReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let end = molecule::unpack_number(&slice[16..]) as usize;
         BytesReader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn new_epoch_proof(&self) -> BytesReader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let start = molecule::unpack_number(&slice[16..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[16..]) as usize;
+            let end = molecule::unpack_number(&slice[20..]) as usize;
             BytesReader::new_unchecked(&self.as_slice()[start..end])
         } else {
             BytesReader::new_unchecked(&self.as_slice()[start..])
@@ -2060,21 +2076,27 @@ impl<'r> molecule::prelude::Reader<'r> for StakeSmtUpdateInfoReader<'r> {
             return ve!(Self, OffsetsNotMatch);
         }
         StakeInfosReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        BytesReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        BytesOptReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         BytesReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        BytesReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct StakeSmtUpdateInfoBuilder {
     pub(crate) all_stake_infos: StakeInfos,
+    pub(crate) old_bottom_proof: BytesOpt,
     pub(crate) old_epoch_proof: Bytes,
     pub(crate) new_epoch_proof: Bytes,
 }
 impl StakeSmtUpdateInfoBuilder {
-    pub const FIELD_COUNT: usize = 3;
+    pub const FIELD_COUNT: usize = 4;
     pub fn all_stake_infos(mut self, v: StakeInfos) -> Self {
         self.all_stake_infos = v;
+        self
+    }
+    pub fn old_bottom_proof(mut self, v: BytesOpt) -> Self {
+        self.old_bottom_proof = v;
         self
     }
     pub fn old_epoch_proof(mut self, v: Bytes) -> Self {
@@ -2092,6 +2114,7 @@ impl molecule::prelude::Builder for StakeSmtUpdateInfoBuilder {
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
             + self.all_stake_infos.as_slice().len()
+            + self.old_bottom_proof.as_slice().len()
             + self.old_epoch_proof.as_slice().len()
             + self.new_epoch_proof.as_slice().len()
     }
@@ -2101,6 +2124,8 @@ impl molecule::prelude::Builder for StakeSmtUpdateInfoBuilder {
         offsets.push(total_size);
         total_size += self.all_stake_infos.as_slice().len();
         offsets.push(total_size);
+        total_size += self.old_bottom_proof.as_slice().len();
+        offsets.push(total_size);
         total_size += self.old_epoch_proof.as_slice().len();
         offsets.push(total_size);
         total_size += self.new_epoch_proof.as_slice().len();
@@ -2109,6 +2134,7 @@ impl molecule::prelude::Builder for StakeSmtUpdateInfoBuilder {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
         writer.write_all(self.all_stake_infos.as_slice())?;
+        writer.write_all(self.old_bottom_proof.as_slice())?;
         writer.write_all(self.old_epoch_proof.as_slice())?;
         writer.write_all(self.new_epoch_proof.as_slice())?;
         Ok(())

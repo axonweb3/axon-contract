@@ -1,13 +1,16 @@
+#![allow(non_camel_case_types)]
 use std::{collections::BTreeSet, convert::TryInto};
 
 use blake2b_rs::{Blake2b, Blake2bBuilder};
 use ckb_smt::smt::{Pair, Tree};
 use sparse_merkle_tree::{
-    default_store::DefaultStore,  traits::{Value, Hasher},
-    MerkleProof, SparseMerkleTree, H256, SMTBuilder,
+    default_store::DefaultStore,
+    traits::{Hasher, Value},
+    MerkleProof, SMTBuilder, SparseMerkleTree, H256,
 };
 use util::{
-    smt::{verify_smt_leaf, LockInfo}, error::Error,
+    error::Error,
+    smt::{verify_smt_leaf, LockInfo},
 };
 
 pub struct Blake2bHasher(Blake2b);
@@ -140,7 +143,9 @@ impl Value for BottomValue {
 // helper function
 fn new_blake2b() -> Blake2b {
     // Blake2bBuilder::new(32).personal(b"SMT").build()
-    Blake2bBuilder::new(32).personal(b"ckb-default-hash").build()
+    Blake2bBuilder::new(32)
+        .personal(b"ckb-default-hash")
+        .build()
 }
 
 pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
@@ -152,22 +157,28 @@ pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
 }
 
 // bottom smt tree
-pub fn construct_lock_info_smt(lock_infos: &BTreeSet<LockInfo>) -> (H256, MerkleProof) {
+pub fn construct_lock_info_smt(lock_infos: &BTreeSet<LockInfo>) -> (H256, Option<MerkleProof>) {
     let mut tree = BOTTOM_SMT::default();
-    let mut key1 = H256::zero();
+    let mut keys = Vec::<H256>::new();
     // travese lock_infos and insert into smt
     for lock_info in lock_infos.iter() {
         let key: H256 = addr_to_h256(&lock_info.addr);
-        key1 = key;
+        keys.push(key);
         // println!("key: {:?}", key);
         let value = BottomValue(lock_info.amount);
         tree.update(key.to_owned(), value).expect("update");
     }
 
-    (
-        *tree.root(),
-        tree.merkle_proof(vec![key1]).expect("merkle proof"),
-    )
+    // println!("lock_infos len: {}, root: {:?}", lock_infos.len(), tree.root());
+    if keys.is_empty() {
+        return (H256::zero(), None);
+    } else {
+        return 
+        (
+            *tree.root(),
+            Some(tree.merkle_proof(keys).expect("merkle proof")),
+        );
+    }
 }
 
 pub fn u64_to_h256(epoch: u64) -> H256 {
@@ -205,12 +216,9 @@ fn test_ckb_smt() {
 
     let smt_root = *tree.root();
     let proof = tree.merkle_proof(vec![key1]).expect("merkle proof");
-    
+
     let leaves = vec![(key1, leaf1.clone().to_h256())];
-    match proof
-        .clone()
-        .verify::<Blake2bHasher>(&smt_root, leaves)
-    {
+    match proof.clone().verify::<Blake2bHasher>(&smt_root, leaves) {
         Ok(is_exist) => println!("verify success, exist:{}", is_exist),
         Err(err) => println!("verify error: {}", err),
     }
@@ -224,7 +232,10 @@ fn test_ckb_smt() {
     assert!(smt.verify(&smt_root, &proof).is_ok());
 }
 
-pub fn build_smt_tree_and_get_root_local(lock_infos: &BTreeSet<LockInfo>, proof: &Vec<u8>) -> Result<[u8; 32], Error> {
+pub fn build_smt_tree_and_get_root_local(
+    lock_infos: &BTreeSet<LockInfo>,
+    proof: &Vec<u8>,
+) -> Result<[u8; 32], Error> {
     // construct smt root & verify
     let mut tree_buf = [Pair::default(); 1];
     println!("tree_buf len: {}", tree_buf.len());
@@ -234,7 +245,11 @@ pub fn build_smt_tree_and_get_root_local(lock_infos: &BTreeSet<LockInfo>, proof:
         let _ = tree
             .update(
                 &addr_to_h256(&lock_info.addr).as_slice().try_into().unwrap(),
-                BottomValue(lock_info.amount).to_h256().as_slice().try_into().unwrap(),
+                BottomValue(lock_info.amount)
+                    .to_h256()
+                    .as_slice()
+                    .try_into()
+                    .unwrap(),
             )
             .map_err(|err| {
                 println!("update smt tree error: {}", err);
@@ -252,18 +267,18 @@ pub fn build_smt_tree_and_get_root_local(lock_infos: &BTreeSet<LockInfo>, proof:
 
 #[test]
 fn test_lock_info_smt() {
-{
-    let lock_infos = BTreeSet::<LockInfo>::new();
-    let (bottom_smt_root, proof) = construct_lock_info_smt(&lock_infos);
-    println!("bottom_smt_root: {:?}", bottom_smt_root);
+    // {
+    //     let lock_infos = BTreeSet::<LockInfo>::new();
+    //     let (bottom_smt_root, proof) = construct_lock_info_smt(&lock_infos);
+    //     println!("bottom_smt_root: {:?}", bottom_smt_root);
 
-    let proof = proof.compile(vec![addr_to_h256(&[0u8; 20])]).unwrap().0;
-    let re = build_smt_tree_and_get_root_local(&lock_infos, &proof);
-    match re {
-        Ok(root) => println!("ckb smt root: {:?}", root),
-        Err(err) => println!("ckb smt root error: {}", err as u32),
-    }
-}
+    //     let proof = proof.compile(vec![addr_to_h256(&[0u8; 20])]).unwrap().0;
+    //     let re = build_smt_tree_and_get_root_local(&lock_infos, &proof);
+    //     match re {
+    //         Ok(root) => println!("ckb smt root: {:?}", root),
+    //         Err(err) => println!("ckb smt root error: {}", err as u32),
+    //     }
+    // }
 
     let mut lock_infos = BTreeSet::<LockInfo>::new();
     lock_infos.insert(LockInfo {
@@ -273,7 +288,8 @@ fn test_lock_info_smt() {
     let (bottom_smt_root, proof) = construct_lock_info_smt(&lock_infos);
     println!("bottom_smt_root: {:?}", bottom_smt_root);
 
-    let proof = proof.compile(vec![addr_to_h256(&[0u8; 20])]).unwrap().0;
+    let proof = proof.unwrap().compile(vec![addr_to_h256(&[0u8; 20])]).unwrap().0;
+    // lock_infos.clear();
     let re = build_smt_tree_and_get_root_local(&lock_infos, &proof);
     match re {
         Ok(root) => println!("ckb smt root: {:?}", root),
@@ -300,4 +316,3 @@ fn test_lock_info_smt() {
         Err(err) => println!("ckb smt verify error: {}", err as u32),
     }
 }
-

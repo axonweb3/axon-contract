@@ -380,6 +380,12 @@
       "imported_depth": 1
     },
     {
+      "type": "option",
+      "name": "BytesOpt",
+      "item": "Bytes",
+      "imported_depth": 1
+    },
+    {
       "type": "array",
       "name": "Identity",
       "item": "byte",

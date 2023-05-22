@@ -1,5 +1,5 @@
 use std::collections::BTreeSet;
-use std::convert::TryInto;
+// use std::convert::TryInto;
 
 use crate::smt::{
     construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
@@ -8,7 +8,7 @@ use crate::smt::{
 use super::*;
 use axon_types::metadata::{Metadata, MetadataList};
 use axon_types::stake::*;
-use bit_vec::BitVec;
+// use bit_vec::BitVec;
 use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
@@ -249,10 +249,10 @@ fn test_stake_smt_success() {
     let checkpoint_type_script = context
         .build_script(&always_success_out_point, Bytes::from(vec![2]))
         .expect("checkpoint script");
-    println!(
-        "checkpoint type hash: {:?}",
-        checkpoint_type_script.calc_script_hash().as_slice()
-    );
+    // println!(
+    //     "checkpoint type hash: {:?}",
+    //     checkpoint_type_script.calc_script_hash().as_slice()
+    // );
 
     let stake_at_type_script = context
         .build_script(&always_success_out_point, Bytes::from(vec![4]))
@@ -297,7 +297,7 @@ fn test_stake_smt_success() {
         .expect("stake smt type script");
 
     // prepare tx inputs and outputs
-    // println!("stake at cell lock hash:{:?}", stake_at_lock_script.calc_script_hash().as_slice());
+    println!("empty input stake infos of stake smt cell");
     let input_stake_infos = BTreeSet::new();
     let input_stake_smt_data =
         axon_stake_smt_cell_data(&input_stake_infos, &metadata_type_script.calc_script_hash());
@@ -431,15 +431,16 @@ fn test_stake_smt_success() {
     let (_, new_proof) = construct_epoch_smt(&new_top_smt_infos);
     let new_proof = new_proof.compile(vec![u64_to_h256(3)]).unwrap().0;
 
-    let stake_info = stake::StakeInfo::new_builder()
+    let _stake_info = stake::StakeInfo::new_builder()
         .addr(axon_identity(&keypair.1.serialize().as_slice().to_vec()))
         .amount(axon_u128(100))
-        .build();
-    let stake_infos = stake::StakeInfos::new_builder().push(stake_info).build();
+        .build(); // assume old stake smt is empty
+    let stake_infos = stake::StakeInfos::new_builder().build();
     let stake_smt_update_info = stake::StakeSmtUpdateInfo::new_builder()
         .all_stake_infos(stake_infos)
         .old_epoch_proof(axon_bytes(&old_proof))
         .new_epoch_proof(axon_bytes(&new_proof))
+        .old_bottom_proof(axon_bytes_none())
         .build();
 
     let stake_smt_witness = WitnessArgs::new_builder()

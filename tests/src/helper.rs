@@ -8,16 +8,14 @@ use ckb_testtool::{
     ckb_hash::{blake2b_256, new_blake2b},
     ckb_types::{
         bytes::Bytes,
-        core::{TransactionView},
+        core::TransactionView,
         packed::{self, *},
         prelude::*,
         H256,
     },
 };
 use molecule::prelude::*;
-use util::{
-    smt::{build_smt_tree_and_get_root, LockInfo},
-};
+use util::smt::{build_smt_tree_and_get_root, LockInfo};
 
 pub const MAX_CYCLES: u64 = 100_000_000;
 
@@ -56,6 +54,16 @@ pub fn axon_byte4(value: u32) -> basic::Byte4 {
 pub fn axon_bytes(bytes: &Vec<u8>) -> basic::Bytes {
     let bytes = bytes.into_iter().map(|value| (*value).into()).collect();
     basic::Bytes::new_builder().set(bytes).build()
+}
+
+pub fn axon_bytes_some(bytes: &Vec<u8>) -> basic::BytesOpt {
+    basic::BytesOpt::new_builder()
+        .set(Some(axon_bytes(bytes)))
+        .build()
+}
+
+pub fn axon_bytes_none() -> basic::BytesOpt {
+    basic::BytesOpt::new_builder().set(None).build()
 }
 
 // convert u128 to basic::Uint128
@@ -192,17 +200,12 @@ pub fn axon_stake_smt_cell_data(
     metadata_type_id: &packed::Byte32,
 ) -> axon_types::stake::StakeSmtCellData {
     // call build_smt_tree_and_get_root and print error message
-    let root = build_smt_tree_and_get_root(stake_infos).unwrap_or_else(|_err| {
-        println!("build smt tree error:");
-        [0u8; 32]
-    });
-    println!("root: {:?}", root);
-    // build smt tree
-    // let mut tree = SMT::default();
+    let (root, proof) = crate::smt::construct_lock_info_smt(stake_infos);
+    // println!("root: {:?}", root);
 
     axon_types::stake::StakeSmtCellData::new_builder()
         .version(0.into())
-        .smt_root(basic::Byte32::new_unchecked(root.to_vec().into()))
+        .smt_root(basic::Byte32::new_unchecked(root.as_slice().to_vec().into()))
         .metadata_type_id(axon_byte32(metadata_type_id))
         .build()
 }

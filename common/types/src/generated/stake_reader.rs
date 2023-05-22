@@ -213,8 +213,19 @@ impl StakeSmtUpdateInfo {
 }
 
 impl StakeSmtUpdateInfo {
-    pub fn old_epoch_proof(&self) -> Vec<u8> {
+    pub fn old_bottom_proof(&self) -> Option<Vec<u8>> {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
+        if cur.option_is_none() {
+            None
+        } else {
+            Some(cur.into())
+        }
+    }
+}
+
+impl StakeSmtUpdateInfo {
+    pub fn old_epoch_proof(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(2).unwrap();
         let cur2 = cur.convert_to_rawbytes().unwrap();
         cur2.into()
     }
@@ -222,7 +233,7 @@ impl StakeSmtUpdateInfo {
 
 impl StakeSmtUpdateInfo {
     pub fn new_epoch_proof(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(2).unwrap();
+        let cur = self.cursor.table_slice_by_index(3).unwrap();
         let cur2 = cur.convert_to_rawbytes().unwrap();
         cur2.into()
     }

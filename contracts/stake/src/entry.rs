@@ -277,8 +277,9 @@ fn verify_old_stake_infos(
 ) -> Result<(), Error> {
     let epoch_root: [u8; 32] = old_stake_smt_data.smt_root().as_slice().try_into().unwrap(); // get from input smt cell
     let epoch_proof = stake_smt_update_infos.old_epoch_proof();
+    let old_bottom_proof = stake_smt_update_infos.old_bottom_proof();
     debug!("epoch_proof:{:?}", epoch_proof);
-    verify_2layer_smt(&stake_infos_set, epoch, &epoch_proof, &epoch_root)?;
+    verify_2layer_smt(&stake_infos_set, epoch, &epoch_proof, &epoch_root, &old_bottom_proof)?;
     Ok(())
 }
 
@@ -308,6 +309,7 @@ fn verify_staker_seletion(
         epoch,
         &new_epoch_proof,
         &new_epoch_root,
+        &stake_smt_update_infos.old_bottom_proof()
     )?;
 
     Ok(())
@@ -382,7 +384,7 @@ fn update_stake_smt(
 
         // construct old stake smt root & verify
         let epoch = get_current_epoch(&checkpoint_type_id)?;
-        debug!("epoch:{}", epoch);
+        debug!("current epoch:{}", epoch);
         let mut stake_infos_set = transform_to_set(&stake_smt_update_infos.all_stake_infos());
         verify_old_stake_infos(
             epoch,

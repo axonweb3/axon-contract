@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 // use std::convert::TryInto;
 
 // use crate::smt::{
-    // construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
+// construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
 // };
 
 use super::*;

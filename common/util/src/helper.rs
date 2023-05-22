@@ -149,10 +149,10 @@ pub fn get_checkpoint_from_celldeps(
         .enumerate()
         .for_each(|(i, type_hash)| {
             if type_hash.unwrap_or([0u8; 32]) == checkpoint_type_hash.as_slice() {
-                debug!("checkpoint type hash: {:?}", checkpoint_type_hash);
+                // debug!("checkpoint type hash: {:?}", checkpoint_type_hash);
                 assert!(checkpoint_data.is_none());
                 checkpoint_data = {
-                    debug!("checkpoint data index: {}", i);
+                    // debug!("checkpoint data index: {}", i);
                     let data = load_cell_data(i, Source::CellDep);
                     match data {
                         Ok(data) => {
@@ -161,8 +161,8 @@ pub fn get_checkpoint_from_celldeps(
                                 Cursor::from(data).into();
                             Some(checkpoint_data)
                         }
-                        Err(err) => {
-                            debug!("checkpoint data error: {:?}", err);
+                        Err(_err) => {
+                            debug!("checkpoint data error: {:?}", _err);
                             None
                         }
                     }

@@ -116,6 +116,10 @@
           "type": "StakeInfos"
         },
         {
+          "name": "old_bottom_proof",
+          "type": "BytesOpt"
+        },
+        {
           "name": "old_epoch_proof",
           "type": "Bytes"
         },
@@ -206,6 +210,12 @@
       "type": "fixvec",
       "name": "Bytes",
       "item": "byte",
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "BytesOpt",
+      "item": "Bytes",
       "imported_depth": 1
     },
     {
