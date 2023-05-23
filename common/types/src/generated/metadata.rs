@@ -1638,22 +1638,55 @@ impl ::core::fmt::Debug for TypeIds {
 impl ::core::fmt::Display for TypeIds {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, "{}: {}", "issue_type_id", self.issue_type_id())?;
+        write!(f, ", {}: {}", "selection_type_id", self.selection_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "xudt_owner_lock_hash",
+            self.xudt_owner_lock_hash()
+        )?;
+        write!(
+            f,
+            ", {}: {}",
+            "metadata_code_hash",
+            self.metadata_code_hash()
+        )?;
+        write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "checkpoint_code_hash",
+            self.checkpoint_code_hash()
+        )?;
         write!(
             f,
             ", {}: {}",
             "checkpoint_type_id",
             self.checkpoint_type_id()
         )?;
+        write!(
+            f,
+            ", {}: {}",
+            "stake_smt_code_hash",
+            self.stake_smt_code_hash()
+        )?;
         write!(f, ", {}: {}", "stake_smt_type_id", self.stake_smt_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "delegate_smt_code_hash",
+            self.delegate_smt_code_hash()
+        )?;
         write!(
             f,
             ", {}: {}",
             "delegate_smt_type_id",
             self.delegate_smt_type_id()
         )?;
+        write!(f, ", {}: {}", "reward_code_hash", self.reward_code_hash())?;
         write!(f, ", {}: {}", "reward_type_id", self.reward_type_id())?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(f, ", {}: {}", "xudt_type_hash", self.xudt_type_hash())?;
         write!(
             f,
             ", {}: {}",
@@ -1670,21 +1703,31 @@ impl ::core::fmt::Display for TypeIds {
 impl ::core::default::Default for TypeIds {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            0, 1, 0, 0, 32, 0, 0, 0, 64, 0, 0, 0, 96, 0, 0, 0, 128, 0, 0, 0, 160, 0, 0, 0, 192, 0,
-            0, 0, 224, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            32, 2, 0, 0, 64, 0, 0, 0, 96, 0, 0, 0, 128, 0, 0, 0, 160, 0, 0, 0, 192, 0, 0, 0, 224,
+            0, 0, 0, 0, 1, 0, 0, 32, 1, 0, 0, 64, 1, 0, 0, 96, 1, 0, 0, 128, 1, 0, 0, 160, 1, 0, 0,
+            192, 1, 0, 0, 224, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         TypeIds::new_unchecked(v.into())
     }
 }
 impl TypeIds {
-    pub const FIELD_COUNT: usize = 7;
+    pub const FIELD_COUNT: usize = 15;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1701,47 +1744,95 @@ impl TypeIds {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn metadata_type_id(&self) -> Byte32 {
+    pub fn issue_type_id(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn checkpoint_type_id(&self) -> Byte32 {
+    pub fn selection_type_id(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn stake_smt_type_id(&self) -> Byte32 {
+    pub fn xudt_owner_lock_hash(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn delegate_smt_type_id(&self) -> Byte32 {
+    pub fn metadata_code_hash(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[16..]) as usize;
         let end = molecule::unpack_number(&slice[20..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn reward_type_id(&self) -> Byte32 {
+    pub fn metadata_type_id(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[20..]) as usize;
         let end = molecule::unpack_number(&slice[24..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn xudt_type_id(&self) -> Byte32 {
+    pub fn checkpoint_code_hash(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[24..]) as usize;
         let end = molecule::unpack_number(&slice[28..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn withdraw_code_hash(&self) -> Byte32 {
+    pub fn checkpoint_type_id(&self) -> Byte32 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[28..]) as usize;
+        let end = molecule::unpack_number(&slice[32..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn stake_smt_code_hash(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[32..]) as usize;
+        let end = molecule::unpack_number(&slice[36..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn stake_smt_type_id(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[36..]) as usize;
+        let end = molecule::unpack_number(&slice[40..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn delegate_smt_code_hash(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[40..]) as usize;
+        let end = molecule::unpack_number(&slice[44..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn delegate_smt_type_id(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[44..]) as usize;
+        let end = molecule::unpack_number(&slice[48..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn reward_code_hash(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[48..]) as usize;
+        let end = molecule::unpack_number(&slice[52..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn reward_type_id(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[52..]) as usize;
+        let end = molecule::unpack_number(&slice[56..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn xudt_type_hash(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[56..]) as usize;
+        let end = molecule::unpack_number(&slice[60..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn withdraw_code_hash(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[60..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[32..]) as usize;
+            let end = molecule::unpack_number(&slice[64..]) as usize;
             Byte32::new_unchecked(self.0.slice(start..end))
         } else {
             Byte32::new_unchecked(self.0.slice(start..))
@@ -1774,12 +1865,20 @@ impl molecule::prelude::Entity for TypeIds {
     }
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
+            .issue_type_id(self.issue_type_id())
+            .selection_type_id(self.selection_type_id())
+            .xudt_owner_lock_hash(self.xudt_owner_lock_hash())
+            .metadata_code_hash(self.metadata_code_hash())
             .metadata_type_id(self.metadata_type_id())
+            .checkpoint_code_hash(self.checkpoint_code_hash())
             .checkpoint_type_id(self.checkpoint_type_id())
+            .stake_smt_code_hash(self.stake_smt_code_hash())
             .stake_smt_type_id(self.stake_smt_type_id())
+            .delegate_smt_code_hash(self.delegate_smt_code_hash())
             .delegate_smt_type_id(self.delegate_smt_type_id())
+            .reward_code_hash(self.reward_code_hash())
             .reward_type_id(self.reward_type_id())
-            .xudt_type_id(self.xudt_type_id())
+            .xudt_type_hash(self.xudt_type_hash())
             .withdraw_code_hash(self.withdraw_code_hash())
     }
 }
@@ -1802,22 +1901,55 @@ impl<'r> ::core::fmt::Debug for TypeIdsReader<'r> {
 impl<'r> ::core::fmt::Display for TypeIdsReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, "{}: {}", "issue_type_id", self.issue_type_id())?;
+        write!(f, ", {}: {}", "selection_type_id", self.selection_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "xudt_owner_lock_hash",
+            self.xudt_owner_lock_hash()
+        )?;
+        write!(
+            f,
+            ", {}: {}",
+            "metadata_code_hash",
+            self.metadata_code_hash()
+        )?;
+        write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "checkpoint_code_hash",
+            self.checkpoint_code_hash()
+        )?;
         write!(
             f,
             ", {}: {}",
             "checkpoint_type_id",
             self.checkpoint_type_id()
         )?;
+        write!(
+            f,
+            ", {}: {}",
+            "stake_smt_code_hash",
+            self.stake_smt_code_hash()
+        )?;
         write!(f, ", {}: {}", "stake_smt_type_id", self.stake_smt_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "delegate_smt_code_hash",
+            self.delegate_smt_code_hash()
+        )?;
         write!(
             f,
             ", {}: {}",
             "delegate_smt_type_id",
             self.delegate_smt_type_id()
         )?;
+        write!(f, ", {}: {}", "reward_code_hash", self.reward_code_hash())?;
         write!(f, ", {}: {}", "reward_type_id", self.reward_type_id())?;
-        write!(f, ", {}: {}", "xudt_type_id", self.xudt_type_id())?;
+        write!(f, ", {}: {}", "xudt_type_hash", self.xudt_type_hash())?;
         write!(
             f,
             ", {}: {}",
@@ -1832,7 +1964,7 @@ impl<'r> ::core::fmt::Display for TypeIdsReader<'r> {
     }
 }
 impl<'r> TypeIdsReader<'r> {
-    pub const FIELD_COUNT: usize = 7;
+    pub const FIELD_COUNT: usize = 15;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1849,47 +1981,95 @@ impl<'r> TypeIdsReader<'r> {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+    pub fn issue_type_id(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn checkpoint_type_id(&self) -> Byte32Reader<'r> {
+    pub fn selection_type_id(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn stake_smt_type_id(&self) -> Byte32Reader<'r> {
+    pub fn xudt_owner_lock_hash(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn delegate_smt_type_id(&self) -> Byte32Reader<'r> {
+    pub fn metadata_code_hash(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[16..]) as usize;
         let end = molecule::unpack_number(&slice[20..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn reward_type_id(&self) -> Byte32Reader<'r> {
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[20..]) as usize;
         let end = molecule::unpack_number(&slice[24..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn xudt_type_id(&self) -> Byte32Reader<'r> {
+    pub fn checkpoint_code_hash(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[24..]) as usize;
         let end = molecule::unpack_number(&slice[28..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn withdraw_code_hash(&self) -> Byte32Reader<'r> {
+    pub fn checkpoint_type_id(&self) -> Byte32Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[28..]) as usize;
+        let end = molecule::unpack_number(&slice[32..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn stake_smt_code_hash(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[32..]) as usize;
+        let end = molecule::unpack_number(&slice[36..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn stake_smt_type_id(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[36..]) as usize;
+        let end = molecule::unpack_number(&slice[40..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn delegate_smt_code_hash(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[40..]) as usize;
+        let end = molecule::unpack_number(&slice[44..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn delegate_smt_type_id(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[44..]) as usize;
+        let end = molecule::unpack_number(&slice[48..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn reward_code_hash(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[48..]) as usize;
+        let end = molecule::unpack_number(&slice[52..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn reward_type_id(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[52..]) as usize;
+        let end = molecule::unpack_number(&slice[56..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn xudt_type_hash(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[56..]) as usize;
+        let end = molecule::unpack_number(&slice[60..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn withdraw_code_hash(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[60..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[32..]) as usize;
+            let end = molecule::unpack_number(&slice[64..]) as usize;
             Byte32Reader::new_unchecked(&self.as_slice()[start..end])
         } else {
             Byte32Reader::new_unchecked(&self.as_slice()[start..])
@@ -1952,43 +2132,91 @@ impl<'r> molecule::prelude::Reader<'r> for TypeIdsReader<'r> {
         Byte32Reader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
         Byte32Reader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
         Byte32Reader::verify(&slice[offsets[6]..offsets[7]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[7]..offsets[8]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[8]..offsets[9]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[9]..offsets[10]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[10]..offsets[11]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[11]..offsets[12]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[12]..offsets[13]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[13]..offsets[14]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[14]..offsets[15]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct TypeIdsBuilder {
+    pub(crate) issue_type_id: Byte32,
+    pub(crate) selection_type_id: Byte32,
+    pub(crate) xudt_owner_lock_hash: Byte32,
+    pub(crate) metadata_code_hash: Byte32,
     pub(crate) metadata_type_id: Byte32,
+    pub(crate) checkpoint_code_hash: Byte32,
     pub(crate) checkpoint_type_id: Byte32,
+    pub(crate) stake_smt_code_hash: Byte32,
     pub(crate) stake_smt_type_id: Byte32,
+    pub(crate) delegate_smt_code_hash: Byte32,
     pub(crate) delegate_smt_type_id: Byte32,
+    pub(crate) reward_code_hash: Byte32,
     pub(crate) reward_type_id: Byte32,
-    pub(crate) xudt_type_id: Byte32,
+    pub(crate) xudt_type_hash: Byte32,
     pub(crate) withdraw_code_hash: Byte32,
 }
 impl TypeIdsBuilder {
-    pub const FIELD_COUNT: usize = 7;
+    pub const FIELD_COUNT: usize = 15;
+    pub fn issue_type_id(mut self, v: Byte32) -> Self {
+        self.issue_type_id = v;
+        self
+    }
+    pub fn selection_type_id(mut self, v: Byte32) -> Self {
+        self.selection_type_id = v;
+        self
+    }
+    pub fn xudt_owner_lock_hash(mut self, v: Byte32) -> Self {
+        self.xudt_owner_lock_hash = v;
+        self
+    }
+    pub fn metadata_code_hash(mut self, v: Byte32) -> Self {
+        self.metadata_code_hash = v;
+        self
+    }
     pub fn metadata_type_id(mut self, v: Byte32) -> Self {
         self.metadata_type_id = v;
+        self
+    }
+    pub fn checkpoint_code_hash(mut self, v: Byte32) -> Self {
+        self.checkpoint_code_hash = v;
         self
     }
     pub fn checkpoint_type_id(mut self, v: Byte32) -> Self {
         self.checkpoint_type_id = v;
         self
     }
+    pub fn stake_smt_code_hash(mut self, v: Byte32) -> Self {
+        self.stake_smt_code_hash = v;
+        self
+    }
     pub fn stake_smt_type_id(mut self, v: Byte32) -> Self {
         self.stake_smt_type_id = v;
+        self
+    }
+    pub fn delegate_smt_code_hash(mut self, v: Byte32) -> Self {
+        self.delegate_smt_code_hash = v;
         self
     }
     pub fn delegate_smt_type_id(mut self, v: Byte32) -> Self {
         self.delegate_smt_type_id = v;
         self
     }
+    pub fn reward_code_hash(mut self, v: Byte32) -> Self {
+        self.reward_code_hash = v;
+        self
+    }
     pub fn reward_type_id(mut self, v: Byte32) -> Self {
         self.reward_type_id = v;
         self
     }
-    pub fn xudt_type_id(mut self, v: Byte32) -> Self {
-        self.xudt_type_id = v;
+    pub fn xudt_type_hash(mut self, v: Byte32) -> Self {
+        self.xudt_type_hash = v;
         self
     }
     pub fn withdraw_code_hash(mut self, v: Byte32) -> Self {
@@ -2001,41 +2229,73 @@ impl molecule::prelude::Builder for TypeIdsBuilder {
     const NAME: &'static str = "TypeIdsBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
+            + self.issue_type_id.as_slice().len()
+            + self.selection_type_id.as_slice().len()
+            + self.xudt_owner_lock_hash.as_slice().len()
+            + self.metadata_code_hash.as_slice().len()
             + self.metadata_type_id.as_slice().len()
+            + self.checkpoint_code_hash.as_slice().len()
             + self.checkpoint_type_id.as_slice().len()
+            + self.stake_smt_code_hash.as_slice().len()
             + self.stake_smt_type_id.as_slice().len()
+            + self.delegate_smt_code_hash.as_slice().len()
             + self.delegate_smt_type_id.as_slice().len()
+            + self.reward_code_hash.as_slice().len()
             + self.reward_type_id.as_slice().len()
-            + self.xudt_type_id.as_slice().len()
+            + self.xudt_type_hash.as_slice().len()
             + self.withdraw_code_hash.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
         let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
         offsets.push(total_size);
+        total_size += self.issue_type_id.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.selection_type_id.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.xudt_owner_lock_hash.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.metadata_code_hash.as_slice().len();
+        offsets.push(total_size);
         total_size += self.metadata_type_id.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.checkpoint_code_hash.as_slice().len();
         offsets.push(total_size);
         total_size += self.checkpoint_type_id.as_slice().len();
         offsets.push(total_size);
+        total_size += self.stake_smt_code_hash.as_slice().len();
+        offsets.push(total_size);
         total_size += self.stake_smt_type_id.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.delegate_smt_code_hash.as_slice().len();
         offsets.push(total_size);
         total_size += self.delegate_smt_type_id.as_slice().len();
         offsets.push(total_size);
+        total_size += self.reward_code_hash.as_slice().len();
+        offsets.push(total_size);
         total_size += self.reward_type_id.as_slice().len();
         offsets.push(total_size);
-        total_size += self.xudt_type_id.as_slice().len();
+        total_size += self.xudt_type_hash.as_slice().len();
         offsets.push(total_size);
         total_size += self.withdraw_code_hash.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
+        writer.write_all(self.issue_type_id.as_slice())?;
+        writer.write_all(self.selection_type_id.as_slice())?;
+        writer.write_all(self.xudt_owner_lock_hash.as_slice())?;
+        writer.write_all(self.metadata_code_hash.as_slice())?;
         writer.write_all(self.metadata_type_id.as_slice())?;
+        writer.write_all(self.checkpoint_code_hash.as_slice())?;
         writer.write_all(self.checkpoint_type_id.as_slice())?;
+        writer.write_all(self.stake_smt_code_hash.as_slice())?;
         writer.write_all(self.stake_smt_type_id.as_slice())?;
+        writer.write_all(self.delegate_smt_code_hash.as_slice())?;
         writer.write_all(self.delegate_smt_type_id.as_slice())?;
+        writer.write_all(self.reward_code_hash.as_slice())?;
         writer.write_all(self.reward_type_id.as_slice())?;
-        writer.write_all(self.xudt_type_id.as_slice())?;
+        writer.write_all(self.xudt_type_hash.as_slice())?;
         writer.write_all(self.withdraw_code_hash.as_slice())?;
         Ok(())
     }
@@ -2085,18 +2345,28 @@ impl ::core::fmt::Display for MetadataCellData {
 impl ::core::default::Default for MetadataCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            69, 1, 0, 0, 24, 0, 0, 0, 25, 0, 0, 0, 33, 0, 0, 0, 65, 0, 0, 0, 65, 1, 0, 0, 0, 0, 0,
+            101, 2, 0, 0, 24, 0, 0, 0, 25, 0, 0, 0, 33, 0, 0, 0, 65, 0, 0, 0, 97, 2, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 32, 0, 0, 0, 64, 0, 0, 0, 96, 0, 0, 0, 128, 0,
-            0, 0, 160, 0, 0, 0, 192, 0, 0, 0, 224, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 2, 0, 0, 64, 0, 0, 0, 96, 0, 0, 0, 128, 0, 0, 0, 160, 0,
+            0, 0, 192, 0, 0, 0, 224, 0, 0, 0, 0, 1, 0, 0, 32, 1, 0, 0, 64, 1, 0, 0, 96, 1, 0, 0,
+            128, 1, 0, 0, 160, 1, 0, 0, 192, 1, 0, 0, 224, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
         MetadataCellData::new_unchecked(v.into())
     }

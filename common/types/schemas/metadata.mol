@@ -30,13 +30,21 @@ table Metadata {
 }
 
 table TypeIds {
-    metadata_type_id:     Byte32,
-    checkpoint_type_id:   Byte32,
-    stake_smt_type_id:    Byte32,
-    delegate_smt_type_id: Byte32,
-    reward_type_id:       Byte32,
-    xudt_type_id:         Byte32,
-    withdraw_code_hash:   Byte32,
+    issue_type_id:           Byte32,  // issue(omni) cell type id
+    selection_type_id:       Byte32,  // selection cell type id args
+    xudt_owner_lock_hash:    Byte32,  // selection cell lock hash, also is xudt owner lock hash
+    metadata_code_hash:      Byte32,
+    metadata_type_id:        Byte32,  // metadata cell type script args
+    checkpoint_code_hash:    Byte32,
+    checkpoint_type_id:      Byte32,  // checkpoint cell type script args
+    stake_smt_code_hash:     Byte32,
+    stake_smt_type_id:       Byte32,  // stake smt cell type script args
+    delegate_smt_code_hash:  Byte32,
+    delegate_smt_type_id:    Byte32,  // delegate smt cell type script args
+    reward_code_hash:        Byte32,
+    reward_type_id:          Byte32,  // reward cell type script args
+    xudt_type_hash:          Byte32,  // xudt cell type script hash
+    withdraw_code_hash:      Byte32,
 }
 
 table MetadataCellData {

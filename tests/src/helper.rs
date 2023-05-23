@@ -15,7 +15,7 @@ use ckb_testtool::{
     },
 };
 use molecule::prelude::*;
-use util::smt::{build_smt_tree_and_get_root, LockInfo};
+use util::smt::{LockInfo};
 
 pub const MAX_CYCLES: u64 = 100_000_000;
 
@@ -200,7 +200,7 @@ pub fn axon_stake_smt_cell_data(
     metadata_type_id: &packed::Byte32,
 ) -> axon_types::stake::StakeSmtCellData {
     // call build_smt_tree_and_get_root and print error message
-    let (root, proof) = crate::smt::construct_lock_info_smt(stake_infos);
+    let (root, _proof) = crate::smt::construct_lock_info_smt(stake_infos);
     // println!("root: {:?}", root);
 
     axon_types::stake::StakeSmtCellData::new_builder()

@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -222,50 +223,106 @@ impl From<Cursor> for TypeIds {
 }
 
 impl TypeIds {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
+    pub fn issue_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
 
 impl TypeIds {
-    pub fn checkpoint_type_id(&self) -> Vec<u8> {
+    pub fn selection_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }
 }
 
 impl TypeIds {
-    pub fn stake_smt_type_id(&self) -> Vec<u8> {
+    pub fn xudt_owner_lock_hash(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(2).unwrap();
         cur.into()
     }
 }
 
 impl TypeIds {
-    pub fn delegate_smt_type_id(&self) -> Vec<u8> {
+    pub fn metadata_code_hash(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(3).unwrap();
         cur.into()
     }
 }
 
 impl TypeIds {
-    pub fn reward_type_id(&self) -> Vec<u8> {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(4).unwrap();
         cur.into()
     }
 }
 
 impl TypeIds {
-    pub fn xudt_type_id(&self) -> Vec<u8> {
+    pub fn checkpoint_code_hash(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(5).unwrap();
         cur.into()
     }
 }
 
 impl TypeIds {
-    pub fn withdraw_code_hash(&self) -> Vec<u8> {
+    pub fn checkpoint_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(6).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn stake_smt_code_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(7).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn stake_smt_type_id(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(8).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn delegate_smt_code_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(9).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn delegate_smt_type_id(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(10).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn reward_code_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(11).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn reward_type_id(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(12).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn xudt_type_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(13).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn withdraw_code_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(14).unwrap();
         cur.into()
     }
 }

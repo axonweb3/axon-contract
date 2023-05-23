@@ -115,7 +115,27 @@
       "name": "TypeIds",
       "fields": [
         {
+          "name": "issue_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "selection_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "xudt_owner_lock_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "metadata_code_hash",
+          "type": "Byte32"
+        },
+        {
           "name": "metadata_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "checkpoint_code_hash",
           "type": "Byte32"
         },
         {
@@ -123,7 +143,15 @@
           "type": "Byte32"
         },
         {
+          "name": "stake_smt_code_hash",
+          "type": "Byte32"
+        },
+        {
           "name": "stake_smt_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "delegate_smt_code_hash",
           "type": "Byte32"
         },
         {
@@ -131,11 +159,15 @@
           "type": "Byte32"
         },
         {
+          "name": "reward_code_hash",
+          "type": "Byte32"
+        },
+        {
           "name": "reward_type_id",
           "type": "Byte32"
         },
         {
-          "name": "xudt_type_id",
+          "name": "xudt_type_hash",
           "type": "Byte32"
         },
         {

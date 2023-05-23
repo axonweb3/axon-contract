@@ -116,6 +116,16 @@ pub struct ProposeCountObject {
     pub count: u32,
 }
 
+pub fn calc_script_hash(script: &Script) -> [u8; 32] {
+    let mut hash = [0; 32];
+    let mut blake2b = blake2b_ref::Blake2bBuilder::new(32)
+        .personal(b"ckb-default-hash")
+        .build();
+    blake2b.update(script.as_slice());
+    blake2b.finalize(&mut hash);
+    hash
+}
+
 pub fn bytes_to_u128(bytes: &Vec<u8>) -> u128 {
     let mut array: [u8; 16] = [0u8; 16];
     array.copy_from_slice(bytes.as_slice());

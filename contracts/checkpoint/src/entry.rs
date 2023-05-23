@@ -9,9 +9,8 @@ use alloc::vec::Vec;
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
     ckb_constants::Source,
-    ckb_types::{bytes::Bytes, prelude::*},
     debug,
-    high_level::{load_script, load_witness_args},
+    high_level::{load_witness_args, load_script},
 };
 
 use axon_types::{
@@ -25,28 +24,20 @@ use util::{error::Error, helper::*};
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
-    let args: Bytes = script.args().unpack();
-    debug!("args len: {}", args.len());
-
-    let checkpoint_args: axon::CheckpointArgs = Cursor::from(args.to_vec()).into();
-    let metadata_type_id = checkpoint_args.metadata_type_id();
-    let type_ids = get_type_ids(
-        metadata_type_id.as_slice().try_into().unwrap(),
-        Source::CellDep,
-    )?;
-
-    debug!("get_checkpoint_by_type_id");
+    let checkpoint_type_id = util::helper::calc_script_hash(&script).to_vec();
+    debug!("checkpoint_type_id = {:?}", checkpoint_type_id);
     let input_checkpoint_count =
-        get_cell_count_by_type_hash(&type_ids.checkpoint_type_id(), Source::Input);
+        get_cell_count_by_type_hash(&checkpoint_type_id, Source::Input);
     if input_checkpoint_count == 0 {
         debug!("checkpoint cell creation");
         return Ok(());
     }
+
     // check input and output capacity and data from checkpoint cells
     let (input_checkpoint_capacity, input_checkpoint_data) =
-        get_checkpoint_by_type_id(&type_ids.checkpoint_type_id(), Source::Input)?;
+        get_checkpoint_by_type_id(&checkpoint_type_id, Source::Input)?;
     let (output_checkpoint_capacity, output_checkpoint_data) =
-        get_checkpoint_by_type_id(&type_ids.checkpoint_type_id(), Source::Output)?;
+        get_checkpoint_by_type_id(&checkpoint_type_id, Source::Output)?;
     debug!("checkpoint_capacity");
     if input_checkpoint_capacity != output_checkpoint_capacity {
         return Err(Error::CheckpointCapacityMismatch);
