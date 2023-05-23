@@ -279,7 +279,13 @@ fn verify_old_stake_infos(
     let epoch_proof = stake_smt_update_infos.old_epoch_proof();
     let old_bottom_proof = stake_smt_update_infos.old_bottom_proof();
     debug!("epoch_proof:{:?}", epoch_proof);
-    verify_2layer_smt(&stake_infos_set, epoch, &epoch_proof, &epoch_root, &old_bottom_proof)?;
+    verify_2layer_smt(
+        &stake_infos_set,
+        epoch,
+        &epoch_proof,
+        &epoch_root,
+        &old_bottom_proof,
+    )?;
     Ok(())
 }
 
@@ -309,7 +315,7 @@ fn verify_staker_seletion(
         epoch,
         &new_epoch_proof,
         &new_epoch_root,
-        &stake_smt_update_infos.old_bottom_proof()
+        &stake_smt_update_infos.old_bottom_proof(),
     )?;
 
     Ok(())

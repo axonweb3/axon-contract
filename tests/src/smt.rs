@@ -173,8 +173,7 @@ pub fn construct_lock_info_smt(lock_infos: &BTreeSet<LockInfo>) -> (H256, Option
     if keys.is_empty() {
         return (H256::zero(), None);
     } else {
-        return 
-        (
+        return (
             *tree.root(),
             Some(tree.merkle_proof(keys).expect("merkle proof")),
         );
@@ -288,7 +287,11 @@ fn test_lock_info_smt() {
     let (bottom_smt_root, proof) = construct_lock_info_smt(&lock_infos);
     println!("bottom_smt_root: {:?}", bottom_smt_root);
 
-    let proof = proof.unwrap().compile(vec![addr_to_h256(&[0u8; 20])]).unwrap().0;
+    let proof = proof
+        .unwrap()
+        .compile(vec![addr_to_h256(&[0u8; 20])])
+        .unwrap()
+        .0;
     // lock_infos.clear();
     let re = build_smt_tree_and_get_root_local(&lock_infos, &proof);
     match re {

@@ -205,7 +205,9 @@ pub fn axon_stake_smt_cell_data(
 
     axon_types::stake::StakeSmtCellData::new_builder()
         .version(0.into())
-        .smt_root(basic::Byte32::new_unchecked(root.as_slice().to_vec().into()))
+        .smt_root(basic::Byte32::new_unchecked(
+            root.as_slice().to_vec().into(),
+        ))
         .metadata_type_id(axon_byte32(metadata_type_id))
         .build()
 }

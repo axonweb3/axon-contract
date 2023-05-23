@@ -2,10 +2,7 @@ extern crate alloc;
 
 use core::cmp::Ordering;
 
-use alloc::{
-    collections::BTreeSet,
-    vec::{Vec},
-};
+use alloc::{collections::BTreeSet, vec::Vec};
 use blake2b_ref::{Blake2b, Blake2bBuilder};
 use ckb_smt::smt::{Pair, Tree};
 use ckb_std::debug;
@@ -94,13 +91,15 @@ pub fn build_smt_tree_and_get_root(
             });
     });
 
-    let root = if proof.is_none() { // the old smt is empty, so return default root directly
+    let root = if proof.is_none() {
+        // the old smt is empty, so return default root directly
         [0u8; 32]
     } else {
-        tree.calculate_root(&proof.as_ref().unwrap()[..]).map_err(|_err| {
-            debug!("calculate root error: {}", _err);
-            Error::MerkleProof
-        })?
+        tree.calculate_root(&proof.as_ref().unwrap()[..])
+            .map_err(|_err| {
+                debug!("calculate root error: {}", _err);
+                Error::MerkleProof
+            })?
     };
 
     Ok(root)

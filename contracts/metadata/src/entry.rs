@@ -106,6 +106,7 @@ fn verify_chain_config(
         return Err(Error::MetadataInputOutputMismatch);
     }
 
+    // output metadata2 will update something, like validators, block height, etc.
     if output_metadata1.brake_ratio() != output_metadata2.brake_ratio()
         || output_metadata1.epoch_len() != output_metadata2.epoch_len()
         || output_metadata1.gas_limit() != output_metadata2.gas_limit()

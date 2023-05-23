@@ -36,6 +36,12 @@ pub fn main() -> Result<(), Error> {
     )?;
 
     debug!("get_checkpoint_by_type_id");
+    let input_checkpoint_count =
+        get_cell_count_by_type_hash(&type_ids.checkpoint_type_id(), Source::Input);
+    if input_checkpoint_count == 0 {
+        debug!("checkpoint cell creation");
+        return Ok(());
+    }
     // check input and output capacity and data from checkpoint cells
     let (input_checkpoint_capacity, input_checkpoint_data) =
         get_checkpoint_by_type_id(&type_ids.checkpoint_type_id(), Source::Input)?;
