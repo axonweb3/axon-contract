@@ -4,6 +4,8 @@ pub mod checkpoint;
 pub mod checkpoint_reader;
 pub mod delegate;
 pub mod delegate_reader;
+pub mod issue;
+pub mod issue_reader;
 pub mod metadata;
 pub mod metadata_reader;
 pub mod reward;
