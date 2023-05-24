@@ -2,7 +2,7 @@ import basic;
 
 struct IssueCellData {
     version:            byte,
-    current_supply:     Byte16, // little endian number
-    max_suppley:        Byte16, // little endian number，u128::MAX equals to no cap
-    sudt_type_script:   Byte32, // sUDT type script hash
+    current_supply:     Uint128,
+    max_suppley:        Uint128,
+    sudt_type_script:   Byte32,
 }

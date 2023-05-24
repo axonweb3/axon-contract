@@ -45,11 +45,11 @@ impl IssueCellData {
     pub fn version(&self) -> Byte {
         Byte::new_unchecked(self.0.slice(0..1))
     }
-    pub fn current_supply(&self) -> Byte16 {
-        Byte16::new_unchecked(self.0.slice(1..17))
+    pub fn current_supply(&self) -> Uint128 {
+        Uint128::new_unchecked(self.0.slice(1..17))
     }
-    pub fn max_suppley(&self) -> Byte16 {
-        Byte16::new_unchecked(self.0.slice(17..33))
+    pub fn max_suppley(&self) -> Uint128 {
+        Uint128::new_unchecked(self.0.slice(17..33))
     }
     pub fn sudt_type_script(&self) -> Byte32 {
         Byte32::new_unchecked(self.0.slice(33..65))
@@ -120,11 +120,11 @@ impl<'r> IssueCellDataReader<'r> {
     pub fn version(&self) -> ByteReader<'r> {
         ByteReader::new_unchecked(&self.as_slice()[0..1])
     }
-    pub fn current_supply(&self) -> Byte16Reader<'r> {
-        Byte16Reader::new_unchecked(&self.as_slice()[1..17])
+    pub fn current_supply(&self) -> Uint128Reader<'r> {
+        Uint128Reader::new_unchecked(&self.as_slice()[1..17])
     }
-    pub fn max_suppley(&self) -> Byte16Reader<'r> {
-        Byte16Reader::new_unchecked(&self.as_slice()[17..33])
+    pub fn max_suppley(&self) -> Uint128Reader<'r> {
+        Uint128Reader::new_unchecked(&self.as_slice()[17..33])
     }
     pub fn sudt_type_script(&self) -> Byte32Reader<'r> {
         Byte32Reader::new_unchecked(&self.as_slice()[33..65])
@@ -154,8 +154,8 @@ impl<'r> molecule::prelude::Reader<'r> for IssueCellDataReader<'r> {
 #[derive(Debug, Default)]
 pub struct IssueCellDataBuilder {
     pub(crate) version: Byte,
-    pub(crate) current_supply: Byte16,
-    pub(crate) max_suppley: Byte16,
+    pub(crate) current_supply: Uint128,
+    pub(crate) max_suppley: Uint128,
     pub(crate) sudt_type_script: Byte32,
 }
 impl IssueCellDataBuilder {
@@ -166,11 +166,11 @@ impl IssueCellDataBuilder {
         self.version = v;
         self
     }
-    pub fn current_supply(mut self, v: Byte16) -> Self {
+    pub fn current_supply(mut self, v: Uint128) -> Self {
         self.current_supply = v;
         self
     }
-    pub fn max_suppley(mut self, v: Byte16) -> Self {
+    pub fn max_suppley(mut self, v: Uint128) -> Self {
         self.max_suppley = v;
         self
     }
