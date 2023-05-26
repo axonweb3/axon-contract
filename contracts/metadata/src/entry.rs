@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use alloc::{collections::BTreeSet, vec};
 
 // use axon_types::metadata;
-use axon_types::metadata_reader::{self, ElectionSmtProof, StakeSmtElectionInfo, MetadataWitness};
+use axon_types::metadata_reader::{self, ElectionSmtProof, MetadataWitness, StakeSmtElectionInfo};
 // use axon_types::reward_reader::EpochRewardStakeInfo;
 use axon_types::{
     checkpoint_reader::CheckpointCellData, metadata_reader::MetadataCellData,
@@ -21,7 +21,7 @@ use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, prelude::*},
     debug,
-    high_level::{load_cell_lock_hash, load_script, load_witness_args, QueryIter},
+    high_level::{load_script, load_witness_args},
 };
 
 use axon_types::{metadata_reader::Metadata, Cursor};
@@ -46,7 +46,10 @@ pub fn main() -> Result<(), Error> {
     let args: Bytes = script.args().unpack();
 
     let metadata_args: metadata_reader::MetadataArgs = Cursor::from(args.to_vec()).into();
-    debug!("metadata_args script args {:?}", metadata_args.metadata_type_id());
+    debug!(
+        "metadata_args script args {:?}",
+        metadata_args.metadata_type_id()
+    );
     // let metadata_type_id = metadata_args.metadata_type_id();
     let metadata_type_id = calc_script_hash(&script);
     debug!("metadata_type_id: {:?}", metadata_type_id);
@@ -214,29 +217,29 @@ fn verify_propose_counts(
 }
 
 fn verify_election(type_ids: &TypeIds) -> Result<(), Error> {
-    /* 
-    let stake_smt_type_id = type_ids.stake_smt_type_id();
-    // check stake smt cell in input and output
-    let mut stake_smt_cell_count = 0;
-    QueryIter::new(load_cell_type_hash, Source::Input).for_each(|type_hash| {
-        if type_hash.unwrap_or([0u8; 32]) == stake_smt_type_id[..] {
-            stake_smt_cell_count += 1;
+    /*
+        let stake_smt_type_id = type_ids.stake_smt_type_id();
+        // check stake smt cell in input and output
+        let mut stake_smt_cell_count = 0;
+        QueryIter::new(load_cell_type_hash, Source::Input).for_each(|type_hash| {
+            if type_hash.unwrap_or([0u8; 32]) == stake_smt_type_id[..] {
+                stake_smt_cell_count += 1;
+            }
+        });
+        if stake_smt_cell_count != 1 {
+            return Err(Error::MetadataNoStakeSmt);
         }
-    });
-    if stake_smt_cell_count != 1 {
-        return Err(Error::MetadataNoStakeSmt);
-    }
 
-    stake_smt_cell_count = 0;
-    QueryIter::new(load_cell_type_hash, Source::Output).for_each(|type_hash| {
-        if type_hash.unwrap_or([0u8; 32]) == stake_smt_type_id[..] {
-            stake_smt_cell_count += 1;
+        stake_smt_cell_count = 0;
+        QueryIter::new(load_cell_type_hash, Source::Output).for_each(|type_hash| {
+            if type_hash.unwrap_or([0u8; 32]) == stake_smt_type_id[..] {
+                stake_smt_cell_count += 1;
+            }
+        });
+        if stake_smt_cell_count != 1 {
+            return Err(Error::MetadataNoStakeSmt);
         }
-    });
-    if stake_smt_cell_count != 1 {
-        return Err(Error::MetadataNoStakeSmt);
-    }
-*/
+    */
     let quorum = get_quorum_size(
         type_ids.metadata_type_id().as_slice().try_into().unwrap(),
         Source::Input,
@@ -339,15 +342,19 @@ fn verify_election_metadata(type_ids: &TypeIds, quorum_size: u16) -> Result<(), 
         if witness_lock.is_none() {
             return Err(Error::WitnessLockError);
         }
-        let value: MetadataWitness =
-            Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
+        let value: MetadataWitness = Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
         value.smt_election_info()
     };
 
     // staker info of n + 2
     let election_info_n2 = election_infos.n2();
     let mut miners_n2 = BTreeSet::new();
-    let epoch = get_current_epoch(&type_ids.checkpoint_type_id())?;
+    let checkpoint_script_hash = get_script_hash(
+        &type_ids.checkpoint_code_hash(),
+        &type_ids.checkpoint_type_id(),
+    );
+    let epoch = get_current_epoch(&checkpoint_script_hash.to_vec())?;
+    debug!("get_current_epoch: {:?}", epoch);
     // verify stake and delegate infos in witness is correct, construct miners to get updated data
     verify_stake_delegate(
         &election_info_n2,
@@ -365,6 +372,7 @@ fn verify_election_metadata(type_ids: &TypeIds, quorum_size: u16) -> Result<(), 
         validators.insert((*elem).clone());
     }
     // get output metadata, verify the validators data.
+    debug!("verify_new_validators, {:?}", validators);
     verify_new_validators(&validators, epoch, type_ids, &election_infos)?;
 
     // verify validators' stake amount, verify delete_stakers & delete_delegators all zero & withdraw At cell amount is equal.
@@ -402,27 +410,37 @@ pub fn verify_stake_delegate(
         source,
     )?;
     let epoch_root: H256 = epoch_root.into();
-    util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+    let result =
+        util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+    debug!("staker verify_2layer_smt result: {:?}", result);
 
     let new_miners = miners.clone();
+    debug!("new_miners: {:?}", new_miners);
     for miner in new_miners {
         let mut delegate_infos = BTreeSet::new();
         for i in 0..miner.delegators.len() {
             let delegate_info = miner.delegators.get(i).unwrap();
             delegate_infos.insert(*delegate_info);
         }
+        debug!("delegator_epoch_proof");
         let epoch_proof = CompiledMerkleProof(miner.delegator_epoch_proof);
-        let epoch_root = get_delegate_smt_root(
-            type_ids
-                .delegate_smt_type_id()
-                .as_slice()
-                .try_into()
-                .unwrap(),
-            &miner.staker,
-            source,
-        )?;
+        debug!("delegate_smt_type_hash");
+        let delegate_smt_type_hash = get_script_hash(
+            &type_ids.checkpoint_code_hash(),
+            &type_ids.delegate_smt_type_id(),
+        );
+        let epoch_root = get_delegate_smt_root(&delegate_smt_type_hash, &miner.staker, source)?;
         let epoch_root: H256 = epoch_root.into();
-        util::smt::verify_2layer_smt(&delegate_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+        let result = util::smt::verify_2layer_smt(
+            &delegate_infos,
+            u64_to_h256(epoch),
+            epoch_root,
+            epoch_proof,
+        )?;
+        debug!(
+            "miner: {:?}, verify_2layer_smt result: {:?}",
+            miner.staker, result
+        );
     }
 
     Ok(())
@@ -443,14 +461,17 @@ fn verify_new_validators(
         });
     }
 
+    debug!("verify_new_validators new_stake_proof");
     // verify stake info of epoch n
     let epoch_proof = CompiledMerkleProof(election_infos.new_stake_proof());
+    debug!("verify_new_validators get_stake_smt_root");
     let epoch_root = get_stake_smt_root(
         type_ids.stake_smt_type_id().as_slice().try_into().unwrap(),
-        Source::GroupOutput,
+        Source::Output,
     )?;
     let epoch_root: H256 = epoch_root.into();
-    util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+    let result = util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+    debug!("verify_new_validators verify_2layer_smt result: {:?}", result);
 
     let new_miners = validators.clone();
     let epoch_proofs = election_infos.new_delegate_proofs();
@@ -469,17 +490,20 @@ fn verify_new_validators(
             }
         }
         let epoch_proof = CompiledMerkleProof(epoch_proof);
-        let epoch_root = get_delegate_smt_root(
-            type_ids
-                .delegate_smt_type_id()
-                .as_slice()
-                .try_into()
-                .unwrap(),
-            &miner.staker,
-            Source::Output,
-        )?;
+        let delegate_smt_type_hash = get_script_hash(
+            &type_ids.checkpoint_code_hash(),
+            &type_ids.delegate_smt_type_id(),
+        );
+        let epoch_root =
+            get_delegate_smt_root(&delegate_smt_type_hash, &miner.staker, Source::Output)?;
         let epoch_root: H256 = epoch_root.into();
-        util::smt::verify_2layer_smt(&delegate_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+        let result = util::smt::verify_2layer_smt(
+            &delegate_infos,
+            u64_to_h256(epoch),
+            epoch_root,
+            epoch_proof,
+        )?;
+        debug!("verify_new_validators verify_2layer_smt result: {:?}", result);
     }
 
     Ok(())

@@ -152,6 +152,7 @@ fn test_delegate_at_increase_success() {
         &delegate_at_type_script.calc_script_hash(),
         &checkpoint_type_script,
         &delegate_at_type_script.calc_script_hash(), // needless here
+        &delegate_at_type_script,                    // needless here
         metadata_list,
         1,
         propose_count_smt_root,

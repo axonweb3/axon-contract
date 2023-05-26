@@ -2,7 +2,7 @@
 
 use std::{collections::BTreeSet, convert::TryInto};
 
-use axon_types::{basic, metadata::MetadataList};
+use axon_types::{basic, delegate::StakerSmtRoots, metadata::MetadataList};
 use ckb_testtool::{
     ckb_crypto::secp::Privkey,
     ckb_hash::{blake2b_256, new_blake2b},
@@ -91,6 +91,10 @@ pub fn axon_u64(value: u64) -> basic::Uint64 {
 // convert u32 to basic::Uint32
 pub fn axon_u32(value: u32) -> basic::Uint32 {
     basic::Uint32::new_unchecked(value.to_le_bytes().to_vec().into())
+}
+
+pub fn axon_u16(value: u16) -> basic::Uint16 {
+    basic::Uint16::new_unchecked(value.to_le_bytes().to_vec().into())
 }
 
 pub fn axon_identity(pubkey: &Vec<u8>) -> basic::Identity {
@@ -207,6 +211,7 @@ pub fn axon_metadata_data_by_script(
     xudt_type_hash: &packed::Byte32,
     checkpoint_type_id: &Script,
     stake_smt_type_id: &packed::Byte32,
+    delegate_smt_type_id: &Script,
     metadata_list: MetadataList,
     epoch: u64,
     propose_count_smt_root: [u8; 32],
@@ -218,6 +223,8 @@ pub fn axon_metadata_data_by_script(
         .checkpoint_type_id(axon_bytes_byte32(&checkpoint_args.raw_data()))
         .checkpoint_code_hash(axon_byte32(&checkpoint_type_id.code_hash()))
         .stake_smt_type_id(axon_byte32(stake_smt_type_id))
+        .delegate_smt_code_hash(axon_byte32(&delegate_smt_type_id.code_hash()))
+        .delegate_smt_type_id(axon_bytes_byte32(&delegate_smt_type_id.args().raw_data()))
         .build();
     axon_types::metadata::MetadataCellData::new_builder()
         .version(0.into())
@@ -225,6 +232,15 @@ pub fn axon_metadata_data_by_script(
         .metadata(metadata_list)
         .type_ids(type_ids)
         .propose_count_smt_root(axon_array32_byte32(propose_count_smt_root))
+        .build()
+}
+
+pub fn axon_delegate_smt_cell_data(
+    stake_smt_roots: StakerSmtRoots,
+) -> axon_types::delegate::DelegateSmtCellData {
+    axon_types::delegate::DelegateSmtCellData::new_builder()
+        .version(0.into())
+        .smt_roots(stake_smt_roots)
         .build()
 }
 
