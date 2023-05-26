@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 use ckb_std::{
     ckb_constants::Source,
     debug,
-    high_level::{load_witness_args, load_script},
+    high_level::{load_script, load_witness_args},
 };
 
 use axon_types::{
@@ -26,8 +26,7 @@ pub fn main() -> Result<(), Error> {
     let script = load_script()?;
     let checkpoint_type_id = util::helper::calc_script_hash(&script).to_vec();
     debug!("checkpoint_type_id = {:?}", checkpoint_type_id);
-    let input_checkpoint_count =
-        get_cell_count_by_type_hash(&checkpoint_type_id, Source::Input);
+    let input_checkpoint_count = get_cell_count_by_type_hash(&checkpoint_type_id, Source::Input);
     if input_checkpoint_count == 0 {
         debug!("checkpoint cell creation");
         return Ok(());

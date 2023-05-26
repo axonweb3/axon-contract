@@ -9,5 +9,6 @@ edition = "2021"
 ckb-std = "0.12"
 axon-types = { path = "../../common/types" }
 util = { path = "../../common/util" }
-ckb-smt = { path = "../ckb-smt", default-features = false }
-secp256k1 = { path = "../../common/secp256k1" }
+# ckb-smt = { path = "../ckb-smt", default-features = false }
+# secp256k1 = { path = "../../common/secp256k1" }
+sparse-merkle-tree = { version = "0.6.1", default-features = false }  

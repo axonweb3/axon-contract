@@ -187,8 +187,9 @@ pub fn main() -> Result<(), Error> {
     }
 
     // get input normal at cell and output noram at cell, verify amount increased by unlock_amount.
-    let input_total_amount = get_xudt_by_type_hash(&type_ids.xudt_type_id(), Source::GroupInput)?;
-    let output_total_amount = get_xudt_by_type_hash(&type_ids.xudt_type_id(), Source::GroupOutput)?;
+    let input_total_amount = get_xudt_by_type_hash(&type_ids.xudt_type_hash(), Source::GroupInput)?;
+    let output_total_amount =
+        get_xudt_by_type_hash(&type_ids.xudt_type_hash(), Source::GroupOutput)?;
     if input_total_amount > output_total_amount {
         return Err(Error::WrongIncreasedXudt);
     }

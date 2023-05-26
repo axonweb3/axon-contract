@@ -217,8 +217,12 @@
       "name": "MetadataWitness",
       "fields": [
         {
-          "name": "new_exist_proof",
+          "name": "new_propose_proof",
           "type": "Bytes"
+        },
+        {
+          "name": "smt_election_info",
+          "type": "StakeSmtElectionInfo"
         }
       ]
     },
@@ -242,11 +246,6 @@
       "item": "DelegateInfo"
     },
     {
-      "type": "option",
-      "name": "Uint128Opt",
-      "item": "Uint128"
-    },
-    {
       "type": "table",
       "name": "MinerGroupInfo",
       "fields": [
@@ -256,7 +255,7 @@
         },
         {
           "name": "amount",
-          "type": "Uint128Opt"
+          "type": "Uint128"
         },
         {
           "name": "delegate_infos",
@@ -310,10 +309,6 @@
       "type": "table",
       "name": "StakeSmtElectionInfo",
       "fields": [
-        {
-          "name": "n1",
-          "type": "ElectionSmtProof"
-        },
         {
           "name": "n2",
           "type": "ElectionSmtProof"

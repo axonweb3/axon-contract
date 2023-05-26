@@ -56,7 +56,7 @@ table DelegateSmtCellData {
 // witness
 table DelegateInfo {
     delegator_addr:      Identity,
-    amount:    Uint128,
+    amount:              Uint128,
 }
 vector DelegateInfos <DelegateInfo>;
 

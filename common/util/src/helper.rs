@@ -24,11 +24,11 @@ use ckb_std::{
 };
 use core::{cmp::Ordering, result::Result};
 
-#[derive(Clone, Copy, Default, Eq, PartialOrd, Debug)]
-pub struct DelegateInfoObject {
-    pub addr: [u8; 20],
-    pub amount: u128,
-}
+// #[derive(Clone, Copy, Default, Eq, PartialOrd, Debug)]
+// pub struct DelegateInfoObject {
+//     pub addr: [u8; 20],
+//     pub amount: u128,
+// }
 
 // impl DelegateInfoObject {
 //     pub fn new(delegate_info: &delegate_reader::DelegateInfo) -> Self {
@@ -42,23 +42,23 @@ pub struct DelegateInfoObject {
 //     }
 // }
 
-impl Ord for DelegateInfoObject {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let order = other.amount.cmp(&self.amount);
-        order
-    }
-}
+// impl Ord for DelegateInfoObject {
+//     fn cmp(&self, other: &Self) -> Ordering {
+//         let order = other.amount.cmp(&self.amount);
+//         order
+//     }
+// }
 
-impl PartialEq for DelegateInfoObject {
-    fn eq(&self, other: &Self) -> bool {
-        self.addr == other.addr
-    }
-}
+// impl PartialEq for DelegateInfoObject {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.addr == other.addr
+//     }
+// }
 
 #[derive(Clone, Default, Eq, PartialOrd, Debug)]
 pub struct MinerGroupInfoObject {
     pub staker: [u8; 20],
-    pub stake_amount: Option<u128>,
+    pub stake_amount: u128,
     pub delegators: Vec<LockInfo>,
     pub delegator_epoch_proof: Vec<u8>,
 }
@@ -82,14 +82,14 @@ impl MinerGroupInfoObject {
         staker.copy_from_slice(&miner_group_info.staker());
         Self {
             staker: staker,
-            stake_amount: Some(bytes_to_u128(&miner_group_info.amount().unwrap())),
+            stake_amount: bytes_to_u128(&miner_group_info.amount()),
             delegators: delegators,
             delegator_epoch_proof: miner_group_info.delegate_epoch_proof(),
         }
     }
 
     pub fn get_total_amount(&self) -> u128 {
-        let mut total_amount = self.stake_amount.unwrap();
+        let mut total_amount = self.stake_amount;
         for delegate_info in self.delegators.iter() {
             total_amount += delegate_info.amount;
         }
@@ -112,7 +112,7 @@ impl PartialEq for MinerGroupInfoObject {
 
 #[derive(Clone, Default, Debug)]
 pub struct ProposeCountObject {
-    pub identity: [u8; 20],
+    pub addr: [u8; 20],
     pub count: u32,
 }
 
@@ -124,6 +124,23 @@ pub fn calc_script_hash(script: &Script) -> [u8; 32] {
     blake2b.update(script.as_slice());
     blake2b.finalize(&mut hash);
     hash
+}
+
+pub fn check_xudt_type_hash(xudt_type_hash: &Vec<u8>) -> Result<(), Error> {
+    // extract AT type_id from type_script
+    let type_id = {
+        let type_hash = load_cell_type_hash(0, Source::GroupInput)?;
+        if type_hash.is_none() {
+            return Err(Error::TypeScriptEmpty);
+        }
+        type_hash.unwrap()
+    };
+
+    if type_id.to_vec() != *xudt_type_hash {
+        return Err(Error::MismatchXudtTypeId);
+    }
+
+    Ok(())
 }
 
 pub fn bytes_to_u128(bytes: &Vec<u8>) -> u128 {
@@ -149,6 +166,16 @@ pub fn bytes_to_h256(bytes: &Vec<u8>) -> [u8; 32] {
     let mut h256 = [0u8; 32];
     h256.copy_from_slice(bytes);
     h256
+}
+
+pub fn get_script_hash(code_hash: &Vec<u8>, args: &Vec<u8>) -> [u8; 32] {
+    let code_hash: [u8; 32] = code_hash.as_slice().try_into().unwrap();
+    let script = Script::new_builder()
+        .code_hash(code_hash.pack())
+        .hash_type(ScriptHashType::Data1.into())
+        .args(args.pack())
+        .build();
+    calc_script_hash(&script)
 }
 
 pub fn get_checkpoint_from_celldeps(
@@ -253,10 +280,10 @@ pub fn get_delegate_at_data_by_lock_hash(
 ) -> Result<(u128, delegate_reader::DelegateAtCellData), Error> {
     let mut sudt = None;
     let mut delegate_at_data = None;
-    QueryIter::new(load_cell_type_hash, source)
+    QueryIter::new(load_cell_lock_hash, source)
         .enumerate()
         .for_each(|(i, lock_hash)| {
-            if &lock_hash.unwrap_or([0u8; 32]) == cell_lock_hash {
+            if lock_hash == cell_lock_hash[..] {
                 let data = load_cell_data(i, source).unwrap();
                 if data.len() >= 16 {
                     sudt = Some(bytes_to_u128(&data[..16].to_vec()));
@@ -468,7 +495,7 @@ pub fn get_metada_data_by_type_id(
         .enumerate()
         .for_each(|(i, lock_hash)| {
             if &lock_hash.unwrap_or([0u8; 32]) == cell_type_id {
-                debug!("get_metada_data_by_type_id index: {}", i);
+                // debug!("get_metada_data_by_type_id index: {}", i);
                 let data = load_cell_data(i, source).unwrap();
                 debug!("get_metada_data_by_type_id index: {}", i);
                 metadata = Some(Cursor::from(data[..].to_vec()).into());

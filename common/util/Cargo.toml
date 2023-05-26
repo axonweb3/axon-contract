@@ -11,4 +11,4 @@ blake2b-ref = { version = "0.3", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 axon-types = {path = "../types"}
 ckb-smt = { path = "../../contracts/ckb-smt", default-features = false }
-# blake2b-rs = "0.2.0"
+sparse-merkle-tree = { version = "0.6.1", default-features = false }

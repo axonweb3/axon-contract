@@ -623,7 +623,7 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "ckb-std",
- "secp256k1 0.1.0",
+ "sparse-merkle-tree",
  "util",
 ]
 
@@ -885,9 +885,8 @@ name = "metadata"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-smt",
  "ckb-std",
- "secp256k1 0.1.0",
+ "sparse-merkle-tree",
  "util",
 ]
 
@@ -1371,9 +1370,8 @@ name = "stake"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-smt",
  "ckb-std",
- "secp256k1 0.1.0",
+ "sparse-merkle-tree",
  "util",
 ]
 
@@ -1499,6 +1497,7 @@ dependencies = [
  "ckb-smt",
  "ckb-std",
  "hex",
+ "sparse-merkle-tree",
 ]
 
 [[package]]

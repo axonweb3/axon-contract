@@ -1,21 +1,27 @@
 // Import from `core` instead of from `std` since we are in no-std mode
 use alloc::{collections::BTreeSet, vec::Vec};
 use core::result::Result;
+use sparse_merkle_tree::{CompiledMerkleProof, H256};
 
 // Import CKB syscalls and structures
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
     ckb_constants::Source,
-    ckb_types::{bytes::Bytes, prelude::*},
+    ckb_types::{bytes::Bytes, core::ScriptHashType, packed::Script, prelude::*},
     debug,
     high_level::{load_cell_lock_hash, load_cell_type_hash, load_script, load_witness_args},
 };
 
 use axon_types::{
+    // checkpoint,
     delegate_reader::{self, DelegateInfoDelta},
     Cursor,
 };
-use util::{error::Error, helper::*};
+use util::{
+    error::Error,
+    helper::*,
+    smt::{u64_to_h256, verify_2layer_smt, LockInfo},
+};
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
@@ -26,16 +32,16 @@ pub fn main() -> Result<(), Error> {
     let metadata_type_id = delegate_args.metadata_type_id();
     let delegator_identity = delegate_args.delegator_addr();
 
-    let metadata_type_ids = get_type_ids(
+    let type_ids = get_type_ids(
         &metadata_type_id.as_slice().try_into().unwrap(),
         Source::CellDep,
     )?;
-    if metadata_type_id != metadata_type_ids.metadata_type_id() {
+    if metadata_type_id != type_ids.metadata_type_id() {
         return Err(Error::MisMatchMetadataTypeId);
     }
 
     // identify contract mode by witness
-    let witness_args = load_witness_args(0, Source::GroupInput);
+    let witness_args = load_witness_args(0, Source::Input);
     match witness_args {
         Ok(witness) => {
             let value = witness.input_type().to_opt();
@@ -47,12 +53,24 @@ pub fn main() -> Result<(), Error> {
             if input_type == 0 {
                 // update delegate at cell
                 // extract delegate at cell lock hash
-                let delegate_at_lock_hash = { load_cell_lock_hash(0, Source::GroupInput)? };
+                let delegate_at_lock_hash = { load_cell_lock_hash(0, Source::Input)? };
+                let checkpoint_type_id = type_ids.checkpoint_type_id();
+                // let checkpoint_type_id: [u8; 32] = checkpoint_type_id.as_slice().try_into().unwrap();
+                let checkpoint_code_hash = type_ids.checkpoint_code_hash();
+                let checkpoint_code_hash: [u8; 32] =
+                    checkpoint_code_hash.as_slice().try_into().unwrap();
+                let checkpoint_script = Script::new_builder()
+                    .code_hash(checkpoint_code_hash.pack())
+                    .hash_type(ScriptHashType::Data1.into())
+                    .args(checkpoint_type_id.pack())
+                    .build();
+                let checkpoint_script_hash = calc_script_hash(&checkpoint_script).to_vec();
+                debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
                 update_delegate_at_cell(
                     &delegator_identity.unwrap(),
                     &delegate_at_lock_hash,
-                    &metadata_type_ids.checkpoint_type_id(),
-                    &metadata_type_ids.xudt_type_id(),
+                    &checkpoint_script_hash,
+                    &type_ids.xudt_type_hash(),
                 )?;
             } else if input_type == 1 {
                 // kicker update stake smt cell
@@ -67,12 +85,12 @@ pub fn main() -> Result<(), Error> {
                     value
                 };
                 let metadata_type_id: [u8; 32] = metadata_type_id.as_slice().try_into().unwrap();
-                update_stake_smt(
+                update_delegate_smt(
                     &delegator_identity,
                     &delegate_smt_update_infos,
-                    &metadata_type_ids.checkpoint_type_id(),
-                    &metadata_type_ids.xudt_type_id(),
-                    &metadata_type_ids.delegate_smt_type_id(),
+                    &type_ids.checkpoint_type_id(),
+                    &type_ids.xudt_type_hash(),
+                    &type_ids.delegate_smt_type_id(),
                     &metadata_type_id,
                 )?;
             } else if input_type == 2 {
@@ -90,41 +108,28 @@ pub fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn check_xudt_type_id(xudt_type_id: &Vec<u8>) -> Result<(), Error> {
-    // extract AT type_id from type_script
-    let type_id = {
-        let type_hash = load_cell_type_hash(0, Source::GroupInput)?;
-        if type_hash.is_none() {
-            return Err(Error::TypeScriptEmpty);
-        }
-        type_hash.unwrap()
-    };
-
-    if type_id.to_vec() != *xudt_type_id {
-        return Err(Error::MismatchXudtTypeId);
-    }
-
-    Ok(())
-}
-
 pub fn update_delegate_at_cell(
     delegator_identity: &Vec<u8>,
     delegate_at_lock_hash: &[u8; 32],
     checkpoint_type_id: &Vec<u8>,
-    xudt_type_id: &Vec<u8>,
+    xudt_type_hash: &Vec<u8>,
 ) -> Result<(), Error> {
     debug!("update delegate info in delegate at cell");
-    if !secp256k1::verify_signature(&delegator_identity) {
-        return Err(Error::SignatureMismatch);
-    }
+    // if !secp256k1::verify_signature(&delegator_identity) {
+    //     return Err(Error::SignatureMismatch);
+    // }
 
-    check_xudt_type_id(xudt_type_id)?;
+    check_xudt_type_hash(xudt_type_hash)?;
 
-    let input_at_amount = get_xudt_by_type_hash(xudt_type_id, Source::Input)?;
-    let output_at_amount = get_xudt_by_type_hash(xudt_type_id, Source::Output)?;
+    let input_at_amount = get_xudt_by_type_hash(xudt_type_hash, Source::Input)?;
+    let output_at_amount = get_xudt_by_type_hash(xudt_type_hash, Source::Output)?;
     if input_at_amount != output_at_amount {
         return Err(Error::InputOutputAtAmountNotEqual);
     }
+    debug!(
+        "input_at_amount: {}, output_at_amount: {}",
+        input_at_amount, output_at_amount
+    );
 
     let (input_amount, input_delegate_at_data) =
         get_delegate_at_data_by_lock_hash(&delegate_at_lock_hash, Source::Input)?;
@@ -135,9 +140,13 @@ pub fn update_delegate_at_cell(
     {
         return Err(Error::UpdateDataError);
     }
+    debug!(
+        "input_amount: {}, output_amount: {}",
+        input_amount, output_amount
+    );
 
     let epoch = get_current_epoch(checkpoint_type_id)?;
-
+    debug!("epoch: {}", epoch);
     let mut at_change = 0i128;
     let input_delegate_info_deltas = input_delegate_at_data.delegator_infos();
     let output_delegate_info_deltas = output_delegate_at_data.delegator_infos();
@@ -201,17 +210,17 @@ fn update_delegate_info(
     delegator: [u8; 20],
     delegate_at_lock_hash: &[u8; 32],
     delegate_info_delta: &DelegateInfoDelta,
-    delegate_infos_set: &mut BTreeSet<DelegateInfoObject>,
+    delegate_infos_set: &mut BTreeSet<LockInfo>,
 ) -> Result<(), Error> {
     // get this delegator's old delegate amount in smt tree from delegate_infos_set
     let delegate_info = delegate_infos_set
         .iter()
         .find(|delegate_info| delegator == delegate_info.addr);
-    let mut delegate_info_clone: Option<DelegateInfoObject> = None;
+    let mut delegate_info_clone: Option<LockInfo> = None;
     let mut old_delegate: u128;
     if let Some(delegate_info) = delegate_info {
         old_delegate = delegate_info.amount;
-        delegate_info_clone = Some(DelegateInfoObject {
+        delegate_info_clone = Some(LockInfo {
             addr: delegate_info.addr,
             amount: delegate_info.amount,
         })
@@ -243,7 +252,7 @@ fn update_delegate_info(
         }
     }
 
-    let delegate_info_obj = DelegateInfoObject {
+    let delegate_info_obj = LockInfo {
         addr: delegator,
         amount: old_delegate,
     };
@@ -251,11 +260,11 @@ fn update_delegate_info(
 
     // get input & output withdraw AT cell, we need to update this after withdraw script's finish
     if redeem_amount > 0 {
-        let input_withdraw_amount = 10u128; // get from delegator input withdraw at cell
-        let output_withdraw_amount = 10u128; // get from delegator input withdraw at cell
-                                             // if output_withdraw_amount - input_withdraw_amount != redeem_amount {
-                                             //     return Err(Error::BadRedeem);
-                                             // }
+        let _input_withdraw_amount = 10u128; // get from delegator input withdraw at cell
+        let _output_withdraw_amount = 10u128; // get from delegator input withdraw at cell
+                                              // if output_withdraw_amount - input_withdraw_amount != redeem_amount {
+                                              //     return Err(Error::BadRedeem);
+                                              // }
         debug!("redeem_amount: {}", redeem_amount);
     }
 
@@ -263,9 +272,9 @@ fn update_delegate_info(
 }
 
 fn verify_delegator_seletion(
-    delegate_infos_set: &BTreeSet<DelegateInfoObject>,
-    new_epoch_root: &[u8; 32],
-    new_epoch_proof: &Vec<u8>,
+    delegate_infos_set: &BTreeSet<LockInfo>,
+    new_epoch_root: [u8; 32],
+    new_epoch_proof: Vec<u8>,
     epoch: u64,
     _metadata_type_id: &[u8; 32],
 ) -> Result<(), Error> {
@@ -281,21 +290,23 @@ fn verify_delegator_seletion(
     // get proof of new_stakes from Stake AT cells' witness of input,
     // verify delete_stakes is default
     // verify the new stake infos is equal to on-chain calculation
-    verify_2layer_smt_delegate(
+    let new_epoch_root: H256 = new_epoch_root.into();
+    let new_epoch_proof = CompiledMerkleProof(new_epoch_proof);
+    verify_2layer_smt(
         &new_delegate_infos_set,
-        epoch,
-        new_epoch_proof,
+        u64_to_h256(epoch),
         new_epoch_root,
+        new_epoch_proof,
     )?;
 
     Ok(())
 }
 
-fn update_stake_smt(
+fn update_delegate_smt(
     delegator_identity: &Option<Vec<u8>>,
     delegate_smt_update_infos: &delegate_reader::DelegateSmtUpdateInfo,
     checkpoint_type_id: &Vec<u8>,
-    xudt_type_id: &Vec<u8>,
+    xudt_type_hash: &Vec<u8>,
     delegate_smt_type_id: &Vec<u8>,
     metadata_type_id: &[u8; 32],
 ) -> Result<(), Error> {
@@ -328,7 +339,7 @@ fn update_stake_smt(
             let mut delegate_infos_set = BTreeSet::new();
             for i in 0..delegate_infos.len() {
                 let delegate_info = delegate_infos.get(i);
-                let delegate_info_obj = DelegateInfoObject {
+                let delegate_info_obj = LockInfo {
                     addr: delegate_info
                         .delegator_addr()
                         .as_slice()
@@ -339,20 +350,22 @@ fn update_stake_smt(
                 delegate_infos_set.insert(delegate_info_obj);
             }
             let old_epoch_proof = stake_group_info.delegate_old_epoch_proof();
+            let old_epoch_proof: CompiledMerkleProof = CompiledMerkleProof(old_epoch_proof);
             let old_epoch_root = get_delegate_smt_root(
                 delegate_smt_type_id.as_slice().try_into().unwrap(),
                 staker.as_slice().try_into().unwrap(),
                 Source::GroupInput,
             )?;
-            verify_2layer_smt_delegate(
+            let old_epoch_root: H256 = old_epoch_root.into();
+            verify_2layer_smt(
                 &delegate_infos_set,
-                epoch,
-                &old_epoch_proof,
-                &old_epoch_root,
+                u64_to_h256(epoch),
+                old_epoch_root,
+                old_epoch_proof,
             )?;
 
             // update old delegate info to new delegate info based on input delegate at cells
-            let delegate_at_type_id: [u8; 32] = xudt_type_id.as_slice().try_into().unwrap();
+            let delegate_at_type_id: [u8; 32] = xudt_type_hash.as_slice().try_into().unwrap();
             // get this staker's delegate update infos
             let update_infos =
                 get_delegate_update_infos(&staker, &delegate_at_type_id, Source::GroupInput)?;
@@ -393,8 +406,8 @@ fn update_stake_smt(
             )?;
             verify_delegator_seletion(
                 &delegate_infos_set,
-                &new_epoch_root,
-                &new_proof,
+                new_epoch_root,
+                new_proof,
                 epoch,
                 metadata_type_id,
             )?;

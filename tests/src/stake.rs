@@ -1,9 +1,7 @@
 use std::collections::BTreeSet;
 // use std::convert::TryInto;
 
-use crate::smt::{
-    construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
-};
+use crate::smt::{construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo};
 
 use super::*;
 use axon_types::metadata::{Metadata, MetadataList};
@@ -15,7 +13,7 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use util::smt::LockInfo;
+use util::smt::{LockInfo, BOTTOM_SMT};
 
 #[test]
 fn test_stake_at_increase_success() {
@@ -440,7 +438,7 @@ fn test_stake_smt_success() {
         .all_stake_infos(stake_infos)
         .old_epoch_proof(axon_bytes(&old_proof))
         .new_epoch_proof(axon_bytes(&new_proof))
-        .old_bottom_proof(axon_bytes_none())
+        // .old_bottom_proof(axon_bytes_none())
         .build();
 
     let stake_smt_witness = WitnessArgs::new_builder()

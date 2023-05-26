@@ -53,6 +53,10 @@
           "type": "Byte65"
         },
         {
+          "name": "bls_pub_key",
+          "type": "Byte97"
+        },
+        {
           "name": "l1_address",
           "type": "Identity"
         },
@@ -114,10 +118,6 @@
         {
           "name": "all_stake_infos",
           "type": "StakeInfos"
-        },
-        {
-          "name": "old_bottom_proof",
-          "type": "BytesOpt"
         },
         {
           "name": "old_epoch_proof",

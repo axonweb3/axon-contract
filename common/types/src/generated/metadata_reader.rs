@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -399,10 +400,17 @@ impl From<Cursor> for MetadataWitness {
 }
 
 impl MetadataWitness {
-    pub fn new_exist_proof(&self) -> Vec<u8> {
+    pub fn new_propose_proof(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         let cur2 = cur.convert_to_rawbytes().unwrap();
         cur2.into()
+    }
+}
+
+impl MetadataWitness {
+    pub fn smt_election_info(&self) -> StakeSmtElectionInfo {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
     }
 }
 
@@ -452,15 +460,6 @@ impl DelegateInfos {
         cur.into()
     }
 }
-// warning: Uint128Opt not implemented for Rust
-pub struct Uint128Opt {
-    pub cursor: Cursor,
-}
-impl From<Cursor> for Uint128Opt {
-    fn from(cursor: Cursor) -> Self {
-        Self { cursor }
-    }
-}
 
 pub struct MinerGroupInfo {
     pub cursor: Cursor,
@@ -480,13 +479,9 @@ impl MinerGroupInfo {
 }
 
 impl MinerGroupInfo {
-    pub fn amount(&self) -> Option<Vec<u8>> {
+    pub fn amount(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
-        if cur.option_is_none() {
-            None
-        } else {
-            Some(cur.into())
-        }
+        cur.into()
     }
 }
 
@@ -612,22 +607,15 @@ impl From<Cursor> for StakeSmtElectionInfo {
 }
 
 impl StakeSmtElectionInfo {
-    pub fn n1(&self) -> ElectionSmtProof {
+    pub fn n2(&self) -> ElectionSmtProof {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
 
 impl StakeSmtElectionInfo {
-    pub fn n2(&self) -> ElectionSmtProof {
-        let cur = self.cursor.table_slice_by_index(1).unwrap();
-        cur.into()
-    }
-}
-
-impl StakeSmtElectionInfo {
     pub fn new_stake_proof(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(2).unwrap();
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
         let cur2 = cur.convert_to_rawbytes().unwrap();
         cur2.into()
     }
@@ -635,7 +623,7 @@ impl StakeSmtElectionInfo {
 
 impl StakeSmtElectionInfo {
     pub fn new_delegate_proofs(&self) -> DelegateProofs {
-        let cur = self.cursor.table_slice_by_index(3).unwrap();
+        let cur = self.cursor.table_slice_by_index(2).unwrap();
         cur.into()
     }
 }

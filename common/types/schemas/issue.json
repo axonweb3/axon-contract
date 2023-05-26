@@ -18,11 +18,11 @@
         },
         {
           "name": "current_supply",
-          "type": "Byte16"
+          "type": "Uint128"
         },
         {
           "name": "max_suppley",
-          "type": "Byte16"
+          "type": "Uint128"
         },
         {
           "name": "sudt_type_script",
@@ -111,6 +111,12 @@
       "type": "fixvec",
       "name": "Bytes",
       "item": "byte",
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "BytesOpt",
+      "item": "Bytes",
       "imported_depth": 1
     },
     {

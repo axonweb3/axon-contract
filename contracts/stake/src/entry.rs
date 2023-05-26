@@ -8,6 +8,9 @@ use axon_types::stake_reader::StakeSmtCellData;
 use axon_types::stake_reader::StakeSmtUpdateInfo;
 use ckb_std::ckb_types::packed::WitnessArgs;
 use core::result::Result;
+use sparse_merkle_tree::CompiledMerkleProof;
+use sparse_merkle_tree::H256;
+use util::smt::u64_to_h256;
 use util::smt::verify_2layer_smt;
 use util::smt::LockInfo;
 
@@ -63,7 +66,7 @@ pub fn main() -> Result<(), Error> {
                         &staker_identity.unwrap(),
                         &stake_at_lock_hash,
                         &type_ids.checkpoint_type_id(),
-                        &type_ids.xudt_type_id(),
+                        &type_ids.xudt_type_hash(),
                     )?;
                 }
                 1 => {
@@ -86,38 +89,21 @@ pub fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn check_xudt_type_id(xudt_type_id: &Vec<u8>) -> Result<(), Error> {
-    // extract AT type_id from type_script
-    let type_id = {
-        let type_hash = load_cell_type_hash(0, Source::GroupInput)?;
-        if type_hash.is_none() {
-            return Err(Error::TypeScriptEmpty);
-        }
-        type_hash.unwrap()
-    };
-
-    if type_id.to_vec() != *xudt_type_id {
-        return Err(Error::MismatchXudtTypeId);
-    }
-
-    Ok(())
-}
-
 pub fn update_stake_at_cell(
     staker_identity: &Vec<u8>,
     stake_at_lock_hash: &[u8; 32],
     checkpoint_type_id: &Vec<u8>,
-    xudt_type_id: &Vec<u8>,
+    xudt_type_hash: &Vec<u8>,
 ) -> Result<(), Error> {
     debug!("update stake info in stake at cell");
-    if !secp256k1::verify_signature(&staker_identity) {
-        return Err(Error::SignatureMismatch);
-    }
+    // if !secp256k1::verify_signature(&staker_identity) {
+    //     return Err(Error::SignatureMismatch);
+    // }
 
-    check_xudt_type_id(xudt_type_id)?;
+    check_xudt_type_hash(xudt_type_hash)?;
 
-    let total_input_at_amount = get_xudt_by_type_hash(xudt_type_id, Source::Input)?;
-    let total_output_at_amount = get_xudt_by_type_hash(xudt_type_id, Source::Output)?;
+    let total_input_at_amount = get_xudt_by_type_hash(xudt_type_hash, Source::Input)?;
+    let total_output_at_amount = get_xudt_by_type_hash(xudt_type_hash, Source::Output)?;
     if total_input_at_amount != total_output_at_amount {
         return Err(Error::InputOutputAtAmountNotEqual);
     }
@@ -276,15 +262,14 @@ fn verify_old_stake_infos(
     stake_infos_set: &BTreeSet<LockInfo>,
 ) -> Result<(), Error> {
     let epoch_root: [u8; 32] = old_stake_smt_data.smt_root().as_slice().try_into().unwrap(); // get from input smt cell
-    let epoch_proof = stake_smt_update_infos.old_epoch_proof();
-    let old_bottom_proof = stake_smt_update_infos.old_bottom_proof();
+    let epoch_root: H256 = epoch_root.into();
+    let epoch_proof = CompiledMerkleProof(stake_smt_update_infos.old_epoch_proof());
     debug!("epoch_proof:{:?}", epoch_proof);
     verify_2layer_smt(
         &stake_infos_set,
-        epoch,
-        &epoch_proof,
-        &epoch_root,
-        &old_bottom_proof,
+        u64_to_h256(epoch),
+        epoch_root,
+        epoch_proof,
     )?;
     Ok(())
 }
@@ -309,13 +294,14 @@ fn verify_staker_seletion(
     // verify delete_stakes is default
     // verify the new stake infos is equal to on-chain calculation
     let new_epoch_root: [u8; 32] = new_stake_smt_data.smt_root().as_slice().try_into().unwrap(); // get from output smt cell
+    let new_epoch_root: H256 = new_epoch_root.into();
     let new_epoch_proof = stake_smt_update_infos.new_epoch_proof();
+    let new_epoch_proof = CompiledMerkleProof(new_epoch_proof);
     verify_2layer_smt(
         &new_stake_infos_set,
-        epoch,
-        &new_epoch_proof,
-        &new_epoch_root,
-        &stake_smt_update_infos.old_bottom_proof(),
+        u64_to_h256(epoch),
+        new_epoch_root,
+        new_epoch_proof,
     )?;
 
     Ok(())
@@ -353,7 +339,7 @@ fn update_stake_smt(
     type_ids: &metadata_reader::TypeIds,
 ) -> Result<(), Error> {
     debug!("update stake smt root mode");
-    let xudt_type_id = type_ids.xudt_type_id();
+    let xudt_type_hash = type_ids.xudt_type_hash();
     let stake_smt_type_id = type_ids.stake_smt_type_id();
     if staker_identity.is_none() {
         // this is stake smt cell
@@ -400,8 +386,10 @@ fn update_stake_smt(
         )?;
 
         // get delta stake infos by parsing Stake AT cells' data
-        let update_infos =
-            get_stake_update_infos(&xudt_type_id.as_slice().try_into().unwrap(), Source::Input)?;
+        let update_infos = get_stake_update_infos(
+            &xudt_type_hash.as_slice().try_into().unwrap(),
+            Source::Input,
+        )?;
         for (staker_addr, stake_at_lock_hash, stake_info_delta) in update_infos {
             let inauguration_epoch = stake_info_delta.inauguration_epoch();
             if inauguration_epoch < epoch + 2 {
@@ -440,7 +428,7 @@ fn update_stake_smt(
         if output_smt_cell != 1 {
             return Err(Error::BadOutputStakeSmtCellCount);
         }
-        check_xudt_type_id(&xudt_type_id)?;
+        check_xudt_type_hash(&xudt_type_hash)?;
     }
     Ok(())
 }
