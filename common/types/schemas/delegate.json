@@ -35,7 +35,7 @@
           "type": "Uint32"
         },
         {
-          "name": "dividend_ratio",
+          "name": "commission_rate",
           "type": "byte"
         }
       ]
@@ -293,6 +293,12 @@
       "type": "fixvec",
       "name": "Bytes",
       "item": "byte",
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "BytesOpt",
+      "item": "Bytes",
       "imported_depth": 1
     },
     {

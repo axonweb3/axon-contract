@@ -17,8 +17,9 @@ build blst archive:
 The docker version has some problem, so we have to execute the following beforehand to update `no_asm.h` & `vect.h` mannually.
 ```
 cd common/blst/ckb-lib-secp256k1-blst/deps
-git apply ../blst.patch
+git apply ../blst/blst.patch
 ```
+To avoid duplicate symbol errors, we must delete some code(from line 168 to 465) in `contracts/ckb-smt/c/deps/ckb-c-stdlib/blake2b.h`.  
 
 Then, 
 ``` sh
@@ -32,7 +33,7 @@ build contracts:
 capsule build -n selection
 capsule build -n checkpoint
 capsule build -n stake
-capsule build -n withdrawal
+capsule build -n withdraw
 ```
 
 run tests:
@@ -42,5 +43,4 @@ cd tests
 cargo test test_selection_success -- --nocapture
 cargo test test_checkpoint_success -- --nocapture
 cargo test test_stake_success -- --nocapture
-cargo test test_withdrawal_success -- --nocapture
 ```

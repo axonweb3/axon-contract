@@ -28,9 +28,15 @@ pub enum Error {
     SmterrorCodeErrorInvalidStack,
     SmterrorCodeErrorInvalidSibling,
     SmterrorCodeErrorInvalidProof,
+    SmterrorCodeErrorUpdate,
+    SmterrorCodeErrorVerify,
+
+    // stake smt
+    StakeSmtTypeIdMismatch,
+    StakeSmtUpdateDataError,
 
     // selection contract
-    OmniRewardCountError = 30,
+    OmniRewardCountError,
 
     // stake AT type script
     StakeDataEmpty,
@@ -78,6 +84,7 @@ pub enum Error {
     NotLastCheckpoint,
     StakerNonExist,
     StakerNotFound,
+    MetadataNotFound,
 
     // withdraw
     WrongOutWithdrawArraySize,
@@ -87,6 +94,8 @@ pub enum Error {
     WrongIncreasedXudt,
     WithdrawTotalAmountError,
     OutLessThanIn,
+    WithdrawUpdateDataError,
+    BadUnstake,
 }
 
 impl From<SysError> for Error {

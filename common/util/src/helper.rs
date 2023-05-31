@@ -1,53 +1,28 @@
 extern crate alloc;
 
-use crate::error::Error;
-use alloc::{collections::BTreeSet, vec::Vec};
+use crate::{error::Error, smt::LockInfo};
+use alloc::vec::Vec;
 use axon_types::{
-    checkpoint_reader,
+    basic, checkpoint_reader,
     delegate_reader::{self, DelegateInfoDelta, DelegateSmtCellData},
-    metadata_reader::{self, MetaTypeIds, MetadataCellData},
-    stake_reader::{self, StakeInfoDelta, StakeInfos, StakeSmtCellData},
-    withdraw_reader, Cursor,
+    metadata_reader::{self, MetadataCellData, TypeIds},
+    stake_reader::{self, StakeInfoDelta, StakeSmtCellData},
+    withdraw, withdraw_reader, Cursor,
 };
-use ckb_smt::smt::{Pair, Tree};
+use blake2b_ref::Blake2bBuilder;
 use ckb_std::{
     ckb_constants::Source,
+    ckb_types::{
+        core::ScriptHashType,
+        packed::{Byte, Script},
+        prelude::{Builder, Entity, Pack},
+    },
     debug,
     high_level::{
         load_cell_capacity, load_cell_data, load_cell_lock_hash, load_cell_type_hash, QueryIter,
     },
 };
 use core::{cmp::Ordering, result::Result};
-
-#[derive(Clone, Default, Eq, PartialOrd, Debug)]
-pub struct StakeInfoObject {
-    pub identity: [u8; 20],
-    pub stake_amount: u128,
-}
-
-impl StakeInfoObject {
-    pub fn new(stake_info: &stake_reader::StakeInfo) -> Self {
-        let mut identity = [0u8; 20];
-        identity.copy_from_slice(&stake_info.addr());
-        Self {
-            identity: identity,
-            stake_amount: bytes_to_u128(&stake_info.amount()),
-        }
-    }
-}
-
-impl Ord for StakeInfoObject {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let order = other.stake_amount.cmp(&self.stake_amount);
-        order
-    }
-}
-
-impl PartialEq for StakeInfoObject {
-    fn eq(&self, other: &Self) -> bool {
-        self.identity == other.identity
-    }
-}
 
 #[derive(Clone, Copy, Default, Eq, PartialOrd, Debug)]
 pub struct DelegateInfoObject {
@@ -84,7 +59,7 @@ impl PartialEq for DelegateInfoObject {
 pub struct MinerGroupInfoObject {
     pub staker: [u8; 20],
     pub stake_amount: Option<u128>,
-    pub delegators: Vec<DelegateInfoObject>,
+    pub delegators: Vec<LockInfo>,
     pub delegator_epoch_proof: Vec<u8>,
 }
 
@@ -96,7 +71,7 @@ impl MinerGroupInfoObject {
             let delegator_info = &delegator_infos.get(i);
             let mut addr = [0u8; 20];
             addr.copy_from_slice(&delegator_info.addr());
-            let delegate_info_obj = DelegateInfoObject {
+            let delegate_info_obj = LockInfo {
                 addr: addr,
                 amount: bytes_to_u128(&delegator_info.amount()),
             };
@@ -141,6 +116,16 @@ pub struct ProposeCountObject {
     pub count: u32,
 }
 
+pub fn calc_script_hash(script: &Script) -> [u8; 32] {
+    let mut hash = [0; 32];
+    let mut blake2b = blake2b_ref::Blake2bBuilder::new(32)
+        .personal(b"ckb-default-hash")
+        .build();
+    blake2b.update(script.as_slice());
+    blake2b.finalize(&mut hash);
+    hash
+}
+
 pub fn bytes_to_u128(bytes: &Vec<u8>) -> u128 {
     let mut array: [u8; 16] = [0u8; 16];
     array.copy_from_slice(bytes.as_slice());
@@ -174,22 +159,38 @@ pub fn get_checkpoint_from_celldeps(
         .enumerate()
         .for_each(|(i, type_hash)| {
             if type_hash.unwrap_or([0u8; 32]) == checkpoint_type_hash.as_slice() {
+                // debug!("checkpoint type hash: {:?}", checkpoint_type_hash);
                 assert!(checkpoint_data.is_none());
                 checkpoint_data = {
-                    let data = load_cell_data(i, Source::CellDep).unwrap();
-                    let checkpoint_data: checkpoint_reader::CheckpointCellData =
-                        Cursor::from(data).into();
-                    Some(checkpoint_data)
+                    // debug!("checkpoint data index: {}", i);
+                    let data = load_cell_data(i, Source::CellDep);
+                    match data {
+                        Ok(data) => {
+                            debug!("checkpoint data len: {}", data.len());
+                            let checkpoint_data: checkpoint_reader::CheckpointCellData =
+                                Cursor::from(data).into();
+                            Some(checkpoint_data)
+                        }
+                        Err(_err) => {
+                            debug!("checkpoint data error: {:?}", _err);
+                            None
+                        }
+                    }
                 };
             }
         });
-    if checkpoint_data.is_none() {
-        return Err(Error::CheckpointDataEmpty);
+
+    match checkpoint_data {
+        Some(checkpoint_data) => Ok(checkpoint_data),
+        None => Err(Error::CheckpointDataEmpty),
     }
-    Ok(checkpoint_data.unwrap())
 }
 
 pub fn get_current_epoch(checkpoint_type_id: &Vec<u8>) -> Result<u64, Error> {
+    debug!(
+        "get_current_epoch checkpoint_type_id: {:?}",
+        checkpoint_type_id
+    );
     let checkpoint_data = get_checkpoint_from_celldeps(checkpoint_type_id)?;
     Ok(checkpoint_data.epoch())
 }
@@ -201,6 +202,7 @@ pub fn get_xudt_by_type_hash(type_hash: &Vec<u8>, source: Source) -> Result<u128
         .map(|(i, cell_type_hash)| {
             if cell_type_hash.unwrap_or([0u8; 32]) == type_hash[..] {
                 let data = load_cell_data(i, source).unwrap();
+                debug!("sudt cell data len: {}", data.len());
                 if data.len() < 16 {
                     return Err(Error::BadSudtDataFormat);
                 }
@@ -218,11 +220,13 @@ pub fn get_stake_at_data_by_lock_hash(
 ) -> Result<(u128, stake_reader::StakeAtCellData), Error> {
     let mut sudt = None;
     let mut stake_at_data = None;
-    QueryIter::new(load_cell_type_hash, source)
+    QueryIter::new(load_cell_lock_hash, source)
         .enumerate()
         .for_each(|(i, lock_hash)| {
-            if &lock_hash.unwrap_or([0u8; 32]) == cell_lock_hash {
+            // debug!("get_stake_at_data_by_lock_hash lock_hash: {:?}", lock_hash);
+            if lock_hash == cell_lock_hash[..] {
                 let data = load_cell_data(i, source).unwrap();
+                debug!("get_stake_at_data_by_lock_hash data len:{}", data.len());
                 if data.len() >= 16 {
                     sudt = Some(bytes_to_u128(&data[..16].to_vec()));
                     assert!(stake_at_data.is_none());
@@ -280,10 +284,10 @@ pub fn get_withdraw_at_data_by_lock_hash(
 ) -> Result<(u128, withdraw_reader::WithdrawAtCellData), Error> {
     let mut sudt = None;
     let mut withdraw_at_data = None;
-    QueryIter::new(load_cell_type_hash, source)
+    QueryIter::new(load_cell_lock_hash, source)
         .enumerate()
         .for_each(|(i, lock_hash)| {
-            if &lock_hash.unwrap_or([0u8; 32]) == cell_lock_hash {
+            if lock_hash == cell_lock_hash[..] {
                 let data = load_cell_data(i, source).unwrap();
                 if data.len() >= 16 {
                     sudt = Some(bytes_to_u128(&data[..16].to_vec()));
@@ -338,10 +342,10 @@ pub fn get_stake_update_infos(
                         Cursor::from(data[16..].to_vec()).into();
                     stake_data
                 };
-                let stake_info = stake_at_data.stake_info();
+                let stake_info_delta = stake_at_data.delta();
                 // get address from lock script args
                 let address: [u8; 20] = stake_at_data.l1_address().as_slice().try_into().unwrap();
-                stake_update_infos.push((address, lock_hash, stake_info));
+                stake_update_infos.push((address, lock_hash, stake_info_delta));
             }
         });
 
@@ -391,6 +395,18 @@ pub fn get_cell_count(type_id: &Vec<u8>, source: Source) -> u8 {
     cells_count
 }
 
+pub fn get_cell_count_by_type_hash(cell_type_hash: &Vec<u8>, source: Source) -> u8 {
+    let mut cells_count = 0u8;
+    QueryIter::new(load_cell_type_hash, source).for_each(|type_hash| match type_hash {
+        Some(type_hash) => {
+            if &type_hash == cell_type_hash.as_slice() {
+                cells_count += 1;
+            }
+        }
+        None => {}
+    });
+    cells_count
+}
 //////////////////////////////////////////////////////////
 /// used by checkpoint contract
 //////////////////////////////////////////////////////////
@@ -420,17 +436,18 @@ pub fn get_checkpoint_by_type_id(
             Ok(())
         })
         .collect::<Result<Vec<_>, _>>()?;
-    if celldata.is_none() {
-        return Err(Error::CheckpointCellError);
+
+    match celldata {
+        Some(celldata) => Ok((capacity, celldata)),
+        None => Err(Error::CheckpointCellError),
     }
-    Ok((capacity, celldata.unwrap()))
 }
 
 pub fn get_valid_stakeinfos_from_celldeps(
     _epoch: u64,
     metadata_type_id: &Vec<u8>,
-) -> Result<Vec<StakeInfoObject>, Error> {
-    let stakers: Vec<StakeInfoObject> = Vec::new();
+) -> Result<Vec<LockInfo>, Error> {
+    let stakers: Vec<LockInfo> = Vec::new();
     QueryIter::new(load_cell_type_hash, Source::CellDep)
         .enumerate()
         .for_each(|(_i, type_hash)| {
@@ -451,15 +468,20 @@ pub fn get_metada_data_by_type_id(
         .enumerate()
         .for_each(|(i, lock_hash)| {
             if &lock_hash.unwrap_or([0u8; 32]) == cell_type_id {
+                debug!("get_metada_data_by_type_id index: {}", i);
                 let data = load_cell_data(i, source).unwrap();
+                debug!("get_metada_data_by_type_id index: {}", i);
                 metadata = Some(Cursor::from(data[..].to_vec()).into());
             }
         });
 
-    Ok(metadata.unwrap())
+    match metadata {
+        Some(metadata) => Ok(metadata),
+        None => Err(Error::MetadataNotFound),
+    }
 }
 
-pub fn get_type_ids(metadata_type_id: &[u8; 32], source: Source) -> Result<MetaTypeIds, Error> {
+pub fn get_type_ids(metadata_type_id: &[u8; 32], source: Source) -> Result<TypeIds, Error> {
     let metadata = get_metada_data_by_type_id(metadata_type_id, source)?;
     Ok(metadata.type_ids())
 }
@@ -565,112 +587,43 @@ pub fn get_delegate_smt_data(
     Ok(delegate_smt_data.unwrap())
 }
 
-pub fn transform_to_set(stake_infos: &StakeInfos) -> BTreeSet<StakeInfoObject> {
-    let mut stake_infos_set = BTreeSet::new();
-    for i in 0..stake_infos.len() {
-        let stake_info = &stake_infos.get(i);
-        let stake_info_obj = StakeInfoObject::new(stake_info);
-        stake_infos_set.insert(stake_info_obj);
+pub fn axon_byte32(bytes: &[u8]) -> basic::Byte32 {
+    basic::Byte32::new_unchecked(bytes.to_vec().into())
+}
+pub fn axon_identity(addr: &[u8; 20]) -> basic::Identity {
+    // convert [u8; 20] to [Byte; 20]
+    let mut new_addr = [Byte::new(0); 20];
+    for i in 0..20 {
+        new_addr[i] = Byte::new(addr[i].into());
     }
-    stake_infos_set
+
+    basic::Identity::new_builder().set(new_addr).build()
 }
 
-pub fn verify_2layer_smt_stake(
-    stake_infos: &BTreeSet<StakeInfoObject>,
-    epoch: u64,
-    epoch_proof: &Vec<u8>,
-    epoch_root: &[u8; 32],
-) -> Result<(), Error> {
-    // construct old stake smt root & verify
-    let mut tree_buf = [Pair::default(); 100];
-    let mut tree = Tree::new(&mut tree_buf);
-    stake_infos.iter().for_each(|stake_info| {
-        let _ = tree
-            .update(
-                &bytes_to_h256(&stake_info.identity.to_vec()),
-                &bytes_to_h256(&stake_info.stake_amount.to_le_bytes().to_vec()),
-            )
-            .map_err(|err| {
-                debug!("update smt tree error: {}", err);
-                Error::MerkleProof
-            });
-    });
-
-    let proof = [0u8; 32];
-    let stake_root = tree.calculate_root(&proof)?; // epoch smt value
-
-    let mut tree_buf = [Pair::default(); 100];
-    let mut epoch_tree = Tree::new(&mut tree_buf[..]);
-    epoch_tree
-        .update(&bytes_to_h256(&epoch.to_le_bytes().to_vec()), &stake_root)
-        .map_err(|err| {
-            debug!("update smt tree error: {}", err);
-            Error::MerkleProof
-        })?;
-    epoch_tree
-        .verify(&epoch_root, &epoch_proof)
-        .map_err(|err| {
-            debug!("verify top smt error: {}", err);
-            Error::OldStakeInfosErr
-        })?;
-    Ok(())
+pub fn calc_withdrawal_lock_hash(
+    withdraw_code_hash: &Vec<u8>,
+    addr: &[u8; 20],
+    metadata_type_id: &[u8; 32],
+) -> [u8; 32] {
+    let withdraw_lock_args = {
+        withdraw::WithdrawArgs::new_builder()
+            .metadata_type_id(axon_byte32(metadata_type_id))
+            .addr(axon_identity(addr))
+            .build()
+    };
+    let withdraw_lock = {
+        let code_hash: [u8; 32] = withdraw_code_hash.clone().try_into().unwrap();
+        Script::new_builder()
+            .code_hash(code_hash.pack())
+            .hash_type(ScriptHashType::Type.into())
+            .args(withdraw_lock_args.as_slice().pack())
+            .build()
+    };
+    let mut lock_hash = [0u8; 32];
+    let mut blake2b = Blake2bBuilder::new(32)
+        .personal(b"ckb-default-hash")
+        .build();
+    blake2b.update(withdraw_lock.as_slice());
+    blake2b.finalize(&mut lock_hash);
+    lock_hash
 }
-
-pub fn verify_2layer_smt_delegate(
-    delegate_infos: &BTreeSet<DelegateInfoObject>,
-    epoch: u64,
-    epoch_proof: &Vec<u8>,
-    epoch_root: &[u8; 32],
-) -> Result<(), Error> {
-    // construct old stake smt root & verify
-    let mut tree_buf = [Pair::default(); 100];
-    let mut tree = Tree::new(&mut tree_buf);
-    delegate_infos.iter().for_each(|stake_info| {
-        let _ = tree
-            .update(
-                &bytes_to_h256(&stake_info.addr.to_vec()),
-                &bytes_to_h256(&stake_info.amount.to_le_bytes().to_vec()),
-            )
-            .map_err(|err| {
-                debug!("update smt tree error: {}", err);
-                Error::MerkleProof
-            });
-    });
-
-    let proof = [0u8; 32];
-    let stake_root = tree.calculate_root(&proof)?; // epoch smt value
-
-    let mut tree_buf = [Pair::default(); 100];
-    let mut epoch_tree = Tree::new(&mut tree_buf[..]);
-    epoch_tree
-        .update(&bytes_to_h256(&epoch.to_le_bytes().to_vec()), &stake_root)
-        .map_err(|err| {
-            debug!("update smt tree error: {}", err);
-            Error::MerkleProof
-        })?;
-    epoch_tree
-        .verify(&epoch_root, &epoch_proof)
-        .map_err(|err| {
-            debug!("verify top smt error: {}", err);
-            Error::OldStakeInfosErr
-        })?;
-    Ok(())
-}
-
-// pub fn verify_2layer_smt(stake_proof: MerkleProof, stake_root: H256, staker_identity: Vec<u8>, old_stake: u128,
-//                          epoch_proof: MerkleProof, epoch_root: H256, epoch: u64) -> Result<(), Error> {
-//     if verify_smt(stake_proof, &stake_root, staker_identity.to_h256(), old_stake.to_h256()) {
-//         return Err(Error::IllegalInputStakeInfo);
-//     }
-
-//     if verify_smt(epoch_proof, &epoch_root, epoch.to_h256(), stake_root) {
-//         Err(Error::IllegalInputStakeInfo)
-//     } else {
-//         Ok(())
-//     }
-// }
-
-// pub fn verify_smt(proof: MerkleProof, root: &H256, key: H256, value: H256) -> bool {
-//     let leaves = vec![(key, value)];
-//     proof.verify::<Blake2bHasher>(root, leaves).unwrap()
-// }

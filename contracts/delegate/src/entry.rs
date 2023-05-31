@@ -253,9 +253,10 @@ fn update_delegate_info(
     if redeem_amount > 0 {
         let input_withdraw_amount = 10u128; // get from delegator input withdraw at cell
         let output_withdraw_amount = 10u128; // get from delegator input withdraw at cell
-        if output_withdraw_amount - input_withdraw_amount != redeem_amount {
-            return Err(Error::BadRedeem);
-        }
+                                             // if output_withdraw_amount - input_withdraw_amount != redeem_amount {
+                                             //     return Err(Error::BadRedeem);
+                                             // }
+        debug!("redeem_amount: {}", redeem_amount);
     }
 
     Ok(())

@@ -5,9 +5,13 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 // mod axon;
+mod checkpoint;
 mod helper;
+mod metadata;
 #[cfg(test)]
-mod tests;
+mod selection;
+mod smt;
+mod stake;
 
 const TEST_ENV_VAR: &str = "CAPSULE_TEST_ENV";
 

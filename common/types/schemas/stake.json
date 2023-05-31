@@ -49,6 +49,10 @@
           "type": "byte"
         },
         {
+          "name": "l1_pub_key",
+          "type": "Byte65"
+        },
+        {
           "name": "l1_address",
           "type": "Identity"
         },
@@ -57,12 +61,12 @@
           "type": "Identity"
         },
         {
-          "name": "stake_info",
-          "type": "StakeInfoDelta"
-        },
-        {
           "name": "metadata_type_id",
           "type": "Byte32"
+        },
+        {
+          "name": "delta",
+          "type": "StakeInfoDelta"
         }
       ]
     },
@@ -71,12 +75,12 @@
       "name": "StakeSmtCellData",
       "fields": [
         {
-          "name": "smt_root",
-          "type": "Byte32"
-        },
-        {
           "name": "version",
           "type": "byte"
+        },
+        {
+          "name": "smt_root",
+          "type": "Byte32"
         },
         {
           "name": "metadata_type_id",
@@ -110,6 +114,10 @@
         {
           "name": "all_stake_infos",
           "type": "StakeInfos"
+        },
+        {
+          "name": "old_bottom_proof",
+          "type": "BytesOpt"
         },
         {
           "name": "old_epoch_proof",
@@ -202,6 +210,12 @@
       "type": "fixvec",
       "name": "Bytes",
       "item": "byte",
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "BytesOpt",
+      "item": "Bytes",
       "imported_depth": 1
     },
     {

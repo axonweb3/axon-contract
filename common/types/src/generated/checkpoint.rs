@@ -1343,50 +1343,25 @@ impl ::core::fmt::Debug for CheckpointArgs {
 impl ::core::fmt::Display for CheckpointArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "type_id_hash", self.type_id_hash())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
-        }
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
         write!(f, " }}")
     }
 }
 impl ::core::default::Default for CheckpointArgs {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            40, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0,
         ];
         CheckpointArgs::new_unchecked(v.into())
     }
 }
 impl CheckpointArgs {
+    pub const TOTAL_SIZE: usize = 32;
+    pub const FIELD_SIZES: [usize; 1] = [32];
     pub const FIELD_COUNT: usize = 1;
-    pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
-    }
-    pub fn field_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
-    }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
-    }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
-    }
-    pub fn type_id_hash(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[8..]) as usize;
-            Byte32::new_unchecked(self.0.slice(start..end))
-        } else {
-            Byte32::new_unchecked(self.0.slice(start..))
-        }
+    pub fn metadata_type_id(&self) -> Byte32 {
+        Byte32::new_unchecked(self.0.slice(0..32))
     }
     pub fn as_reader<'r>(&'r self) -> CheckpointArgsReader<'r> {
         CheckpointArgsReader::new_unchecked(self.as_slice())
@@ -1414,7 +1389,7 @@ impl molecule::prelude::Entity for CheckpointArgs {
         ::core::default::Default::default()
     }
     fn as_builder(self) -> Self::Builder {
-        Self::new_builder().type_id_hash(self.type_id_hash())
+        Self::new_builder().metadata_type_id(self.metadata_type_id())
     }
 }
 #[derive(Clone, Copy)]
@@ -1436,41 +1411,16 @@ impl<'r> ::core::fmt::Debug for CheckpointArgsReader<'r> {
 impl<'r> ::core::fmt::Display for CheckpointArgsReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "type_id_hash", self.type_id_hash())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
-        }
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
         write!(f, " }}")
     }
 }
 impl<'r> CheckpointArgsReader<'r> {
+    pub const TOTAL_SIZE: usize = 32;
+    pub const FIELD_SIZES: [usize; 1] = [32];
     pub const FIELD_COUNT: usize = 1;
-    pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
-    }
-    pub fn field_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
-    }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
-    }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
-    }
-    pub fn type_id_hash(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[8..]) as usize;
-            Byte32Reader::new_unchecked(&self.as_slice()[start..end])
-        } else {
-            Byte32Reader::new_unchecked(&self.as_slice()[start..])
-        }
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+        Byte32Reader::new_unchecked(&self.as_slice()[0..32])
     }
 }
 impl<'r> molecule::prelude::Reader<'r> for CheckpointArgsReader<'r> {
@@ -1485,55 +1435,25 @@ impl<'r> molecule::prelude::Reader<'r> for CheckpointArgsReader<'r> {
     fn as_slice(&self) -> &'r [u8] {
         self.0
     }
-    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+    fn verify(slice: &[u8], _compatible: bool) -> molecule::error::VerificationResult<()> {
         use molecule::verification_error as ve;
         let slice_len = slice.len();
-        if slice_len < molecule::NUMBER_SIZE {
-            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
+        if slice_len != Self::TOTAL_SIZE {
+            return ve!(Self, TotalSizeNotMatch, Self::TOTAL_SIZE, slice_len);
         }
-        let total_size = molecule::unpack_number(slice) as usize;
-        if slice_len != total_size {
-            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
-        }
-        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
-            return Ok(());
-        }
-        if slice_len < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
-        }
-        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
-        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        if slice_len < offset_first {
-            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
-        }
-        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
-        if field_count < Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        } else if !compatible && field_count > Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        };
-        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
-            .chunks_exact(molecule::NUMBER_SIZE)
-            .map(|x| molecule::unpack_number(x) as usize)
-            .collect();
-        offsets.push(total_size);
-        if offsets.windows(2).any(|i| i[0] > i[1]) {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        Byte32Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct CheckpointArgsBuilder {
-    pub(crate) type_id_hash: Byte32,
+    pub(crate) metadata_type_id: Byte32,
 }
 impl CheckpointArgsBuilder {
+    pub const TOTAL_SIZE: usize = 32;
+    pub const FIELD_SIZES: [usize; 1] = [32];
     pub const FIELD_COUNT: usize = 1;
-    pub fn type_id_hash(mut self, v: Byte32) -> Self {
-        self.type_id_hash = v;
+    pub fn metadata_type_id(mut self, v: Byte32) -> Self {
+        self.metadata_type_id = v;
         self
     }
 }
@@ -1541,18 +1461,10 @@ impl molecule::prelude::Builder for CheckpointArgsBuilder {
     type Entity = CheckpointArgs;
     const NAME: &'static str = "CheckpointArgsBuilder";
     fn expected_length(&self) -> usize {
-        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1) + self.type_id_hash.as_slice().len()
+        Self::TOTAL_SIZE
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
-        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
-        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
-        offsets.push(total_size);
-        total_size += self.type_id_hash.as_slice().len();
-        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
-        for offset in offsets.into_iter() {
-            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
-        }
-        writer.write_all(self.type_id_hash.as_slice())?;
+        writer.write_all(self.metadata_type_id.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {

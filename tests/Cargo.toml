@@ -16,4 +16,7 @@ keccak-hash = "0.10"
 bit-vec = "0.6.3"
 hex = "0.4.3"
 axon-types = { path = "../common/types" }
- 
+util = { path = "../common/util" }
+sparse-merkle-tree = { version = "0.6.1", default-features = false, features = ["smtc"] }
+blake2b-rs = "0.2.0"
+ckb-smt = { path = "../contracts/ckb-smt" }

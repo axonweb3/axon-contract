@@ -112,10 +112,30 @@
     },
     {
       "type": "table",
-      "name": "MetaTypeIds",
+      "name": "TypeIds",
       "fields": [
         {
+          "name": "issue_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "selection_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "xudt_owner_lock_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "metadata_code_hash",
+          "type": "Byte32"
+        },
+        {
           "name": "metadata_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "checkpoint_code_hash",
           "type": "Byte32"
         },
         {
@@ -123,7 +143,15 @@
           "type": "Byte32"
         },
         {
+          "name": "stake_smt_code_hash",
+          "type": "Byte32"
+        },
+        {
           "name": "stake_smt_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "delegate_smt_code_hash",
           "type": "Byte32"
         },
         {
@@ -131,7 +159,7 @@
           "type": "Byte32"
         },
         {
-          "name": "withdraw_type_id",
+          "name": "reward_code_hash",
           "type": "Byte32"
         },
         {
@@ -139,7 +167,11 @@
           "type": "Byte32"
         },
         {
-          "name": "xudt_type_id",
+          "name": "xudt_type_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "withdraw_code_hash",
           "type": "Byte32"
         }
       ]
@@ -162,7 +194,7 @@
         },
         {
           "name": "type_ids",
-          "type": "MetaTypeIds"
+          "type": "TypeIds"
         },
         {
           "name": "metadata",
@@ -377,6 +409,12 @@
       "type": "fixvec",
       "name": "Bytes",
       "item": "byte",
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "BytesOpt",
+      "item": "Bytes",
       "imported_depth": 1
     },
     {

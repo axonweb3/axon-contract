@@ -7,8 +7,8 @@ use alloc::{collections::BTreeSet, vec};
 
 use axon_types::metadata_reader::{ElectionSmtProof, StakeSmtElectionInfo};
 use axon_types::{
-    checkpoint_reader::CheckpointCellData, metadata_reader::MetaTypeIds,
-    metadata_reader::MetadataCellData, metadata_reader::ValidatorList,
+    checkpoint_reader::CheckpointCellData, metadata_reader::MetadataCellData,
+    metadata_reader::TypeIds, metadata_reader::ValidatorList,
 };
 use ckb_smt::smt::{Pair, Tree};
 // Import CKB syscalls and structures
@@ -26,9 +26,9 @@ use axon_types::{
 };
 use util::helper::{
     get_current_epoch, get_delegate_smt_root, get_quorum_size, get_stake_smt_root,
-    verify_2layer_smt_delegate, verify_2layer_smt_stake, DelegateInfoObject, MinerGroupInfoObject,
-    StakeInfoObject,
+    MinerGroupInfoObject,
 };
+use util::smt::LockInfo;
 use util::{
     error::Error,
     helper::{
@@ -65,7 +65,9 @@ pub fn main() -> Result<(), Error> {
 
     verify_propose_counts(&checkpoint_data, &output_metadata)?;
 
-    verify_eletion(&type_ids)?;
+    verify_election(&type_ids)?;
+
+    // verify lock_info smt root of stake in epoch n + 1 is equal to n
 
     // just to pass compile
     let staker_identity = vec![0u8; 20];
@@ -104,6 +106,7 @@ fn verify_chain_config(
         return Err(Error::MetadataInputOutputMismatch);
     }
 
+    // output metadata2 will update something, like validators, block height, etc.
     if output_metadata1.brake_ratio() != output_metadata2.brake_ratio()
         || output_metadata1.epoch_len() != output_metadata2.epoch_len()
         || output_metadata1.gas_limit() != output_metadata2.gas_limit()
@@ -180,7 +183,7 @@ fn verify_propose_counts(
     Ok(())
 }
 
-fn verify_eletion(type_ids: &MetaTypeIds) -> Result<(), Error> {
+fn verify_election(type_ids: &TypeIds) -> Result<(), Error> {
     let stake_smt_type_id = type_ids.stake_smt_type_id();
     // check stake smt cell in input and output
     let mut stake_smt_cell_count = 0;
@@ -296,7 +299,7 @@ pub fn verify_2layer_smt(
 }
 
 // should be checked in metadata script
-fn verify_election_metadata(type_ids: &MetaTypeIds, quorum_size: u16) -> Result<(), Error> {
+fn verify_election_metadata(type_ids: &TypeIds, quorum_size: u16) -> Result<(), Error> {
     // get stake & delegate data of epoch n + 1 & n + 2,  from witness of stake smt cell
     let election_infos = {
         let witness_args = load_witness_args(0, Source::GroupInput);
@@ -354,7 +357,7 @@ fn verify_election_metadata(type_ids: &MetaTypeIds, quorum_size: u16) -> Result<
         }
 
         // update staker's delegators
-        let mut new_delegators: Vec<DelegateInfoObject> = miner.delegators.clone();
+        let mut new_delegators: Vec<LockInfo> = miner.delegators.clone();
         if miner_n1.is_some() {
             for delegator in &miner_n1.unwrap().delegators {
                 let delegator_n1 = miner
@@ -408,7 +411,7 @@ pub fn verify_stake_delegate(
     eletion_info: &ElectionSmtProof,
     epoch: u64,
     miners: &mut BTreeSet<MinerGroupInfoObject>,
-    type_ids: &MetaTypeIds,
+    type_ids: &TypeIds,
     source: Source,
 ) -> Result<(), Error> {
     let miner_infos = eletion_info.miners();
@@ -419,9 +422,9 @@ pub fn verify_stake_delegate(
         let miner_info = &miner_infos.get(i);
         let miner_group_obj = MinerGroupInfoObject::new(miner_info);
 
-        stake_infos.insert(StakeInfoObject {
-            identity: miner_group_obj.staker,
-            stake_amount: miner_group_obj.stake_amount.unwrap(),
+        stake_infos.insert(LockInfo {
+            addr: miner_group_obj.staker,
+            amount: miner_group_obj.stake_amount.unwrap(),
         });
         miners.insert(miner_group_obj);
     }
@@ -432,7 +435,7 @@ pub fn verify_stake_delegate(
         type_ids.stake_smt_type_id().as_slice().try_into().unwrap(),
         source,
     )?;
-    verify_2layer_smt_stake(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
+    util::smt::verify_2layer_smt(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
 
     let new_miners = miners.clone();
     for miner in new_miners {
@@ -451,7 +454,7 @@ pub fn verify_stake_delegate(
             &miner.staker,
             source,
         )?;
-        verify_2layer_smt_delegate(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
+        util::smt::verify_2layer_smt(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
     }
 
     Ok(())
@@ -460,15 +463,15 @@ pub fn verify_stake_delegate(
 fn verify_new_validators(
     validators: &BTreeSet<MinerGroupInfoObject>,
     epoch: u64,
-    type_ids: &MetaTypeIds,
+    type_ids: &TypeIds,
     eletion_infos: &StakeSmtElectionInfo,
 ) -> Result<(), Error> {
     let mut stake_infos = BTreeSet::new();
     // get stake infos and miner group info
     for validator in validators {
-        stake_infos.insert(StakeInfoObject {
-            identity: validator.staker,
-            stake_amount: validator.stake_amount.unwrap(),
+        stake_infos.insert(LockInfo {
+            addr: validator.staker,
+            amount: validator.stake_amount.unwrap(),
         });
     }
 
@@ -478,7 +481,7 @@ fn verify_new_validators(
         type_ids.stake_smt_type_id().as_slice().try_into().unwrap(),
         Source::GroupOutput,
     )?;
-    verify_2layer_smt_stake(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
+    util::smt::verify_2layer_smt(&stake_infos, epoch, &epoch_proof, &epoch_root)?;
 
     let new_miners = validators.clone();
     let epoch_proofs = eletion_infos.new_delegate_proofs();
@@ -505,7 +508,7 @@ fn verify_new_validators(
             &miner.staker,
             Source::Output,
         )?;
-        verify_2layer_smt_delegate(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
+        util::smt::verify_2layer_smt(&delegate_infos, epoch, &epoch_proof, &epoch_root)?;
     }
 
     Ok(())
