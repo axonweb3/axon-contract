@@ -588,6 +588,7 @@ impl ::core::fmt::Display for StakeAtCellData {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "version", self.version())?;
         write!(f, ", {}: {}", "l1_pub_key", self.l1_pub_key())?;
+        write!(f, ", {}: {}", "bls_pub_key", self.bls_pub_key())?;
         write!(f, ", {}: {}", "l1_address", self.l1_address())?;
         write!(f, ", {}: {}", "l2_address", self.l2_address())?;
         write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
@@ -602,20 +603,23 @@ impl ::core::fmt::Display for StakeAtCellData {
 impl ::core::default::Default for StakeAtCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            207, 0, 0, 0, 28, 0, 0, 0, 29, 0, 0, 0, 94, 0, 0, 0, 114, 0, 0, 0, 134, 0, 0, 0, 166,
+            52, 1, 0, 0, 32, 0, 0, 0, 33, 0, 0, 0, 98, 0, 0, 0, 195, 0, 0, 0, 215, 0, 0, 0, 235, 0,
+            0, 0, 11, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0,
-            16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         StakeAtCellData::new_unchecked(v.into())
     }
 }
 impl StakeAtCellData {
-    pub const FIELD_COUNT: usize = 6;
+    pub const FIELD_COUNT: usize = 7;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -644,29 +648,35 @@ impl StakeAtCellData {
         let end = molecule::unpack_number(&slice[12..]) as usize;
         Byte65::new_unchecked(self.0.slice(start..end))
     }
-    pub fn l1_address(&self) -> Identity {
+    pub fn bls_pub_key(&self) -> Byte97 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
-        Identity::new_unchecked(self.0.slice(start..end))
+        Byte97::new_unchecked(self.0.slice(start..end))
     }
-    pub fn l2_address(&self) -> Identity {
+    pub fn l1_address(&self) -> Identity {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[16..]) as usize;
         let end = molecule::unpack_number(&slice[20..]) as usize;
         Identity::new_unchecked(self.0.slice(start..end))
     }
-    pub fn metadata_type_id(&self) -> Byte32 {
+    pub fn l2_address(&self) -> Identity {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[20..]) as usize;
         let end = molecule::unpack_number(&slice[24..]) as usize;
+        Identity::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn metadata_type_id(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[24..]) as usize;
+        let end = molecule::unpack_number(&slice[28..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
     pub fn delta(&self) -> StakeInfoDelta {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[24..]) as usize;
+        let start = molecule::unpack_number(&slice[28..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[28..]) as usize;
+            let end = molecule::unpack_number(&slice[32..]) as usize;
             StakeInfoDelta::new_unchecked(self.0.slice(start..end))
         } else {
             StakeInfoDelta::new_unchecked(self.0.slice(start..))
@@ -701,6 +711,7 @@ impl molecule::prelude::Entity for StakeAtCellData {
         Self::new_builder()
             .version(self.version())
             .l1_pub_key(self.l1_pub_key())
+            .bls_pub_key(self.bls_pub_key())
             .l1_address(self.l1_address())
             .l2_address(self.l2_address())
             .metadata_type_id(self.metadata_type_id())
@@ -728,6 +739,7 @@ impl<'r> ::core::fmt::Display for StakeAtCellDataReader<'r> {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "version", self.version())?;
         write!(f, ", {}: {}", "l1_pub_key", self.l1_pub_key())?;
+        write!(f, ", {}: {}", "bls_pub_key", self.bls_pub_key())?;
         write!(f, ", {}: {}", "l1_address", self.l1_address())?;
         write!(f, ", {}: {}", "l2_address", self.l2_address())?;
         write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
@@ -740,7 +752,7 @@ impl<'r> ::core::fmt::Display for StakeAtCellDataReader<'r> {
     }
 }
 impl<'r> StakeAtCellDataReader<'r> {
-    pub const FIELD_COUNT: usize = 6;
+    pub const FIELD_COUNT: usize = 7;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -769,29 +781,35 @@ impl<'r> StakeAtCellDataReader<'r> {
         let end = molecule::unpack_number(&slice[12..]) as usize;
         Byte65Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn l1_address(&self) -> IdentityReader<'r> {
+    pub fn bls_pub_key(&self) -> Byte97Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
-        IdentityReader::new_unchecked(&self.as_slice()[start..end])
+        Byte97Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn l2_address(&self) -> IdentityReader<'r> {
+    pub fn l1_address(&self) -> IdentityReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[16..]) as usize;
         let end = molecule::unpack_number(&slice[20..]) as usize;
         IdentityReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+    pub fn l2_address(&self) -> IdentityReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[20..]) as usize;
         let end = molecule::unpack_number(&slice[24..]) as usize;
+        IdentityReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[24..]) as usize;
+        let end = molecule::unpack_number(&slice[28..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn delta(&self) -> StakeInfoDeltaReader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[24..]) as usize;
+        let start = molecule::unpack_number(&slice[28..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[28..]) as usize;
+            let end = molecule::unpack_number(&slice[32..]) as usize;
             StakeInfoDeltaReader::new_unchecked(&self.as_slice()[start..end])
         } else {
             StakeInfoDeltaReader::new_unchecked(&self.as_slice()[start..])
@@ -849,10 +867,11 @@ impl<'r> molecule::prelude::Reader<'r> for StakeAtCellDataReader<'r> {
         }
         ByteReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
         Byte65Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        IdentityReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        Byte97Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         IdentityReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
-        StakeInfoDeltaReader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
+        IdentityReader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
+        StakeInfoDeltaReader::verify(&slice[offsets[6]..offsets[7]], compatible)?;
         Ok(())
     }
 }
@@ -860,19 +879,24 @@ impl<'r> molecule::prelude::Reader<'r> for StakeAtCellDataReader<'r> {
 pub struct StakeAtCellDataBuilder {
     pub(crate) version: Byte,
     pub(crate) l1_pub_key: Byte65,
+    pub(crate) bls_pub_key: Byte97,
     pub(crate) l1_address: Identity,
     pub(crate) l2_address: Identity,
     pub(crate) metadata_type_id: Byte32,
     pub(crate) delta: StakeInfoDelta,
 }
 impl StakeAtCellDataBuilder {
-    pub const FIELD_COUNT: usize = 6;
+    pub const FIELD_COUNT: usize = 7;
     pub fn version(mut self, v: Byte) -> Self {
         self.version = v;
         self
     }
     pub fn l1_pub_key(mut self, v: Byte65) -> Self {
         self.l1_pub_key = v;
+        self
+    }
+    pub fn bls_pub_key(mut self, v: Byte97) -> Self {
+        self.bls_pub_key = v;
         self
     }
     pub fn l1_address(mut self, v: Identity) -> Self {
@@ -899,6 +923,7 @@ impl molecule::prelude::Builder for StakeAtCellDataBuilder {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
             + self.version.as_slice().len()
             + self.l1_pub_key.as_slice().len()
+            + self.bls_pub_key.as_slice().len()
             + self.l1_address.as_slice().len()
             + self.l2_address.as_slice().len()
             + self.metadata_type_id.as_slice().len()
@@ -911,6 +936,8 @@ impl molecule::prelude::Builder for StakeAtCellDataBuilder {
         total_size += self.version.as_slice().len();
         offsets.push(total_size);
         total_size += self.l1_pub_key.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.bls_pub_key.as_slice().len();
         offsets.push(total_size);
         total_size += self.l1_address.as_slice().len();
         offsets.push(total_size);
@@ -925,6 +952,7 @@ impl molecule::prelude::Builder for StakeAtCellDataBuilder {
         }
         writer.write_all(self.version.as_slice())?;
         writer.write_all(self.l1_pub_key.as_slice())?;
+        writer.write_all(self.bls_pub_key.as_slice())?;
         writer.write_all(self.l1_address.as_slice())?;
         writer.write_all(self.l2_address.as_slice())?;
         writer.write_all(self.metadata_type_id.as_slice())?;
