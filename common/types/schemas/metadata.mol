@@ -60,7 +60,8 @@ table MetadataArgs {
 }
 
 table MetadataWitness {
-    new_exist_proof: Bytes,
+    new_propose_proof: Bytes,
+    smt_election_info: StakeSmtElectionInfo,
 }
 
 // election witness
@@ -71,10 +72,9 @@ table DelegateInfo {
 
 vector DelegateInfos <DelegateInfo>;
 
-option Uint128Opt (Uint128);
 table MinerGroupInfo {
     staker: Identity,
-    amount: Uint128Opt,                 // if amount == Uint128_MAX, means staker no change
+    amount: Uint128, 
     delegate_infos: DelegateInfos,      // calculate delegator_smt_root based on this
     delegate_epoch_proof: Bytes,        // prove delegator_smt_root's existence
 }
@@ -93,7 +93,6 @@ table DelegateProof {
 vector DelegateProofs <DelegateProof>;
 
 table StakeSmtElectionInfo {
-    n1: ElectionSmtProof,
     n2: ElectionSmtProof,
     new_stake_proof: Bytes,
     new_delegate_proofs: DelegateProofs,

@@ -39,7 +39,7 @@ vector StakeInfos <StakeInfo>;
 
 table StakeSmtUpdateInfo {
     all_stake_infos:  StakeInfos, // all stake info
-    old_bottom_proof: BytesOpt,  // old amount proof, if none means the first time update
+    // old_bottom_proof: BytesOpt,  // old amount proof, if none means the first time update
     old_epoch_proof:  Bytes,
     new_epoch_proof:  Bytes,
 }

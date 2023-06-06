@@ -1,4 +1,3 @@
-#![allow(non_camel_case_types)]
 use std::{collections::BTreeSet, convert::TryInto};
 
 use blake2b_rs::{Blake2b, Blake2bBuilder};
@@ -6,11 +5,15 @@ use ckb_smt::smt::{Pair, Tree};
 use sparse_merkle_tree::{
     default_store::DefaultStore,
     traits::{Hasher, Value},
-    MerkleProof, SMTBuilder, SparseMerkleTree, H256,
+    CompiledMerkleProof, MerkleProof, SMTBuilder, SparseMerkleTree, H256,
 };
 use util::{
     error::Error,
-    smt::{verify_smt_leaf, LockInfo},
+    helper::ProposeCountObject,
+    smt::{
+        addr_to_h256, verify_2layer_smt, verify_smt_leaf, BottomValue, LockInfo,
+        ProposeBottomValue, BOTTOM_SMT, PROPOSE_BOTTOM_SMT, TOP_SMT,
+    },
 };
 
 pub struct Blake2bHasher(Blake2b);
@@ -40,8 +43,8 @@ impl Hasher for Blake2bHasher {
 
 // define SMT
 pub type SMT = SparseMerkleTree<Blake2bHasher, Word, DefaultStore<Word>>;
-pub type TOP_SMT = SparseMerkleTree<Blake2bHasher, H256, DefaultStore<H256>>;
-pub type BOTTOM_SMT = SparseMerkleTree<Blake2bHasher, BottomValue, DefaultStore<BottomValue>>;
+// pub type TOP_SMT = SparseMerkleTree<Blake2bHasher, H256, DefaultStore<H256>>;
+// pub type BOTTOM_SMT = SparseMerkleTree<Blake2bHasher, BottomValue, DefaultStore<BottomValue>>;
 
 // define SMT value
 #[derive(Default, Clone)]
@@ -124,21 +127,21 @@ pub struct TopSmtInfo {
 }
 
 // define SMT value
-#[derive(Default, Clone, Copy)]
-pub struct BottomValue(u128);
-impl Value for BottomValue {
-    fn to_h256(&self) -> H256 {
-        let mut buf = [0u8; 32];
-        let mut hasher = new_blake2b();
-        // println!("amount: {}", self.0);
-        hasher.update(&self.0.to_le_bytes());
-        hasher.finalize(&mut buf);
-        buf.into()
-    }
-    fn zero() -> Self {
-        Default::default()
-    }
-}
+// #[derive(Default, Clone, Copy)]
+// pub struct BottomValue(u128);
+// impl Value for BottomValue {
+//     fn to_h256(&self) -> H256 {
+//         let mut buf = [0u8; 32];
+//         let mut hasher = new_blake2b();
+//         // println!("amount: {}", self.0);
+//         hasher.update(&self.0.to_le_bytes());
+//         hasher.finalize(&mut buf);
+//         buf.into()
+//     }
+//     fn zero() -> Self {
+//         Default::default()
+//     }
+// }
 
 // helper function
 fn new_blake2b() -> Blake2b {
@@ -148,13 +151,13 @@ fn new_blake2b() -> Blake2b {
         .build()
 }
 
-pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
-    let mut buf = [0u8; 32];
-    let mut hasher = new_blake2b();
-    hasher.update(addr);
-    hasher.finalize(&mut buf);
-    buf.into()
-}
+// pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
+//     let mut buf = [0u8; 32];
+//     let mut hasher = new_blake2b();
+//     hasher.update(addr);
+//     hasher.finalize(&mut buf);
+//     buf.into()
+// }
 
 // bottom smt tree
 pub fn construct_lock_info_smt(lock_infos: &BTreeSet<LockInfo>) -> (H256, Option<MerkleProof>) {
@@ -170,6 +173,31 @@ pub fn construct_lock_info_smt(lock_infos: &BTreeSet<LockInfo>) -> (H256, Option
     }
 
     // println!("lock_infos len: {}, root: {:?}", lock_infos.len(), tree.root());
+    if keys.is_empty() {
+        return (H256::zero(), None);
+    } else {
+        return (
+            *tree.root(),
+            Some(tree.merkle_proof(keys).expect("merkle proof")),
+        );
+    }
+}
+
+// bottom smt tree
+pub fn construct_propose_count_smt(
+    propose_infos: &Vec<ProposeCountObject>,
+) -> (H256, Option<MerkleProof>) {
+    let mut tree = PROPOSE_BOTTOM_SMT::default();
+    let mut keys = Vec::<H256>::new();
+    // travese lock_infos and insert into smt
+    for propose_info in propose_infos.iter() {
+        let key: H256 = addr_to_h256(&propose_info.addr);
+        keys.push(key);
+        // println!("key: {:?}", key);
+        let value = ProposeBottomValue(propose_info.count);
+        tree.update(key.to_owned(), value).expect("update");
+    }
+
     if keys.is_empty() {
         return (H256::zero(), None);
     } else {
@@ -204,6 +232,61 @@ pub fn construct_epoch_smt(top_smt_infos: &Vec<TopSmtInfo>) -> (H256, MerkleProo
         *tree.root(),
         tree.merkle_proof(vec![key1]).expect("merkle proof"),
     )
+}
+
+#[test]
+fn test_smt_compiled_proof() {
+    let mut tree = BOTTOM_SMT::default();
+    let key1 = addr_to_h256(&[0u8; 20]);
+    let leaf1 = BottomValue(100);
+    tree.update(key1.to_owned(), leaf1).expect("update");
+
+    let smt_root = *tree.root();
+    let leaves_keys = vec![key1];
+    let proof = tree
+        .merkle_proof(vec![key1])
+        .expect("merkle proof")
+        .compile(leaves_keys.clone())
+        .unwrap();
+
+    let leaves = vec![(key1, leaf1.clone().to_h256())];
+    match proof
+        .clone()
+        .verify::<Blake2bHasher>(&smt_root, leaves.clone())
+    {
+        Ok(is_exist) => println!("verify success, exist:{}", is_exist),
+        Err(err) => println!("verify error: {}", err),
+    }
+
+    let proof = proof.0;
+    let compiled_merkle_proof = CompiledMerkleProof(proof);
+    match compiled_merkle_proof.verify::<Blake2bHasher>(&smt_root, leaves) {
+        Ok(is_exist) => println!("verify success, exist:{}", is_exist),
+        Err(err) => println!("verify error: {}", err),
+    }
+
+    // construct 2 layer smt
+    let mut lock_infos = BTreeSet::<LockInfo>::new();
+    lock_infos.insert(LockInfo {
+        addr: [0u8; 20],
+        amount: 100,
+    });
+    let (bottom_root, _bottom_proof) = construct_lock_info_smt(&lock_infos);
+    let top_smt_infos = vec![TopSmtInfo {
+        epoch: 3,
+        smt_root: bottom_root,
+    }];
+    let (top_root, top_proof) = construct_epoch_smt(&top_smt_infos);
+
+    // verify 2 layer smt
+    let top_proof = top_proof.compile(vec![key1]).unwrap();
+    let epoch = u64_to_h256(3);
+    let result = verify_2layer_smt(&lock_infos, epoch, top_root, top_proof);
+    match result {
+        Ok(true) => println!("Success!"),
+        Ok(false) => println!("Failure!"),
+        Err(e) => println!("Error: {:?}", e as u32),
+    }
 }
 
 #[test]

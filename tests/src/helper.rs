@@ -15,7 +15,7 @@ use ckb_testtool::{
     },
 };
 use molecule::prelude::*;
-use util::smt::{LockInfo};
+use util::smt::LockInfo;
 
 pub const MAX_CYCLES: u64 = 100_000_000;
 
@@ -26,12 +26,20 @@ pub fn blake160(data: &[u8]) -> [u8; 20] {
     buf
 }
 
+pub fn pubkey_to_addr(pubkey: &Vec<u8>) -> [u8; 20] {
+    blake160(pubkey.as_slice())
+}
+
 // pub fn axon_byte48(bytes: &[u8; 48]) -> basic::Byte48 {
 //     axon::Byte48::new_unchecked(bytes.to_vec().into())
 // }
 
 pub fn axon_byte32(bytes: &Byte32) -> basic::Byte32 {
     let bytes: [u8; 32] = bytes.unpack().into();
+    basic::Byte32::new_unchecked(bytes.to_vec().into())
+}
+
+pub fn axon_array32_byte32(bytes: [u8; 32]) -> basic::Byte32 {
     basic::Byte32::new_unchecked(bytes.to_vec().into())
 }
 
@@ -54,6 +62,10 @@ pub fn axon_byte4(value: u32) -> basic::Byte4 {
 pub fn axon_bytes(bytes: &Vec<u8>) -> basic::Bytes {
     let bytes = bytes.into_iter().map(|value| (*value).into()).collect();
     basic::Bytes::new_builder().set(bytes).build()
+}
+
+pub fn axon_bytes_byte32(bytes: &Bytes) -> basic::Byte32 {
+    basic::Byte32::new_unchecked(bytes.to_vec().into())
 }
 
 pub fn axon_bytes_some(bytes: &Vec<u8>) -> basic::BytesOpt {
@@ -132,6 +144,31 @@ pub fn axon_stake_at_cell_data(
     data
 }
 
+pub fn axon_delegate_at_cell_data_without_amount(
+    version: u8,
+    l1_address: &Vec<u8>,
+    metadata_type_id: &packed::Byte32,
+    delta: axon_types::delegate::DelegateInfoDeltas,
+) -> axon_types::delegate::DelegateAtCellData {
+    axon_types::delegate::DelegateAtCellData::new_builder()
+        .version(version.into())
+        .l1_address(axon_identity(l1_address))
+        .metadata_type_id(axon_byte32(metadata_type_id))
+        .delegator_infos(delta)
+        .build()
+}
+
+pub fn axon_delegate_at_cell_data(
+    amount: u128,
+    delegate_at_cell_data: axon_types::delegate::DelegateAtCellData,
+) -> Vec<u8> {
+    // merge amount and stake_at_cell_data to Vec<u8>
+    let mut data = Vec::new();
+    data.extend_from_slice(&amount.to_le_bytes());
+    data.extend_from_slice(delegate_at_cell_data.as_slice());
+    data
+}
+
 pub fn axon_checkpoint_data(
     metadata_type_id: &packed::Byte32,
 ) -> axon_types::checkpoint::CheckpointCellData {
@@ -146,15 +183,14 @@ pub fn axon_checkpoint_data(
 
 pub fn axon_metadata_data(
     metadata_type_id: &packed::Byte32,
-    xudt_type_id: &packed::Byte32,
+    xudt_type_hash: &packed::Byte32,
     checkpoint_type_id: &packed::Byte32,
     stake_smt_type_id: &packed::Byte32,
     metadata_list: MetadataList,
 ) -> axon_types::metadata::MetadataCellData {
-    // build CheckpointCellData from scrach
     let type_ids = axon_types::metadata::TypeIds::new_builder()
         .metadata_type_id(axon_byte32(metadata_type_id))
-        .xudt_type_id(axon_byte32(xudt_type_id))
+        .xudt_type_hash(axon_byte32(xudt_type_hash))
         .checkpoint_type_id(axon_byte32(checkpoint_type_id))
         .stake_smt_type_id(axon_byte32(stake_smt_type_id))
         .build();
@@ -163,6 +199,32 @@ pub fn axon_metadata_data(
         .epoch(axon_u64(1))
         .metadata(metadata_list)
         .type_ids(type_ids)
+        .build()
+}
+
+pub fn axon_metadata_data_by_script(
+    metadata_type_id: &packed::Byte32,
+    xudt_type_hash: &packed::Byte32,
+    checkpoint_type_id: &Script,
+    stake_smt_type_id: &packed::Byte32,
+    metadata_list: MetadataList,
+    epoch: u64,
+    propose_count_smt_root: [u8; 32],
+) -> axon_types::metadata::MetadataCellData {
+    let checkpoint_args = checkpoint_type_id.args();
+    let type_ids = axon_types::metadata::TypeIds::new_builder()
+        .metadata_type_id(axon_byte32(metadata_type_id))
+        .xudt_type_hash(axon_byte32(xudt_type_hash))
+        .checkpoint_type_id(axon_bytes_byte32(&checkpoint_args.raw_data()))
+        .checkpoint_code_hash(axon_byte32(&checkpoint_type_id.code_hash()))
+        .stake_smt_type_id(axon_byte32(stake_smt_type_id))
+        .build();
+    axon_types::metadata::MetadataCellData::new_builder()
+        .version(0.into())
+        .epoch(axon_u64(epoch))
+        .metadata(metadata_list)
+        .type_ids(type_ids)
+        .propose_count_smt_root(axon_array32_byte32(propose_count_smt_root))
         .build()
 }
 

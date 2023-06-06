@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -89,29 +90,36 @@ impl StakeAtCellData {
 }
 
 impl StakeAtCellData {
-    pub fn l1_address(&self) -> Vec<u8> {
+    pub fn bls_pub_key(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(2).unwrap();
         cur.into()
     }
 }
 
 impl StakeAtCellData {
-    pub fn l2_address(&self) -> Vec<u8> {
+    pub fn l1_address(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(3).unwrap();
         cur.into()
     }
 }
 
 impl StakeAtCellData {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
+    pub fn l2_address(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(4).unwrap();
         cur.into()
     }
 }
 
 impl StakeAtCellData {
-    pub fn delta(&self) -> StakeInfoDelta {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(5).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtCellData {
+    pub fn delta(&self) -> StakeInfoDelta {
+        let cur = self.cursor.table_slice_by_index(6).unwrap();
         cur.into()
     }
 }
@@ -212,19 +220,8 @@ impl StakeSmtUpdateInfo {
 }
 
 impl StakeSmtUpdateInfo {
-    pub fn old_bottom_proof(&self) -> Option<Vec<u8>> {
-        let cur = self.cursor.table_slice_by_index(1).unwrap();
-        if cur.option_is_none() {
-            None
-        } else {
-            Some(cur.into())
-        }
-    }
-}
-
-impl StakeSmtUpdateInfo {
     pub fn old_epoch_proof(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(2).unwrap();
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
         let cur2 = cur.convert_to_rawbytes().unwrap();
         cur2.into()
     }
@@ -232,7 +229,7 @@ impl StakeSmtUpdateInfo {
 
 impl StakeSmtUpdateInfo {
     pub fn new_epoch_proof(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(3).unwrap();
+        let cur = self.cursor.table_slice_by_index(2).unwrap();
         let cur2 = cur.convert_to_rawbytes().unwrap();
         cur2.into()
     }

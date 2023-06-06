@@ -2933,7 +2933,8 @@ impl ::core::fmt::Debug for MetadataWitness {
 impl ::core::fmt::Display for MetadataWitness {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "new_exist_proof", self.new_exist_proof())?;
+        write!(f, "{}: {}", "new_propose_proof", self.new_propose_proof())?;
+        write!(f, ", {}: {}", "smt_election_info", self.smt_election_info())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -2943,12 +2944,16 @@ impl ::core::fmt::Display for MetadataWitness {
 }
 impl ::core::default::Default for MetadataWitness {
     fn default() -> Self {
-        let v: Vec<u8> = vec![12, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0];
+        let v: Vec<u8> = vec![
+            60, 0, 0, 0, 12, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 44, 0, 0, 0, 16, 0, 0, 0, 36, 0, 0,
+            0, 40, 0, 0, 0, 20, 0, 0, 0, 12, 0, 0, 0, 16, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 4, 0, 0, 0,
+        ];
         MetadataWitness::new_unchecked(v.into())
     }
 }
 impl MetadataWitness {
-    pub const FIELD_COUNT: usize = 1;
+    pub const FIELD_COUNT: usize = 2;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -2965,14 +2970,20 @@ impl MetadataWitness {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn new_exist_proof(&self) -> Bytes {
+    pub fn new_propose_proof(&self) -> Bytes {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Bytes::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn smt_election_info(&self) -> StakeSmtElectionInfo {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[8..]) as usize;
-            Bytes::new_unchecked(self.0.slice(start..end))
+            let end = molecule::unpack_number(&slice[12..]) as usize;
+            StakeSmtElectionInfo::new_unchecked(self.0.slice(start..end))
         } else {
-            Bytes::new_unchecked(self.0.slice(start..))
+            StakeSmtElectionInfo::new_unchecked(self.0.slice(start..))
         }
     }
     pub fn as_reader<'r>(&'r self) -> MetadataWitnessReader<'r> {
@@ -3001,7 +3012,9 @@ impl molecule::prelude::Entity for MetadataWitness {
         ::core::default::Default::default()
     }
     fn as_builder(self) -> Self::Builder {
-        Self::new_builder().new_exist_proof(self.new_exist_proof())
+        Self::new_builder()
+            .new_propose_proof(self.new_propose_proof())
+            .smt_election_info(self.smt_election_info())
     }
 }
 #[derive(Clone, Copy)]
@@ -3023,7 +3036,8 @@ impl<'r> ::core::fmt::Debug for MetadataWitnessReader<'r> {
 impl<'r> ::core::fmt::Display for MetadataWitnessReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "new_exist_proof", self.new_exist_proof())?;
+        write!(f, "{}: {}", "new_propose_proof", self.new_propose_proof())?;
+        write!(f, ", {}: {}", "smt_election_info", self.smt_election_info())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -3032,7 +3046,7 @@ impl<'r> ::core::fmt::Display for MetadataWitnessReader<'r> {
     }
 }
 impl<'r> MetadataWitnessReader<'r> {
-    pub const FIELD_COUNT: usize = 1;
+    pub const FIELD_COUNT: usize = 2;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -3049,14 +3063,20 @@ impl<'r> MetadataWitnessReader<'r> {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn new_exist_proof(&self) -> BytesReader<'r> {
+    pub fn new_propose_proof(&self) -> BytesReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        BytesReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn smt_election_info(&self) -> StakeSmtElectionInfoReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[8..]) as usize;
-            BytesReader::new_unchecked(&self.as_slice()[start..end])
+            let end = molecule::unpack_number(&slice[12..]) as usize;
+            StakeSmtElectionInfoReader::new_unchecked(&self.as_slice()[start..end])
         } else {
-            BytesReader::new_unchecked(&self.as_slice()[start..])
+            StakeSmtElectionInfoReader::new_unchecked(&self.as_slice()[start..])
         }
     }
 }
@@ -3110,17 +3130,23 @@ impl<'r> molecule::prelude::Reader<'r> for MetadataWitnessReader<'r> {
             return ve!(Self, OffsetsNotMatch);
         }
         BytesReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        StakeSmtElectionInfoReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct MetadataWitnessBuilder {
-    pub(crate) new_exist_proof: Bytes,
+    pub(crate) new_propose_proof: Bytes,
+    pub(crate) smt_election_info: StakeSmtElectionInfo,
 }
 impl MetadataWitnessBuilder {
-    pub const FIELD_COUNT: usize = 1;
-    pub fn new_exist_proof(mut self, v: Bytes) -> Self {
-        self.new_exist_proof = v;
+    pub const FIELD_COUNT: usize = 2;
+    pub fn new_propose_proof(mut self, v: Bytes) -> Self {
+        self.new_propose_proof = v;
+        self
+    }
+    pub fn smt_election_info(mut self, v: StakeSmtElectionInfo) -> Self {
+        self.smt_election_info = v;
         self
     }
 }
@@ -3128,18 +3154,23 @@ impl molecule::prelude::Builder for MetadataWitnessBuilder {
     type Entity = MetadataWitness;
     const NAME: &'static str = "MetadataWitnessBuilder";
     fn expected_length(&self) -> usize {
-        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1) + self.new_exist_proof.as_slice().len()
+        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
+            + self.new_propose_proof.as_slice().len()
+            + self.smt_election_info.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
         let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
         offsets.push(total_size);
-        total_size += self.new_exist_proof.as_slice().len();
+        total_size += self.new_propose_proof.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.smt_election_info.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
-        writer.write_all(self.new_exist_proof.as_slice())?;
+        writer.write_all(self.new_propose_proof.as_slice())?;
+        writer.write_all(self.smt_election_info.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {
@@ -3752,169 +3783,6 @@ impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for DelegateInfosReaderIterator
     }
 }
 #[derive(Clone)]
-pub struct Uint128Opt(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for Uint128Opt {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        use molecule::hex_string;
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        write!(f, "{}", hex_string(self.as_slice()))
-    }
-}
-impl ::core::fmt::Debug for Uint128Opt {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{}({:#x})", Self::NAME, self)
-    }
-}
-impl ::core::fmt::Display for Uint128Opt {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        if let Some(v) = self.to_opt() {
-            write!(f, "{}(Some({}))", Self::NAME, v)
-        } else {
-            write!(f, "{}(None)", Self::NAME)
-        }
-    }
-}
-impl ::core::default::Default for Uint128Opt {
-    fn default() -> Self {
-        let v: Vec<u8> = vec![];
-        Uint128Opt::new_unchecked(v.into())
-    }
-}
-impl Uint128Opt {
-    pub fn is_none(&self) -> bool {
-        self.0.is_empty()
-    }
-    pub fn is_some(&self) -> bool {
-        !self.0.is_empty()
-    }
-    pub fn to_opt(&self) -> Option<Uint128> {
-        if self.is_none() {
-            None
-        } else {
-            Some(Uint128::new_unchecked(self.0.clone()))
-        }
-    }
-    pub fn as_reader<'r>(&'r self) -> Uint128OptReader<'r> {
-        Uint128OptReader::new_unchecked(self.as_slice())
-    }
-}
-impl molecule::prelude::Entity for Uint128Opt {
-    type Builder = Uint128OptBuilder;
-    const NAME: &'static str = "Uint128Opt";
-    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        Uint128Opt(data)
-    }
-    fn as_bytes(&self) -> molecule::bytes::Bytes {
-        self.0.clone()
-    }
-    fn as_slice(&self) -> &[u8] {
-        &self.0[..]
-    }
-    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        Uint128OptReader::from_slice(slice).map(|reader| reader.to_entity())
-    }
-    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        Uint128OptReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
-    }
-    fn new_builder() -> Self::Builder {
-        ::core::default::Default::default()
-    }
-    fn as_builder(self) -> Self::Builder {
-        Self::new_builder().set(self.to_opt())
-    }
-}
-#[derive(Clone, Copy)]
-pub struct Uint128OptReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for Uint128OptReader<'r> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        use molecule::hex_string;
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        write!(f, "{}", hex_string(self.as_slice()))
-    }
-}
-impl<'r> ::core::fmt::Debug for Uint128OptReader<'r> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{}({:#x})", Self::NAME, self)
-    }
-}
-impl<'r> ::core::fmt::Display for Uint128OptReader<'r> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        if let Some(v) = self.to_opt() {
-            write!(f, "{}(Some({}))", Self::NAME, v)
-        } else {
-            write!(f, "{}(None)", Self::NAME)
-        }
-    }
-}
-impl<'r> Uint128OptReader<'r> {
-    pub fn is_none(&self) -> bool {
-        self.0.is_empty()
-    }
-    pub fn is_some(&self) -> bool {
-        !self.0.is_empty()
-    }
-    pub fn to_opt(&self) -> Option<Uint128Reader<'r>> {
-        if self.is_none() {
-            None
-        } else {
-            Some(Uint128Reader::new_unchecked(self.as_slice()))
-        }
-    }
-}
-impl<'r> molecule::prelude::Reader<'r> for Uint128OptReader<'r> {
-    type Entity = Uint128Opt;
-    const NAME: &'static str = "Uint128OptReader";
-    fn to_entity(&self) -> Self::Entity {
-        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
-    }
-    fn new_unchecked(slice: &'r [u8]) -> Self {
-        Uint128OptReader(slice)
-    }
-    fn as_slice(&self) -> &'r [u8] {
-        self.0
-    }
-    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
-        if !slice.is_empty() {
-            Uint128Reader::verify(&slice[..], compatible)?;
-        }
-        Ok(())
-    }
-}
-#[derive(Debug, Default)]
-pub struct Uint128OptBuilder(pub(crate) Option<Uint128>);
-impl Uint128OptBuilder {
-    pub fn set(mut self, v: Option<Uint128>) -> Self {
-        self.0 = v;
-        self
-    }
-}
-impl molecule::prelude::Builder for Uint128OptBuilder {
-    type Entity = Uint128Opt;
-    const NAME: &'static str = "Uint128OptBuilder";
-    fn expected_length(&self) -> usize {
-        self.0
-            .as_ref()
-            .map(|ref inner| inner.as_slice().len())
-            .unwrap_or(0)
-    }
-    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
-        self.0
-            .as_ref()
-            .map(|ref inner| writer.write_all(inner.as_slice()))
-            .unwrap_or(Ok(()))
-    }
-    fn build(&self) -> Self::Entity {
-        let mut inner = Vec::with_capacity(self.expected_length());
-        self.write(&mut inner)
-            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        Uint128Opt::new_unchecked(inner.into())
-    }
-}
-#[derive(Clone)]
 pub struct MinerGroupInfo(molecule::bytes::Bytes);
 impl ::core::fmt::LowerHex for MinerGroupInfo {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -3952,8 +3820,9 @@ impl ::core::fmt::Display for MinerGroupInfo {
 impl ::core::default::Default for MinerGroupInfo {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            48, 0, 0, 0, 20, 0, 0, 0, 40, 0, 0, 0, 40, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0,
+            64, 0, 0, 0, 20, 0, 0, 0, 40, 0, 0, 0, 56, 0, 0, 0, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            4, 0, 0, 0, 0, 0, 0, 0,
         ];
         MinerGroupInfo::new_unchecked(v.into())
     }
@@ -3982,11 +3851,11 @@ impl MinerGroupInfo {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Identity::new_unchecked(self.0.slice(start..end))
     }
-    pub fn amount(&self) -> Uint128Opt {
+    pub fn amount(&self) -> Uint128 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        Uint128Opt::new_unchecked(self.0.slice(start..end))
+        Uint128::new_unchecked(self.0.slice(start..end))
     }
     pub fn delegate_infos(&self) -> DelegateInfos {
         let slice = self.as_slice();
@@ -4096,11 +3965,11 @@ impl<'r> MinerGroupInfoReader<'r> {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         IdentityReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn amount(&self) -> Uint128OptReader<'r> {
+    pub fn amount(&self) -> Uint128Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        Uint128OptReader::new_unchecked(&self.as_slice()[start..end])
+        Uint128Reader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn delegate_infos(&self) -> DelegateInfosReader<'r> {
         let slice = self.as_slice();
@@ -4169,7 +4038,7 @@ impl<'r> molecule::prelude::Reader<'r> for MinerGroupInfoReader<'r> {
             return ve!(Self, OffsetsNotMatch);
         }
         IdentityReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        Uint128OptReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        Uint128Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         DelegateInfosReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         BytesReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
         Ok(())
@@ -4178,7 +4047,7 @@ impl<'r> molecule::prelude::Reader<'r> for MinerGroupInfoReader<'r> {
 #[derive(Debug, Default)]
 pub struct MinerGroupInfoBuilder {
     pub(crate) staker: Identity,
-    pub(crate) amount: Uint128Opt,
+    pub(crate) amount: Uint128,
     pub(crate) delegate_infos: DelegateInfos,
     pub(crate) delegate_epoch_proof: Bytes,
 }
@@ -4188,7 +4057,7 @@ impl MinerGroupInfoBuilder {
         self.staker = v;
         self
     }
-    pub fn amount(mut self, v: Uint128Opt) -> Self {
+    pub fn amount(mut self, v: Uint128) -> Self {
         self.amount = v;
         self
     }
@@ -5475,8 +5344,7 @@ impl ::core::fmt::Debug for StakeSmtElectionInfo {
 impl ::core::fmt::Display for StakeSmtElectionInfo {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "n1", self.n1())?;
-        write!(f, ", {}: {}", "n2", self.n2())?;
+        write!(f, "{}: {}", "n2", self.n2())?;
         write!(f, ", {}: {}", "new_stake_proof", self.new_stake_proof())?;
         write!(
             f,
@@ -5494,15 +5362,14 @@ impl ::core::fmt::Display for StakeSmtElectionInfo {
 impl ::core::default::Default for StakeSmtElectionInfo {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            68, 0, 0, 0, 20, 0, 0, 0, 40, 0, 0, 0, 60, 0, 0, 0, 64, 0, 0, 0, 20, 0, 0, 0, 12, 0, 0,
-            0, 16, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 12, 0, 0, 0, 16, 0, 0, 0, 4, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            44, 0, 0, 0, 16, 0, 0, 0, 36, 0, 0, 0, 40, 0, 0, 0, 20, 0, 0, 0, 12, 0, 0, 0, 16, 0, 0,
+            0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
         StakeSmtElectionInfo::new_unchecked(v.into())
     }
 }
 impl StakeSmtElectionInfo {
-    pub const FIELD_COUNT: usize = 4;
+    pub const FIELD_COUNT: usize = 3;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -5519,29 +5386,23 @@ impl StakeSmtElectionInfo {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn n1(&self) -> ElectionSmtProof {
+    pub fn n2(&self) -> ElectionSmtProof {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
         ElectionSmtProof::new_unchecked(self.0.slice(start..end))
     }
-    pub fn n2(&self) -> ElectionSmtProof {
+    pub fn new_stake_proof(&self) -> Bytes {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        ElectionSmtProof::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn new_stake_proof(&self) -> Bytes {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
-        let end = molecule::unpack_number(&slice[16..]) as usize;
         Bytes::new_unchecked(self.0.slice(start..end))
     }
     pub fn new_delegate_proofs(&self) -> DelegateProofs {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let start = molecule::unpack_number(&slice[12..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[20..]) as usize;
+            let end = molecule::unpack_number(&slice[16..]) as usize;
             DelegateProofs::new_unchecked(self.0.slice(start..end))
         } else {
             DelegateProofs::new_unchecked(self.0.slice(start..))
@@ -5574,7 +5435,6 @@ impl molecule::prelude::Entity for StakeSmtElectionInfo {
     }
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
-            .n1(self.n1())
             .n2(self.n2())
             .new_stake_proof(self.new_stake_proof())
             .new_delegate_proofs(self.new_delegate_proofs())
@@ -5599,8 +5459,7 @@ impl<'r> ::core::fmt::Debug for StakeSmtElectionInfoReader<'r> {
 impl<'r> ::core::fmt::Display for StakeSmtElectionInfoReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "n1", self.n1())?;
-        write!(f, ", {}: {}", "n2", self.n2())?;
+        write!(f, "{}: {}", "n2", self.n2())?;
         write!(f, ", {}: {}", "new_stake_proof", self.new_stake_proof())?;
         write!(
             f,
@@ -5616,7 +5475,7 @@ impl<'r> ::core::fmt::Display for StakeSmtElectionInfoReader<'r> {
     }
 }
 impl<'r> StakeSmtElectionInfoReader<'r> {
-    pub const FIELD_COUNT: usize = 4;
+    pub const FIELD_COUNT: usize = 3;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -5633,29 +5492,23 @@ impl<'r> StakeSmtElectionInfoReader<'r> {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn n1(&self) -> ElectionSmtProofReader<'r> {
+    pub fn n2(&self) -> ElectionSmtProofReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
         ElectionSmtProofReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn n2(&self) -> ElectionSmtProofReader<'r> {
+    pub fn new_stake_proof(&self) -> BytesReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        ElectionSmtProofReader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn new_stake_proof(&self) -> BytesReader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
-        let end = molecule::unpack_number(&slice[16..]) as usize;
         BytesReader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn new_delegate_proofs(&self) -> DelegateProofsReader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let start = molecule::unpack_number(&slice[12..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[20..]) as usize;
+            let end = molecule::unpack_number(&slice[16..]) as usize;
             DelegateProofsReader::new_unchecked(&self.as_slice()[start..end])
         } else {
             DelegateProofsReader::new_unchecked(&self.as_slice()[start..])
@@ -5712,25 +5565,19 @@ impl<'r> molecule::prelude::Reader<'r> for StakeSmtElectionInfoReader<'r> {
             return ve!(Self, OffsetsNotMatch);
         }
         ElectionSmtProofReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        ElectionSmtProofReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        BytesReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
-        DelegateProofsReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
+        BytesReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        DelegateProofsReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct StakeSmtElectionInfoBuilder {
-    pub(crate) n1: ElectionSmtProof,
     pub(crate) n2: ElectionSmtProof,
     pub(crate) new_stake_proof: Bytes,
     pub(crate) new_delegate_proofs: DelegateProofs,
 }
 impl StakeSmtElectionInfoBuilder {
-    pub const FIELD_COUNT: usize = 4;
-    pub fn n1(mut self, v: ElectionSmtProof) -> Self {
-        self.n1 = v;
-        self
-    }
+    pub const FIELD_COUNT: usize = 3;
     pub fn n2(mut self, v: ElectionSmtProof) -> Self {
         self.n2 = v;
         self
@@ -5749,7 +5596,6 @@ impl molecule::prelude::Builder for StakeSmtElectionInfoBuilder {
     const NAME: &'static str = "StakeSmtElectionInfoBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
-            + self.n1.as_slice().len()
             + self.n2.as_slice().len()
             + self.new_stake_proof.as_slice().len()
             + self.new_delegate_proofs.as_slice().len()
@@ -5757,8 +5603,6 @@ impl molecule::prelude::Builder for StakeSmtElectionInfoBuilder {
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
         let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
-        offsets.push(total_size);
-        total_size += self.n1.as_slice().len();
         offsets.push(total_size);
         total_size += self.n2.as_slice().len();
         offsets.push(total_size);
@@ -5769,7 +5613,6 @@ impl molecule::prelude::Builder for StakeSmtElectionInfoBuilder {
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
-        writer.write_all(self.n1.as_slice())?;
         writer.write_all(self.n2.as_slice())?;
         writer.write_all(self.new_stake_proof.as_slice())?;
         writer.write_all(self.new_delegate_proofs.as_slice())?;
