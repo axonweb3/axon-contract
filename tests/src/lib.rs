@@ -7,6 +7,7 @@ use std::str::FromStr;
 // mod axon;
 mod checkpoint;
 mod delegate;
+mod eth;
 mod helper;
 mod metadata;
 #[cfg(test)]

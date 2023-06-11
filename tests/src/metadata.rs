@@ -14,7 +14,7 @@ use crate::smt::{
 
 use super::*;
 use axon_types::checkpoint::{CheckpointCellData, ProposeCount, ProposeCounts};
-use axon_types::delegate::{DelegateInfos, StakerSmtRoot, StakerSmtRoots};
+// use axon_types::delegate::{DelegateInfos, StakerSmtRoot, StakerSmtRoots};
 use axon_types::metadata::{
     DelegateProof, DelegateProofs, ElectionSmtProof, Metadata, MetadataArgs, MetadataList,
     MetadataWitness, MinerGroupInfo, MinerGroupInfos, StakeSmtElectionInfo,
@@ -29,10 +29,9 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use sparse_merkle_tree::CompiledMerkleProof;
+// use sparse_merkle_tree::CompiledMerkleProof;
 use util::helper::ProposeCountObject;
 use util::smt::LockInfo;
-// use util::smt::LockInfo;
 
 #[test]
 fn test_metadata_success() {
@@ -152,27 +151,8 @@ fn test_metadata_success() {
     );
 
     let delegate_infos = BTreeSet::new();
-    let (delegate_root, _delegate_proof) = construct_lock_info_smt(&delegate_infos);
-    let delegate_top_smt_infos = vec![TopSmtInfo {
-        epoch: 3,
-        smt_root: delegate_root,
-    }];
-    let (delegate_epoch_root, delegate_epoch_proof) = construct_epoch_smt(&delegate_top_smt_infos);
-    let delegate_epoch_proof = CompiledMerkleProof(
-        delegate_epoch_proof
-            .compile(vec![u64_to_h256(3)])
-            .unwrap()
-            .0,
-    );
-
-    let stake_smt_root = StakerSmtRoot::new_builder()
-        .staker(axon_identity(&keypair.1.serialize()))
-        .root(axon_array32_byte32(
-            delegate_epoch_root.as_slice().try_into().unwrap(),
-        ))
-        .build();
-    let stake_smt_roots = StakerSmtRoots::new_builder().push(stake_smt_root).build();
-    let delegate_smt_cell_data = axon_delegate_smt_cell_data(stake_smt_roots);
+    let (delegate_smt_cell_data, delegate_epoch_proof) =
+        axon_delegate_smt_cell_data(&delegate_infos, &keypair.1);
 
     let inputs = vec![
         // stake smt cell

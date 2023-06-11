@@ -19,4 +19,9 @@ axon-types = { path = "../common/types" }
 util = { path = "../common/util" }
 sparse-merkle-tree = { version = "0.6.1", default-features = false, features = ["smtc"] }
 blake2b-rs = "0.2.0"
-ckb-smt = { path = "../contracts/ckb-smt" }
+# ckb-smt = { path = "../contracts/ckb-smt" }
+ophelia = "0.3"
+ophelia-secp256k1 = "0.3"
+faster-hex = "0.6"
+rand_core = "0.6.4"
+

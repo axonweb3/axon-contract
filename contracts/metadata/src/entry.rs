@@ -470,8 +470,12 @@ fn verify_new_validators(
         Source::Output,
     )?;
     let epoch_root: H256 = epoch_root.into();
-    let result = util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
-    debug!("verify_new_validators verify_2layer_smt result: {:?}", result);
+    let result =
+        util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+    debug!(
+        "verify_new_validators verify_2layer_smt result: {:?}",
+        result
+    );
 
     let new_miners = validators.clone();
     let epoch_proofs = election_infos.new_delegate_proofs();
@@ -503,7 +507,10 @@ fn verify_new_validators(
             epoch_root,
             epoch_proof,
         )?;
-        debug!("verify_new_validators verify_2layer_smt result: {:?}", result);
+        debug!(
+            "verify_new_validators verify_2layer_smt result: {:?}",
+            result
+        );
     }
 
     Ok(())

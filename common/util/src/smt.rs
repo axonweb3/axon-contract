@@ -5,7 +5,7 @@ use core::cmp::Ordering;
 use alloc::vec;
 use alloc::{collections::BTreeSet, vec::Vec};
 use blake2b_ref::{Blake2b, Blake2bBuilder};
-use ckb_smt::smt::{Pair, Tree};
+// use ckb_smt::smt::{Pair, Tree};
 use ckb_std::debug;
 use sparse_merkle_tree::CompiledMerkleProof;
 use sparse_merkle_tree::{
@@ -258,24 +258,24 @@ pub fn verify_2layer_smt_propose(
 //     Ok(root)
 // }
 
-pub fn verify_smt_leaf(
-    key: &[u8; 32],
-    value: &[u8; 32],
-    root: &[u8; 32],
-    proof: &Vec<u8>,
-) -> Result<(), Error> {
-    let mut tree_buf = [Pair::default(); 1];
-    let mut epoch_tree = Tree::new(&mut tree_buf[..]);
-    epoch_tree.update(&key, &value).map_err(|_err| {
-        debug!("update smt tree error: {}", _err);
-        Error::SmterrorCodeErrorUpdate
-    })?;
-    epoch_tree.verify(&root, &proof).map_err(|_err| {
-        debug!("smt verify smt error: {}", _err);
-        Error::SmterrorCodeErrorVerify
-    })?;
-    Ok(())
-}
+// pub fn verify_smt_leaf(
+//     key: &[u8; 32],
+//     value: &[u8; 32],
+//     root: &[u8; 32],
+//     proof: &Vec<u8>,
+// ) -> Result<(), Error> {
+//     let mut tree_buf = [Pair::default(); 1];
+//     let mut epoch_tree = Tree::new(&mut tree_buf[..]);
+//     epoch_tree.update(&key, &value).map_err(|_err| {
+//         debug!("update smt tree error: {}", _err);
+//         Error::SmterrorCodeErrorUpdate
+//     })?;
+//     epoch_tree.verify(&root, &proof).map_err(|_err| {
+//         debug!("smt verify smt error: {}", _err);
+//         Error::SmterrorCodeErrorVerify
+//     })?;
+//     Ok(())
+// }
 
 // pub fn verify_2layer_smt(
 //     lock_infos: &BTreeSet<LockInfo>,

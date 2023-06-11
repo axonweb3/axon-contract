@@ -597,6 +597,21 @@ pub fn get_delegate_smt_root(
     Err(Error::StakerNotFound)
 }
 
+pub fn get_delegate_smt_root_from_cell_data(
+    addr: &[u8; 20],
+    smt_data: &DelegateSmtCellData,
+) -> Result<[u8; 32], Error> {
+    let smt_roots = smt_data.smt_roots();
+    for i in 0..smt_roots.len() {
+        let smt_root = smt_roots.get(i);
+        if smt_root.staker() == addr {
+            return Ok(smt_root.root().as_slice().try_into().unwrap());
+        }
+    }
+
+    Err(Error::StakerNotFound)
+}
+
 pub fn get_delegate_smt_data(
     typd_id: &[u8; 32],
     source: Source,

@@ -1,8 +1,6 @@
 use std::convert::TryFrom;
 
-use ophelia::{
-    Crypto, PrivateKey, Signature, ToPublicKey, UncompressedPublicKey,
-};
+use ophelia::{Crypto, PrivateKey, Signature, ToPublicKey, UncompressedPublicKey};
 // use ophelia_secp256k1::Secp256k1PrivateKey;
 use ophelia_secp256k1::{Secp256k1Recoverable, Secp256k1RecoverablePrivateKey};
 

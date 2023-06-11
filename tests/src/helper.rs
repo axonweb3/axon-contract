@@ -2,9 +2,13 @@
 
 use std::{collections::BTreeSet, convert::TryInto};
 
-use axon_types::{basic, delegate::StakerSmtRoots, metadata::MetadataList};
+use axon_types::{
+    basic,
+    delegate::{StakerSmtRoot, StakerSmtRoots},
+    metadata::MetadataList,
+};
 use ckb_testtool::{
-    ckb_crypto::secp::Privkey,
+    ckb_crypto::secp::{Privkey, Pubkey},
     ckb_hash::{blake2b_256, new_blake2b},
     ckb_types::{
         bytes::Bytes,
@@ -15,7 +19,10 @@ use ckb_testtool::{
     },
 };
 use molecule::prelude::*;
+use sparse_merkle_tree::CompiledMerkleProof;
 use util::smt::LockInfo;
+
+use crate::smt::{construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo};
 
 pub const MAX_CYCLES: u64 = 100_000_000;
 
@@ -236,12 +243,40 @@ pub fn axon_metadata_data_by_script(
 }
 
 pub fn axon_delegate_smt_cell_data(
-    stake_smt_roots: StakerSmtRoots,
-) -> axon_types::delegate::DelegateSmtCellData {
-    axon_types::delegate::DelegateSmtCellData::new_builder()
-        .version(0.into())
-        .smt_roots(stake_smt_roots)
-        .build()
+    delegate_infos: &BTreeSet<LockInfo>,
+    pubkey: &Pubkey,
+) -> (
+    axon_types::delegate::DelegateSmtCellData,
+    CompiledMerkleProof,
+) {
+    let (delegate_root, _delegate_proof) = construct_lock_info_smt(&delegate_infos);
+    let delegate_top_smt_infos = vec![TopSmtInfo {
+        epoch: 3,
+        smt_root: delegate_root,
+    }];
+    let (delegate_epoch_root, delegate_epoch_proof) = construct_epoch_smt(&delegate_top_smt_infos);
+    let delegate_epoch_proof = CompiledMerkleProof(
+        delegate_epoch_proof
+            .compile(vec![u64_to_h256(3)])
+            .unwrap()
+            .0,
+    );
+
+    let stake_smt_root = StakerSmtRoot::new_builder()
+        .staker(axon_identity(&pubkey.serialize()))
+        .root(axon_array32_byte32(
+            delegate_epoch_root.as_slice().try_into().unwrap(),
+        ))
+        .build();
+    let stake_smt_roots = StakerSmtRoots::new_builder().push(stake_smt_root).build();
+
+    (
+        axon_types::delegate::DelegateSmtCellData::new_builder()
+            .version(0.into())
+            .smt_roots(stake_smt_roots)
+            .build(),
+        delegate_epoch_proof,
+    )
 }
 
 pub fn sign_tx(tx: TransactionView, key: &Privkey, mode: u8) -> TransactionView {
@@ -290,6 +325,22 @@ pub fn axon_stake_smt_cell_data(
         .build()
 }
 
+// pub fn axon_delegate_smt_cell_data(
+//     stake_infos: &BTreeSet<LockInfo>,
+//     metadata_type_id: &packed::Byte32,
+// ) -> axon_types::stake::StakeSmtCellData {
+//     // call build_smt_tree_and_get_root and print error message
+//     let (root, _proof) = crate::smt::construct_lock_info_smt(stake_infos);
+//     // println!("root: {:?}", root);
+
+//     axon_types::stake::StakeSmtCellData::new_builder()
+//         .version(0.into())
+//         .smt_root(basic::Byte32::new_unchecked(
+//             root.as_slice().to_vec().into(),
+//         ))
+//         .metadata_type_id(axon_byte32(metadata_type_id))
+//         .build()
+// }
 // pub fn get_bottom_root_smt_proof(lock_infos: &BTreeSet<LockInfo>, epoch: u64) -> Vec<u8> {
 //     // construct smt root & verify
 //     let mut tree_buf = [Pair::default(); 100];

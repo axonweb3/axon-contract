@@ -980,6 +980,49 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
+name = "ophelia"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e67a5c0c612897285526f587557cd9ad3f74b79e6a277bed432e1c57f27625e"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "ophelia-hasher",
+ "rand 0.7.3",
+]
+
+[[package]]
+name = "ophelia-derive"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93bf0f35140949b59d621f5d907bde3f2cc286ea8ad609411d3447725869d814"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ophelia-hasher"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61d941a336bcf304907e9e69610cfb5b2329af1305134299ec8d616aabe1d88d"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
+name = "ophelia-secp256k1"
+version = "0.3.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cbdf4e8e13f2c10c254debe4087d97cbe718939a037188b898ca1beab682146"
+dependencies = [
+ "lazy_static",
+ "ophelia",
+ "ophelia-derive",
+ "secp256k1 0.22.2",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1280,11 +1323,29 @@ version = "0.1.0"
 
 [[package]]
 name = "secp256k1"
+version = "0.22.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "295642060261c80709ac034f52fca8e5a9fa2c7d341ded5cdb164b7c33768b2a"
+dependencies = [
+ "secp256k1-sys 0.5.2",
+]
+
+[[package]]
+name = "secp256k1"
 version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b1629c9c557ef9b293568b338dddfc8208c98a18c59d722a9d53f859d9c9b62"
 dependencies = [
- "secp256k1-sys",
+ "secp256k1-sys 0.6.1",
+]
+
+[[package]]
+name = "secp256k1-sys"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "152e20a0fd0519390fc43ab404663af8a0b794273d2a91d60ad4a39f13ffe110"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -1371,6 +1432,7 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "ckb-std",
+ "secp256k1 0.1.0",
  "sparse-merkle-tree",
  "util",
 ]
@@ -1411,13 +1473,16 @@ dependencies = [
  "bit-vec",
  "blake2b-rs",
  "blst 0.3.10",
- "ckb-smt",
  "ckb-system-scripts",
  "ckb-testtool",
+ "faster-hex",
  "hex",
  "keccak-hash 0.10.0",
  "molecule",
+ "ophelia",
+ "ophelia-secp256k1",
  "rand 0.8.5",
+ "rand_core 0.6.4",
  "rlp",
  "sparse-merkle-tree",
  "util",
@@ -1494,7 +1559,6 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "blake2b-ref 0.3.1",
- "ckb-smt",
  "ckb-std",
  "hex",
  "sparse-merkle-tree",
