@@ -22,7 +22,7 @@ impl ::core::fmt::Display for WithdrawInfo {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "amount", self.amount())?;
-        write!(f, ", {}: {}", "epoch", self.epoch())?;
+        write!(f, ", {}: {}", "unlock_epoch", self.unlock_epoch())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -63,7 +63,7 @@ impl WithdrawInfo {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Uint128::new_unchecked(self.0.slice(start..end))
     }
-    pub fn epoch(&self) -> Uint64 {
+    pub fn unlock_epoch(&self) -> Uint64 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         if self.has_extra_fields() {
@@ -101,7 +101,7 @@ impl molecule::prelude::Entity for WithdrawInfo {
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
             .amount(self.amount())
-            .epoch(self.epoch())
+            .unlock_epoch(self.unlock_epoch())
     }
 }
 #[derive(Clone, Copy)]
@@ -124,7 +124,7 @@ impl<'r> ::core::fmt::Display for WithdrawInfoReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "amount", self.amount())?;
-        write!(f, ", {}: {}", "epoch", self.epoch())?;
+        write!(f, ", {}: {}", "unlock_epoch", self.unlock_epoch())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
             write!(f, ", .. ({} fields)", extra_count)?;
@@ -156,7 +156,7 @@ impl<'r> WithdrawInfoReader<'r> {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Uint128Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn epoch(&self) -> Uint64Reader<'r> {
+    pub fn unlock_epoch(&self) -> Uint64Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         if self.has_extra_fields() {
@@ -224,7 +224,7 @@ impl<'r> molecule::prelude::Reader<'r> for WithdrawInfoReader<'r> {
 #[derive(Debug, Default)]
 pub struct WithdrawInfoBuilder {
     pub(crate) amount: Uint128,
-    pub(crate) epoch: Uint64,
+    pub(crate) unlock_epoch: Uint64,
 }
 impl WithdrawInfoBuilder {
     pub const FIELD_COUNT: usize = 2;
@@ -232,8 +232,8 @@ impl WithdrawInfoBuilder {
         self.amount = v;
         self
     }
-    pub fn epoch(mut self, v: Uint64) -> Self {
-        self.epoch = v;
+    pub fn unlock_epoch(mut self, v: Uint64) -> Self {
+        self.unlock_epoch = v;
         self
     }
 }
@@ -243,7 +243,7 @@ impl molecule::prelude::Builder for WithdrawInfoBuilder {
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
             + self.amount.as_slice().len()
-            + self.epoch.as_slice().len()
+            + self.unlock_epoch.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
@@ -251,13 +251,13 @@ impl molecule::prelude::Builder for WithdrawInfoBuilder {
         offsets.push(total_size);
         total_size += self.amount.as_slice().len();
         offsets.push(total_size);
-        total_size += self.epoch.as_slice().len();
+        total_size += self.unlock_epoch.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
         writer.write_all(self.amount.as_slice())?;
-        writer.write_all(self.epoch.as_slice())?;
+        writer.write_all(self.unlock_epoch.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {

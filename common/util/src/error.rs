@@ -7,6 +7,10 @@ pub enum Error {
     ItemMissing,
     LengthNotEnough,
     Encoding,
+    // type id
+    InvalidTypeIDCellNum,
+    TypeIDNotMatch,
+    ArgsLengthNotEnough,
 
     // common
     BadWitnessInputType = 10,
@@ -120,6 +124,19 @@ impl From<u32> for Error {
             83 => Self::SmterrorCodeErrorInvalidSibling,
             84 => Self::SmterrorCodeErrorInvalidProof,
             _ => panic!("unexpected smt error"),
+        }
+    }
+}
+
+impl From<ckb_type_id::Error> for Error {
+    fn from(err: ckb_type_id::Error) -> Self {
+        match err {
+            ckb_type_id::Error::Syscall(err) => err.into(),
+            ckb_type_id::Error::Native(err) => match err {
+                ckb_type_id::TypeIDError::InvalidTypeIDCellNum => Self::InvalidTypeIDCellNum,
+                ckb_type_id::TypeIDError::TypeIDNotMatch => Self::TypeIDNotMatch,
+                ckb_type_id::TypeIDError::ArgsLengthNotEnough => Self::ArgsLengthNotEnough,
+            },
         }
     }
 }

@@ -17,7 +17,7 @@
           "type": "Uint128"
         },
         {
-          "name": "epoch",
+          "name": "unlock_epoch",
           "type": "Uint64"
         }
       ]

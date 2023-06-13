@@ -83,7 +83,7 @@ pub type BOTTOM_SMT = SparseMerkleTree<Blake2bHasher, BottomValue, DefaultStore<
 pub type PROPOSE_BOTTOM_SMT =
     SparseMerkleTree<Blake2bHasher, ProposeBottomValue, DefaultStore<ProposeBottomValue>>;
 // helper function
-fn new_blake2b() -> Blake2b {
+pub fn new_blake2b() -> Blake2b {
     Blake2bBuilder::new(32)
         .personal(b"ckb-default-hash")
         .build()

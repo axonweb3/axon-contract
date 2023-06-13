@@ -1,6 +1,5 @@
 // Import from `core` instead of from `std` since we are in no-std mode
 use alloc::{collections::BTreeSet, vec::Vec};
-use axon_types::metadata;
 use axon_types::metadata_reader;
 use axon_types::stake_reader::StakeAtCellData;
 use axon_types::stake_reader::StakeInfoDelta;
@@ -8,7 +7,8 @@ use axon_types::stake_reader::StakeInfos;
 use axon_types::stake_reader::StakeSmtCellData;
 use axon_types::stake_reader::StakeSmtUpdateInfo;
 use ckb_std::ckb_types::packed::WitnessArgs;
-use ckb_std::syscalls::debug;
+use ckb_type_id::load_type_id_from_script_args;
+use ckb_type_id::validate_type_id;
 use core::result::Result;
 use sparse_merkle_tree::CompiledMerkleProof;
 use sparse_merkle_tree::H256;
@@ -20,17 +20,28 @@ use util::smt::LockInfo;
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
     ckb_constants::Source,
-    ckb_types::{bytes::Bytes, prelude::*},
     debug,
-    high_level::{load_cell_lock_hash, load_cell_type_hash, load_script, load_witness_args},
+    high_level::{load_cell_type_hash, load_script, load_witness_args},
 };
 
 use axon_types::{stake_reader, Cursor};
 use util::{error::Error, helper::*};
 
 pub fn main() -> Result<(), Error> {
-    // let script = load_script()?;
     debug!("start stake smt type script");
+    // check type id is unique
+    let type_id = load_type_id_from_script_args(0)?;
+    debug!("type_id: {:?}", type_id);
+    validate_type_id(type_id)?;
+
+    let script = load_script()?;
+    let stake_smt_type_id = util::helper::calc_script_hash(&script).to_vec();
+    debug!("stake_smt_type_id = {:?}", stake_smt_type_id);
+    let input_stake_smt_count = get_cell_count_by_type_hash(&stake_smt_type_id, Source::Input);
+    if input_stake_smt_count == 0 {
+        debug!("stake smt cell creation");
+        return Ok(());
+    }
 
     // identify contract mode by witness
     let witness_args = load_witness_args(0, Source::GroupInput);

@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -24,7 +23,7 @@ impl WithdrawInfo {
 }
 
 impl WithdrawInfo {
-    pub fn epoch(&self) -> u64 {
+    pub fn unlock_epoch(&self) -> u64 {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }

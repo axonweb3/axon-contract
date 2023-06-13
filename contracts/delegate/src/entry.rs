@@ -36,7 +36,9 @@ pub fn main() -> Result<(), Error> {
         &metadata_type_id.as_slice().try_into().unwrap(),
         Source::CellDep,
     )?;
-    if metadata_type_id != type_ids.metadata_type_id() {
+    if metadata_type_id
+        != get_script_hash(&type_ids.metadata_code_hash(), &type_ids.metadata_type_id())
+    {
         return Err(Error::MisMatchMetadataTypeId);
     }
 
