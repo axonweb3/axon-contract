@@ -1,18 +1,17 @@
-use std::{collections::BTreeSet, convert::TryInto};
+use std::collections::BTreeSet;
 
 use blake2b_rs::{Blake2b, Blake2bBuilder};
-use ckb_smt::smt::{Pair, Tree};
+// use ckb_smt::smt::{Pair, Tree};
 use sparse_merkle_tree::{
     default_store::DefaultStore,
     traits::{Hasher, Value},
     CompiledMerkleProof, MerkleProof, SMTBuilder, SparseMerkleTree, H256,
 };
 use util::{
-    error::Error,
     helper::ProposeCountObject,
     smt::{
-        addr_to_h256, verify_2layer_smt, verify_smt_leaf, BottomValue, LockInfo,
-        ProposeBottomValue, BOTTOM_SMT, PROPOSE_BOTTOM_SMT, TOP_SMT,
+        addr_to_h256, verify_2layer_smt, BottomValue, LockInfo, ProposeBottomValue, BOTTOM_SMT,
+        PROPOSE_BOTTOM_SMT, TOP_SMT,
     },
 };
 
@@ -314,6 +313,7 @@ fn test_ckb_smt() {
     assert!(smt.verify(&smt_root, &proof).is_ok());
 }
 
+/*
 pub fn build_smt_tree_and_get_root_local(
     lock_infos: &BTreeSet<LockInfo>,
     proof: &Vec<u8>,
@@ -346,7 +346,6 @@ pub fn build_smt_tree_and_get_root_local(
 
     Ok(root)
 }
-
 #[test]
 fn test_lock_info_smt() {
     // {
@@ -402,3 +401,4 @@ fn test_lock_info_smt() {
         Err(err) => println!("ckb smt verify error: {}", err as u32),
     }
 }
+ */

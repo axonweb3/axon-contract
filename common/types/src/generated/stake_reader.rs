@@ -18,19 +18,15 @@ impl From<Cursor> for StakeArgs {
 
 impl StakeArgs {
     pub fn metadata_type_id(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        let cur = self.cursor.slice_by_offset(0, 32).unwrap();
         cur.into()
     }
 }
 
 impl StakeArgs {
-    pub fn stake_addr(&self) -> Option<Vec<u8>> {
-        let cur = self.cursor.table_slice_by_index(1).unwrap();
-        if cur.option_is_none() {
-            None
-        } else {
-            Some(cur.into())
-        }
+    pub fn stake_addr(&self) -> Vec<u8> {
+        let cur = self.cursor.slice_by_offset(32, 20).unwrap();
+        cur.into()
     }
 }
 

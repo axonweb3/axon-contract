@@ -2,9 +2,13 @@
 
 use std::{collections::BTreeSet, convert::TryInto};
 
-use axon_types::{basic, metadata::MetadataList};
+use axon_types::{
+    basic,
+    delegate::{StakerSmtRoot, StakerSmtRoots},
+    metadata::MetadataList,
+};
 use ckb_testtool::{
-    ckb_crypto::secp::Privkey,
+    ckb_crypto::secp::{Privkey, Pubkey},
     ckb_hash::{blake2b_256, new_blake2b},
     ckb_types::{
         bytes::Bytes,
@@ -15,7 +19,10 @@ use ckb_testtool::{
     },
 };
 use molecule::prelude::*;
+use sparse_merkle_tree::CompiledMerkleProof;
 use util::smt::LockInfo;
+
+use crate::smt::{construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo};
 
 pub const MAX_CYCLES: u64 = 100_000_000;
 
@@ -91,6 +98,10 @@ pub fn axon_u64(value: u64) -> basic::Uint64 {
 // convert u32 to basic::Uint32
 pub fn axon_u32(value: u32) -> basic::Uint32 {
     basic::Uint32::new_unchecked(value.to_le_bytes().to_vec().into())
+}
+
+pub fn axon_u16(value: u16) -> basic::Uint16 {
+    basic::Uint16::new_unchecked(value.to_le_bytes().to_vec().into())
 }
 
 pub fn axon_identity(pubkey: &Vec<u8>) -> basic::Identity {
@@ -203,21 +214,26 @@ pub fn axon_metadata_data(
 }
 
 pub fn axon_metadata_data_by_script(
-    metadata_type_id: &packed::Byte32,
+    metadata_type_id: &Script,
     xudt_type_hash: &packed::Byte32,
     checkpoint_type_id: &Script,
-    stake_smt_type_id: &packed::Byte32,
+    stake_smt_type_id: &Script,
+    delegate_smt_type_id: &Script,
     metadata_list: MetadataList,
     epoch: u64,
     propose_count_smt_root: [u8; 32],
 ) -> axon_types::metadata::MetadataCellData {
     let checkpoint_args = checkpoint_type_id.args();
     let type_ids = axon_types::metadata::TypeIds::new_builder()
-        .metadata_type_id(axon_byte32(metadata_type_id))
+        .metadata_code_hash(axon_byte32(&metadata_type_id.code_hash()))
+        .metadata_type_id(axon_bytes_byte32(&metadata_type_id.args().raw_data()))
         .xudt_type_hash(axon_byte32(xudt_type_hash))
         .checkpoint_type_id(axon_bytes_byte32(&checkpoint_args.raw_data()))
         .checkpoint_code_hash(axon_byte32(&checkpoint_type_id.code_hash()))
-        .stake_smt_type_id(axon_byte32(stake_smt_type_id))
+        .stake_smt_code_hash(axon_byte32(&stake_smt_type_id.code_hash()))
+        .stake_smt_type_id(axon_bytes_byte32(&stake_smt_type_id.args().raw_data()))
+        .delegate_smt_code_hash(axon_byte32(&delegate_smt_type_id.code_hash()))
+        .delegate_smt_type_id(axon_bytes_byte32(&delegate_smt_type_id.args().raw_data()))
         .build();
     axon_types::metadata::MetadataCellData::new_builder()
         .version(0.into())
@@ -226,6 +242,43 @@ pub fn axon_metadata_data_by_script(
         .type_ids(type_ids)
         .propose_count_smt_root(axon_array32_byte32(propose_count_smt_root))
         .build()
+}
+
+pub fn axon_delegate_smt_cell_data(
+    delegate_infos: &BTreeSet<LockInfo>,
+    pubkey: &Pubkey,
+) -> (
+    axon_types::delegate::DelegateSmtCellData,
+    CompiledMerkleProof,
+) {
+    let (delegate_root, _delegate_proof) = construct_lock_info_smt(&delegate_infos);
+    let delegate_top_smt_infos = vec![TopSmtInfo {
+        epoch: 3,
+        smt_root: delegate_root,
+    }];
+    let (delegate_epoch_root, delegate_epoch_proof) = construct_epoch_smt(&delegate_top_smt_infos);
+    let delegate_epoch_proof = CompiledMerkleProof(
+        delegate_epoch_proof
+            .compile(vec![u64_to_h256(3)])
+            .unwrap()
+            .0,
+    );
+
+    let stake_smt_root = StakerSmtRoot::new_builder()
+        .staker(axon_identity(&pubkey.serialize()))
+        .root(axon_array32_byte32(
+            delegate_epoch_root.as_slice().try_into().unwrap(),
+        ))
+        .build();
+    let stake_smt_roots = StakerSmtRoots::new_builder().push(stake_smt_root).build();
+
+    (
+        axon_types::delegate::DelegateSmtCellData::new_builder()
+            .version(0.into())
+            .smt_roots(stake_smt_roots)
+            .build(),
+        delegate_epoch_proof,
+    )
 }
 
 pub fn sign_tx(tx: TransactionView, key: &Privkey, mode: u8) -> TransactionView {
@@ -274,6 +327,22 @@ pub fn axon_stake_smt_cell_data(
         .build()
 }
 
+// pub fn axon_delegate_smt_cell_data(
+//     stake_infos: &BTreeSet<LockInfo>,
+//     metadata_type_id: &packed::Byte32,
+// ) -> axon_types::stake::StakeSmtCellData {
+//     // call build_smt_tree_and_get_root and print error message
+//     let (root, _proof) = crate::smt::construct_lock_info_smt(stake_infos);
+//     // println!("root: {:?}", root);
+
+//     axon_types::stake::StakeSmtCellData::new_builder()
+//         .version(0.into())
+//         .smt_root(basic::Byte32::new_unchecked(
+//             root.as_slice().to_vec().into(),
+//         ))
+//         .metadata_type_id(axon_byte32(metadata_type_id))
+//         .build()
+// }
 // pub fn get_bottom_root_smt_proof(lock_infos: &BTreeSet<LockInfo>, epoch: u64) -> Vec<u8> {
 //     // construct smt root & verify
 //     let mut tree_buf = [Pair::default(); 100];

@@ -129,13 +129,17 @@ pub fn calc_script_hash(script: &Script) -> [u8; 32] {
 pub fn check_xudt_type_hash(xudt_type_hash: &Vec<u8>) -> Result<(), Error> {
     // extract AT type_id from type_script
     let type_id = {
-        let type_hash = load_cell_type_hash(0, Source::GroupInput)?;
+        let type_hash = load_cell_type_hash(0, Source::Input)?;
         if type_hash.is_none() {
             return Err(Error::TypeScriptEmpty);
         }
         type_hash.unwrap()
     };
 
+    debug!(
+        "type_id: {:?}, xudt_type_hash: {:?}",
+        type_id, xudt_type_hash
+    );
     if type_id.to_vec() != *xudt_type_hash {
         return Err(Error::MismatchXudtTypeId);
     }
@@ -552,17 +556,22 @@ pub fn get_quorum_size(metadata_type_id: &[u8; 32], source: Source) -> Result<u1
     Ok(quorum_size)
 }
 
-pub fn get_stake_smt_data(typd_id: &[u8; 32], source: Source) -> Result<StakeSmtCellData, Error> {
+pub fn get_stake_smt_data(type_id: &[u8; 32], source: Source) -> Result<StakeSmtCellData, Error> {
     let mut stake_smt_data: Option<StakeSmtCellData> = None;
     QueryIter::new(load_cell_type_hash, source)
         .enumerate()
-        .for_each(|(i, lock_hash)| {
-            if &lock_hash.unwrap_or([0u8; 32]) == typd_id {
+        .for_each(|(i, type_hash)| {
+            if &type_hash.unwrap_or([0u8; 32]) == type_id {
+                debug!(
+                    "get_stake_smt_data index: {}, type_hash: {:?}",
+                    i, type_hash
+                );
                 let data = load_cell_data(i, source).unwrap();
+                debug!("get_stake_smt_data data len: {}", data.len());
                 stake_smt_data = Some(Cursor::from(data[..].to_vec()).into());
             }
         });
-
+    debug!("get_stake_smt_data ok");
     Ok(stake_smt_data.unwrap())
 }
 
@@ -587,6 +596,21 @@ pub fn get_delegate_smt_root(
         });
 
     let smt_roots = delegate_smt_data.unwrap().smt_roots();
+    for i in 0..smt_roots.len() {
+        let smt_root = smt_roots.get(i);
+        if smt_root.staker() == addr {
+            return Ok(smt_root.root().as_slice().try_into().unwrap());
+        }
+    }
+
+    Err(Error::StakerNotFound)
+}
+
+pub fn get_delegate_smt_root_from_cell_data(
+    addr: &[u8; 20],
+    smt_data: &DelegateSmtCellData,
+) -> Result<[u8; 32], Error> {
+    let smt_roots = smt_data.smt_roots();
     for i in 0..smt_roots.len() {
         let smt_root = smt_roots.get(i);
         if smt_root.staker() == addr {

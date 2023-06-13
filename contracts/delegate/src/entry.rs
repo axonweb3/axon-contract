@@ -7,7 +7,7 @@ use sparse_merkle_tree::{CompiledMerkleProof, H256};
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
     ckb_constants::Source,
-    ckb_types::{bytes::Bytes, core::ScriptHashType, packed::Script, prelude::*},
+    ckb_types::{bytes::Bytes, prelude::*},
     debug,
     high_level::{load_cell_lock_hash, load_cell_type_hash, load_script, load_witness_args},
 };
@@ -50,31 +50,42 @@ pub fn main() -> Result<(), Error> {
             }
 
             let input_type = *value.unwrap().raw_data().to_vec().first().unwrap();
+            debug!("input_type: {}", input_type);
+            {
+                // let delegate_smt_update_infos = {
+                //     let witness_lock = witness.lock().to_opt();
+                //     // debug!("witness_lock: {:?}, {}", witness_lock, witness_lock.clone().unwrap().raw_data().len());
+                //     if witness_lock.is_none() {
+                //         return Err(Error::WitnessLockError);
+                //     }
+                //     let value: delegate_reader::DelegateSmtUpdateInfo =
+                //         Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
+                //     value
+                // };
+                // debug!("delegate_smt_update_infos:");
+                // let groups = delegate_smt_update_infos.all_stake_group_infos();
+                // debug!("stake_group_info:");
+                // let stake_group_info = groups.get(0);
+                // debug!("stake_group_info: {:?}", stake_group_info.staker());
+            }
+
             if input_type == 0 {
                 // update delegate at cell
                 // extract delegate at cell lock hash
                 let delegate_at_lock_hash = { load_cell_lock_hash(0, Source::Input)? };
-                let checkpoint_type_id = type_ids.checkpoint_type_id();
-                // let checkpoint_type_id: [u8; 32] = checkpoint_type_id.as_slice().try_into().unwrap();
-                let checkpoint_code_hash = type_ids.checkpoint_code_hash();
-                let checkpoint_code_hash: [u8; 32] =
-                    checkpoint_code_hash.as_slice().try_into().unwrap();
-                let checkpoint_script = Script::new_builder()
-                    .code_hash(checkpoint_code_hash.pack())
-                    .hash_type(ScriptHashType::Data1.into())
-                    .args(checkpoint_type_id.pack())
-                    .build();
-                let checkpoint_script_hash = calc_script_hash(&checkpoint_script).to_vec();
+                let checkpoint_script_hash = get_script_hash(
+                    &type_ids.checkpoint_code_hash(),
+                    &type_ids.checkpoint_type_id(),
+                );
                 debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
                 update_delegate_at_cell(
                     &delegator_identity.unwrap(),
                     &delegate_at_lock_hash,
-                    &checkpoint_script_hash,
+                    &checkpoint_script_hash.to_vec(),
                     &type_ids.xudt_type_hash(),
                 )?;
             } else if input_type == 1 {
-                // kicker update stake smt cell
-                // get old_stakes & proof from Stake AT cells' witness of input
+                // kicker update delegate smt cell
                 let delegate_smt_update_infos = {
                     let witness_lock = witness.lock().to_opt();
                     if witness_lock.is_none() {
@@ -85,12 +96,22 @@ pub fn main() -> Result<(), Error> {
                     value
                 };
                 let metadata_type_id: [u8; 32] = metadata_type_id.as_slice().try_into().unwrap();
+                let delegate_smt_type_hash = get_script_hash(
+                    &type_ids.delegate_smt_code_hash(),
+                    &type_ids.delegate_smt_type_id(),
+                );
+                debug!("delegate_smt_type_hash: {:?}", delegate_smt_type_hash);
+                let checkpoint_script_hash = get_script_hash(
+                    &type_ids.checkpoint_code_hash(),
+                    &type_ids.checkpoint_type_id(),
+                );
+                debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
                 update_delegate_smt(
                     &delegator_identity,
                     &delegate_smt_update_infos,
-                    &type_ids.checkpoint_type_id(),
+                    &checkpoint_script_hash.to_vec(),
                     &type_ids.xudt_type_hash(),
-                    &type_ids.delegate_smt_type_id(),
+                    &delegate_smt_type_hash.to_vec(),
                     &metadata_type_id,
                 )?;
             } else if input_type == 2 {
@@ -206,9 +227,7 @@ pub fn update_delegate_at_cell(
 }
 
 fn update_delegate_info(
-    _staker: [u8; 20],
     delegator: [u8; 20],
-    delegate_at_lock_hash: &[u8; 32],
     delegate_info_delta: &DelegateInfoDelta,
     delegate_infos_set: &mut BTreeSet<LockInfo>,
 ) -> Result<(), Error> {
@@ -217,18 +236,13 @@ fn update_delegate_info(
         .iter()
         .find(|delegate_info| delegator == delegate_info.addr);
     let mut delegate_info_clone: Option<LockInfo> = None;
-    let mut old_delegate: u128;
+    let mut old_delegate = 0u128;
     if let Some(delegate_info) = delegate_info {
         old_delegate = delegate_info.amount;
         delegate_info_clone = Some(LockInfo {
             addr: delegate_info.addr,
             amount: delegate_info.amount,
         })
-    } else {
-        // the delegator has not changed delegate in this epoch yet,
-        // should be delegateor's at amount, get from delegate at cell, so we need total delegate amount for delegator's every staker
-        (old_delegate, _) =
-            get_delegate_at_data_by_lock_hash(&delegate_at_lock_hash, Source::Input)?;
     }
 
     // the staker's info should be updated, so we deleted it from stake_infos_set first, we will insert it in the future
@@ -287,17 +301,18 @@ fn verify_delegator_seletion(
         new_delegate_infos_set.insert((*elem).clone());
     }
 
-    // get proof of new_stakes from Stake AT cells' witness of input,
-    // verify delete_stakes is default
-    // verify the new stake infos is equal to on-chain calculation
     let new_epoch_root: H256 = new_epoch_root.into();
     let new_epoch_proof = CompiledMerkleProof(new_epoch_proof);
-    verify_2layer_smt(
+    let result = verify_2layer_smt(
         &new_delegate_infos_set,
         u64_to_h256(epoch),
         new_epoch_root,
         new_epoch_proof,
     )?;
+    debug!(
+        "verify_2layer_smt new delegate_infos_set result: {}",
+        result
+    );
 
     Ok(())
 }
@@ -328,8 +343,9 @@ fn update_delegate_smt(
             return Err(Error::UpdateDataError);
         }
 
-        // construct old stake smt root & verify
+        // construct old delegate smt root & verify
         let epoch = get_current_epoch(&checkpoint_type_id)?;
+        debug!("get_current_epoch: {}", epoch);
         let stake_group_infos = delegate_smt_update_infos.all_stake_group_infos();
         for i in 0..stake_group_infos.len() {
             // verify old delegate info
@@ -351,18 +367,21 @@ fn update_delegate_smt(
             }
             let old_epoch_proof = stake_group_info.delegate_old_epoch_proof();
             let old_epoch_proof: CompiledMerkleProof = CompiledMerkleProof(old_epoch_proof);
-            let old_epoch_root = get_delegate_smt_root(
-                delegate_smt_type_id.as_slice().try_into().unwrap(),
+            let old_epoch_root = get_delegate_smt_root_from_cell_data(
                 staker.as_slice().try_into().unwrap(),
-                Source::GroupInput,
+                &old_delegate_smt_data,
             )?;
             let old_epoch_root: H256 = old_epoch_root.into();
-            verify_2layer_smt(
+            let result = verify_2layer_smt(
                 &delegate_infos_set,
                 u64_to_h256(epoch),
                 old_epoch_root,
                 old_epoch_proof,
             )?;
+            debug!(
+                "verify_2layer_smt old delegate_infos_set result: {}",
+                result
+            );
 
             // update old delegate info to new delegate info based on input delegate at cells
             let delegate_at_type_id: [u8; 32] = xudt_type_hash.as_slice().try_into().unwrap();
@@ -389,9 +408,7 @@ fn update_delegate_smt(
 
                 // get the delegator's new delegate info for this staker
                 update_delegate_info(
-                    staker.as_slice().try_into().unwrap(),
                     delegator_addr,
-                    &delegate_at_lock_hash,
                     &delegate_info_delta,
                     &mut delegate_infos_set,
                 )?;
@@ -399,10 +416,9 @@ fn update_delegate_smt(
 
             // get proof of new_delegates from witness, verify delete_stakes is zero
             let new_proof = stake_group_info.delegate_new_epoch_proof();
-            let new_epoch_root = get_delegate_smt_root(
-                delegate_smt_type_id.as_slice().try_into().unwrap(),
+            let new_epoch_root = get_delegate_smt_root_from_cell_data(
                 staker.as_slice().try_into().unwrap(),
-                Source::Output,
+                &new_delegate_smt_data,
             )?;
             verify_delegator_seletion(
                 &delegate_infos_set,
@@ -413,13 +429,13 @@ fn update_delegate_smt(
             )?;
         }
     } else {
-        // staker AT cell
-        // only need to verify input and output both contain the Stake SMT cell of the Chain
-        let input_smt_cell = get_cell_count(&delegate_smt_type_id, Source::Input);
+        // delegator AT cell
+        // only need to verify input and output both contain the delegate SMT cell of the Chain
+        let input_smt_cell = get_cell_count_by_type_hash(&delegate_smt_type_id, Source::Input);
         if input_smt_cell != 1 {
             return Err(Error::BadInputStakeSmtCellCount);
         }
-        let output_smt_cell = get_cell_count(&delegate_smt_type_id, Source::Output);
+        let output_smt_cell = get_cell_count_by_type_hash(&delegate_smt_type_id, Source::Output);
         if output_smt_cell != 1 {
             return Err(Error::BadOutputStakeSmtCellCount);
         }

@@ -1,7 +1,7 @@
 use ckb_std::error::SysError;
 
 /// Error
-#[repr(i8)]
+#[repr(u8)]
 pub enum Error {
     IndexOutOfBound = 1,
     ItemMissing,
@@ -22,7 +22,7 @@ pub enum Error {
     UpdateDataError,
 
     // SMT
-    MerkleProof,
+    MerkleProof = 30,
     SmterrorCodeErrorInsufficientCapacity,
     SmterrorCodeErrorNotFound,
     SmterrorCodeErrorInvalidStack,
@@ -39,7 +39,7 @@ pub enum Error {
     OmniRewardCountError,
 
     // stake AT type script
-    StakeDataEmpty,
+    StakeDataEmpty = 50,
     MisMatchMetadataTypeId,
     UpdateModeError,
     BadSudtDataFormat,
@@ -63,13 +63,13 @@ pub enum Error {
     MismatchXudtTypeId,
 
     // delegate
-    FirstRedeemError,
+    FirstRedeemError = 80,
     BadDelegateChange,
     StaleDelegateInfo,
     IllegalDefaultDelegateInfo,
 
     // checkpoint
-    CheckpointDataEmpty,
+    CheckpointDataEmpty = 90,
     CheckpointCellError,
     CheckpointCapacityMismatch,
     CheckpointDataMismatch,
@@ -77,7 +77,7 @@ pub enum Error {
     ProofRlpError, // mock multisig verify
 
     // metadata
-    MetadataNoStakeSmt,
+    MetadataNoStakeSmt = 100,
     MetadataEpochWrong,
     MetadataSizeWrong,
     MetadataInputOutputMismatch,
@@ -87,7 +87,7 @@ pub enum Error {
     MetadataNotFound,
 
     // withdraw
-    WrongOutWithdrawArraySize,
+    WrongOutWithdrawArraySize = 120,
     WrongLockEpoch,
     WrongOutWithdrawEpoch,
     WrongOutWithdraw,
