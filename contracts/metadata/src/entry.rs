@@ -27,8 +27,8 @@ use ckb_std::{
 use axon_types::{metadata_reader::Metadata, Cursor};
 use sparse_merkle_tree::{CompiledMerkleProof, H256};
 use util::helper::{
-    calc_script_hash, get_current_epoch, get_delegate_smt_root, get_quorum_size, get_script_hash,
-    get_stake_smt_root, MinerGroupInfoObject,
+    calc_script_hash, get_cell_count_by_type_hash, get_current_epoch, get_delegate_smt_root,
+    get_quorum_size, get_script_hash, get_stake_smt_root, MinerGroupInfoObject,
 };
 use util::smt::{u64_to_h256, verify_2layer_smt_propose, LockInfo};
 use util::{
@@ -43,8 +43,15 @@ pub fn main() -> Result<(), Error> {
     // debug!("begin metadata verification");
     let script = load_script()?;
     // debug!("script: {:?}", script);
-    let args: Bytes = script.args().unpack();
+    let metadata_type_id = util::helper::calc_script_hash(&script).to_vec();
+    debug!("metadata_type_id = {:?}", metadata_type_id);
+    let input_metadata_count = get_cell_count_by_type_hash(&metadata_type_id, Source::Input);
+    if input_metadata_count == 0 {
+        debug!("metadata cell creation");
+        return Ok(());
+    }
 
+    let args: Bytes = script.args().unpack();
     let metadata_args: metadata_reader::MetadataArgs = Cursor::from(args.to_vec()).into();
     debug!(
         "metadata_args script args {:?}",

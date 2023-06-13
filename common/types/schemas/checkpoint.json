@@ -183,6 +183,12 @@
       "imported_depth": 1
     },
     {
+      "type": "option",
+      "name": "Byte32Opt",
+      "item": "Byte32",
+      "imported_depth": 1
+    },
+    {
       "type": "array",
       "name": "Identity",
       "item": "byte",

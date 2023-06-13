@@ -152,11 +152,11 @@ fn test_delegate_at_increase_success() {
     let metadata_list = MetadataList::new_builder().push(metadata).build();
     let propose_count_smt_root = [0u8; 32];
     let meta_data = axon_metadata_data_by_script(
-        &metadata_type_script.clone().calc_script_hash(),
+        &metadata_type_script.clone(),
         &delegate_at_type_script.calc_script_hash(),
         &checkpoint_type_script,
-        &delegate_at_type_script.calc_script_hash(), // needless here
-        &delegate_at_type_script,                    // needless here
+        &delegate_at_type_script, // needless here
+        &delegate_at_type_script, // needless here
         metadata_list,
         1,
         propose_count_smt_root,
@@ -377,11 +377,11 @@ fn test_delegate_smt_success() {
             .to_vec()
     );
     let meta_data = axon_metadata_data_by_script(
-        &metadata_type_script.clone().calc_script_hash(),
+        &metadata_type_script.clone(),
         &delegate_at_type_script.calc_script_hash(),
         &checkpoint_type_script,
-        &delegate_at_type_script.calc_script_hash(), // needless here
-        &delegate_smt_type_script,                   // needless here
+        &delegate_at_type_script,  // needless here
+        &delegate_smt_type_script, // needless here
         metadata_list,
         1,
         propose_count_smt_root,

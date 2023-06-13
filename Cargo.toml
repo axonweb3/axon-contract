@@ -10,6 +10,7 @@ members = [
     "contracts/metadata",
     "contracts/selection",
     "contracts/stake",
+    "contracts/stake-smt",
     "contracts/delegate",
     "contracts/reward",
     "contracts/withdraw",

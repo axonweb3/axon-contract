@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet};
+use std::collections::BTreeSet;
 
 use blake2b_rs::{Blake2b, Blake2bBuilder};
 // use ckb_smt::smt::{Pair, Tree};

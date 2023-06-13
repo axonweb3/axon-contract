@@ -214,10 +214,10 @@ pub fn axon_metadata_data(
 }
 
 pub fn axon_metadata_data_by_script(
-    metadata_type_id: &packed::Byte32,
+    metadata_type_id: &Script,
     xudt_type_hash: &packed::Byte32,
     checkpoint_type_id: &Script,
-    stake_smt_type_id: &packed::Byte32,
+    stake_smt_type_id: &Script,
     delegate_smt_type_id: &Script,
     metadata_list: MetadataList,
     epoch: u64,
@@ -225,11 +225,13 @@ pub fn axon_metadata_data_by_script(
 ) -> axon_types::metadata::MetadataCellData {
     let checkpoint_args = checkpoint_type_id.args();
     let type_ids = axon_types::metadata::TypeIds::new_builder()
-        .metadata_type_id(axon_byte32(metadata_type_id))
+        .metadata_code_hash(axon_byte32(&metadata_type_id.code_hash()))
+        .metadata_type_id(axon_bytes_byte32(&metadata_type_id.args().raw_data()))
         .xudt_type_hash(axon_byte32(xudt_type_hash))
         .checkpoint_type_id(axon_bytes_byte32(&checkpoint_args.raw_data()))
         .checkpoint_code_hash(axon_byte32(&checkpoint_type_id.code_hash()))
-        .stake_smt_type_id(axon_byte32(stake_smt_type_id))
+        .stake_smt_code_hash(axon_byte32(&stake_smt_type_id.code_hash()))
+        .stake_smt_type_id(axon_bytes_byte32(&stake_smt_type_id.args().raw_data()))
         .delegate_smt_code_hash(axon_byte32(&delegate_smt_type_id.code_hash()))
         .delegate_smt_type_id(axon_bytes_byte32(&delegate_smt_type_id.args().raw_data()))
         .build();

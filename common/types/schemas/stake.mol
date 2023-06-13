@@ -1,8 +1,8 @@
 import basic;
 
-table StakeArgs {
+struct StakeArgs {
     metadata_type_id: Byte32,
-    stake_addr:       IdentityOpt, // stake smt cell is None, stake at cell is Some
+    stake_addr:       Identity,
 }
 
 table StakeInfoDelta {

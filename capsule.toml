@@ -31,6 +31,10 @@ name = "stake"
 template_type = "Rust"
 
 [[contracts]]
+name = "stake-smt"
+template_type = "Rust"
+
+[[contracts]]
 name = "delegate"
 template_type = "Rust"
 

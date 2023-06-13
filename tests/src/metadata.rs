@@ -34,6 +34,128 @@ use util::helper::ProposeCountObject;
 use util::smt::LockInfo;
 
 #[test]
+fn test_metadata_creation_success() {
+    // init context
+    let mut context = Context::default();
+
+    let contract_bin: Bytes = Loader::default().load_binary("metadata");
+    let contract_out_point = context.deploy_cell(contract_bin);
+    let contract_dep = CellDep::new_builder()
+        .out_point(contract_out_point.clone())
+        .build();
+    let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
+    let always_success_lock_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![1]))
+        .expect("always_success script");
+
+    let metadata_args = MetadataArgs::new_builder()
+        .metadata_type_id(axon_byte32(&[1u8; 32].pack()))
+        .build();
+    let metadata_type_script = context
+        .build_script(&contract_out_point, Bytes::from(metadata_args.as_bytes()))
+        .expect("metadata type script");
+    println!(
+        "metadata type script: {:?}",
+        metadata_type_script.calc_script_hash().as_bytes().to_vec()
+    );
+    let always_success_script_dep = CellDep::new_builder()
+        .out_point(always_success_out_point.clone())
+        .build();
+
+    let keypair = Generator::random_keypair();
+    let staker_addr = pubkey_to_addr(&keypair.1.serialize());
+    // prepare checkpoint lock_script
+    let checkpoint_type_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![2]))
+        .expect("checkpoint script");
+    let checkpoint_data = CheckpointCellData::new_builder().build();
+    // prepare checkpoint cell_dep
+    let checkpoint_script_dep = CellDep::new_builder()
+        .out_point(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(1000.pack())
+                    .lock(always_success_lock_script.clone())
+                    .type_(Some(checkpoint_type_script.clone()).pack())
+                    .build(),
+                checkpoint_data.as_bytes(),
+            ),
+        )
+        .build();
+
+    // prepare tx inputs and outputs
+    // prepare metadata
+    let metadata0 = Metadata::new_builder()
+        .epoch_len(axon_u32(100))
+        .quorum(axon_u16(2))
+        .build();
+    let metadata1 = metadata0.clone();
+    let metadata2 = metadata0.clone();
+    let metadata_list = MetadataList::new_builder()
+        .push(metadata0)
+        .push(metadata1)
+        .push(metadata2)
+        .build();
+    println!(
+        "checkpoint script: {:?}",
+        checkpoint_type_script.calc_script_hash()
+    );
+
+    let inputs = vec![];
+    let outputs = vec![
+        // metadata cell
+        CellOutput::new_builder()
+            .capacity(1000.pack())
+            .lock(always_success_lock_script.clone())
+            .type_(Some(metadata_type_script.clone()).pack())
+            .build(),
+    ];
+
+    let propose_count = ProposeCountObject {
+        addr: staker_addr,
+        count: 100 as u32,
+    };
+    let propose_infos = vec![propose_count];
+    let (propose_count_root, _) = construct_propose_count_smt(&propose_infos);
+    println!("propose_count_root: {:?}", propose_count_root);
+    let top_smt_info = TopSmtInfo {
+        epoch: 1,
+        smt_root: propose_count_root,
+    };
+    let (top_smt_root, _proof) = construct_epoch_smt(&vec![top_smt_info]);
+
+    let output_meta_data = axon_metadata_data_by_script(
+        &metadata_type_script.clone(),
+        &metadata_type_script.calc_script_hash(),
+        &checkpoint_type_script,
+        &metadata_type_script,
+        &metadata_type_script,
+        metadata_list,
+        2,
+        top_smt_root.as_slice().try_into().unwrap(),
+    );
+
+    let outputs_data = vec![output_meta_data.as_bytes()];
+
+    // prepare signed tx
+    let tx = TransactionBuilder::default()
+        .inputs(inputs)
+        .outputs(outputs)
+        .outputs_data(outputs_data.pack())
+        .cell_dep(contract_dep)
+        .cell_dep(checkpoint_script_dep)
+        .cell_dep(always_success_script_dep)
+        .build();
+    let tx = context.complete_tx(tx);
+
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
 fn test_metadata_success() {
     // init context
     let mut context = Context::default();
@@ -104,7 +226,7 @@ fn test_metadata_success() {
     // prepare stake smt lock_script
     let stake_smt_args = axon_types::stake::StakeArgs::new_builder()
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-        .stake_addr(axon_identity_none())
+        // .stake_addr(axon_identity_none())
         .build();
     let stake_smt_type_script = context
         .build_script(&always_success_out_point, stake_smt_args.as_bytes())
@@ -140,10 +262,10 @@ fn test_metadata_success() {
     );
     let propose_count_smt_root = [0u8; 32];
     let input_meta_data = axon_metadata_data_by_script(
-        &metadata_type_script.clone().calc_script_hash(),
+        &metadata_type_script.clone(),
         &stake_smt_type_script.calc_script_hash(),
         &checkpoint_type_script,
-        &stake_smt_type_script.calc_script_hash(),
+        &stake_smt_type_script,
         &delegate_smt_type_script,
         metadata_list.clone(),
         1,
@@ -236,10 +358,10 @@ fn test_metadata_success() {
     let propose_count_proof = proof.compile(vec![u64_to_h256(1)]).unwrap().0;
 
     let output_meta_data = axon_metadata_data_by_script(
-        &metadata_type_script.clone().calc_script_hash(),
+        &metadata_type_script.clone(),
         &stake_smt_type_script.calc_script_hash(),
         &checkpoint_type_script,
-        &stake_smt_type_script.calc_script_hash(),
+        &stake_smt_type_script,
         &delegate_smt_type_script,
         metadata_list,
         2,

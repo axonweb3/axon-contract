@@ -9,7 +9,7 @@
   ],
   "declarations": [
     {
-      "type": "table",
+      "type": "struct",
       "name": "StakeArgs",
       "fields": [
         {
@@ -18,7 +18,7 @@
         },
         {
           "name": "stake_addr",
-          "type": "IdentityOpt"
+          "type": "Identity"
         }
       ]
     },
@@ -216,6 +216,12 @@
       "type": "option",
       "name": "BytesOpt",
       "item": "Bytes",
+      "imported_depth": 1
+    },
+    {
+      "type": "option",
+      "name": "Byte32Opt",
+      "item": "Byte32",
       "imported_depth": 1
     },
     {
