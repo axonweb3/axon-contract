@@ -176,7 +176,21 @@ pub fn get_script_hash(code_hash: &Vec<u8>, args: &Vec<u8>) -> [u8; 32] {
     let code_hash: [u8; 32] = code_hash.as_slice().try_into().unwrap();
     let script = Script::new_builder()
         .code_hash(code_hash.pack())
-        .hash_type(ScriptHashType::Data1.into())
+        .hash_type(ScriptHashType::Type.into())
+        .args(args.pack())
+        .build();
+    calc_script_hash(&script)
+}
+
+pub fn get_script_hash_with_type(
+    code_hash: &Vec<u8>,
+    hash_type: ScriptHashType,
+    args: &Vec<u8>,
+) -> [u8; 32] {
+    let code_hash: [u8; 32] = code_hash.as_slice().try_into().unwrap();
+    let script = Script::new_builder()
+        .code_hash(code_hash.pack())
+        .hash_type(hash_type.into())
         .args(args.pack())
         .build();
     calc_script_hash(&script)

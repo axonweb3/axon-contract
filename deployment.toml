@@ -8,15 +8,20 @@
 # enable_type_id = true
 # location = { file = "build/release/checkpoint" }
 
+# [[cells]]
+# name = "metadata"
+# enable_type_id = true
+# location = { file = "build/release/metadata" }
+
 [[cells]]
-name = "metadata"
+name = "stake"
 enable_type_id = true
-location = { file = "build/release/metadata" }
+location = { file = "build/release/stake" }
 
 # [[cells]]
-# name = "stake"
+# name = "stake-smt"
 # enable_type_id = true
-# location = { file = "build/release/stake" }
+# location = { file = "build/release/stake-smt" }
 
 # [[cells]]
 # name = "delegate"
