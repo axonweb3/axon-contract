@@ -1,8 +1,8 @@
 import basic;
 
-table DelegateArgs {
+struct DelegateArgs {
     metadata_type_id: Byte32,
-    delegator_addr:   IdentityOpt,
+    delegator_addr:   Identity,
 }
 
 table DelegateRequirement {

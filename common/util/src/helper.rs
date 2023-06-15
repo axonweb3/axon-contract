@@ -116,6 +116,13 @@ pub struct ProposeCountObject {
     pub count: u32,
 }
 
+pub fn find_script_input(script: &Script) -> bool {
+    let script_hash = calc_script_hash(&script).to_vec();
+    debug!("script_hash = {:?}", script_hash);
+    let input_count = get_cell_count_by_type_hash(&script_hash, Source::Input);
+    input_count > 0
+}
+
 pub fn calc_script_hash(script: &Script) -> [u8; 32] {
     let mut hash = [0; 32];
     let mut blake2b = blake2b_ref::Blake2bBuilder::new(32)

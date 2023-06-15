@@ -644,7 +644,18 @@ name = "delegate"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.12.1",
+ "ckb-std 0.13.0",
+ "sparse-merkle-tree",
+ "util",
+]
+
+[[package]]
+name = "delegate-smt"
+version = "0.1.0"
+dependencies = [
+ "axon-types",
+ "ckb-std 0.13.0",
+ "ckb-type-id",
  "sparse-merkle-tree",
  "util",
 ]

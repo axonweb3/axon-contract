@@ -35,7 +35,7 @@ pub fn main() -> Result<(), Error> {
     validate_type_id(type_id)?;
 
     let script = load_script()?;
-    let stake_smt_type_id = util::helper::calc_script_hash(&script).to_vec();
+    let stake_smt_type_id = calc_script_hash(&script).to_vec();
     debug!("stake_smt_type_id = {:?}", stake_smt_type_id);
     let input_stake_smt_count = get_cell_count_by_type_hash(&stake_smt_type_id, Source::Input);
     if input_stake_smt_count == 0 {

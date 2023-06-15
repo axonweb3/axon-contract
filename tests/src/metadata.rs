@@ -273,8 +273,11 @@ fn test_metadata_success() {
     );
 
     let delegate_infos = BTreeSet::new();
-    let (delegate_smt_cell_data, delegate_epoch_proof) =
-        axon_delegate_smt_cell_data(&delegate_infos, &keypair.1);
+    let (delegate_smt_cell_data, delegate_epoch_proof) = axon_delegate_smt_cell_data(
+        &delegate_infos,
+        &metadata_type_script.calc_script_hash(),
+        &keypair.1,
+    );
 
     let inputs = vec![
         // stake smt cell

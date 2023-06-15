@@ -71,6 +71,7 @@ pub enum Error {
     BadDelegateChange,
     StaleDelegateInfo,
     IllegalDefaultDelegateInfo,
+    DelegateSmtTypeIdMismatch,
 
     // checkpoint
     CheckpointDataEmpty = 90,

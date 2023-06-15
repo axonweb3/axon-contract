@@ -246,6 +246,7 @@ pub fn axon_metadata_data_by_script(
 
 pub fn axon_delegate_smt_cell_data(
     delegate_infos: &BTreeSet<LockInfo>,
+    metadata_type_id: &packed::Byte32,
     pubkey: &Pubkey,
 ) -> (
     axon_types::delegate::DelegateSmtCellData,
@@ -276,6 +277,7 @@ pub fn axon_delegate_smt_cell_data(
         axon_types::delegate::DelegateSmtCellData::new_builder()
             .version(0.into())
             .smt_roots(stake_smt_roots)
+            .metadata_type_id(axon_byte32(metadata_type_id))
             .build(),
         delegate_epoch_proof,
     )
