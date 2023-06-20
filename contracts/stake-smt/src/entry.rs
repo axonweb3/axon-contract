@@ -1,12 +1,11 @@
 // Import from `core` instead of from `std` since we are in no-std mode
 use alloc::{collections::BTreeSet, vec::Vec};
 use axon_types::metadata_reader;
-use axon_types::stake_reader::StakeAtCellData;
+use axon_types::stake_reader::StakeAtCellLockData;
 use axon_types::stake_reader::StakeInfoDelta;
 use axon_types::stake_reader::StakeInfos;
 use axon_types::stake_reader::StakeSmtCellData;
 use axon_types::stake_reader::StakeSmtUpdateInfo;
-use ckb_std::ckb_types::packed::WitnessArgs;
 use ckb_type_id::load_type_id_from_script_args;
 use ckb_type_id::validate_type_id;
 use core::result::Result;
@@ -47,15 +46,18 @@ pub fn main() -> Result<(), Error> {
     let witness_args = load_witness_args(0, Source::GroupInput);
     match witness_args {
         Ok(witness) => {
-            debug!("get input_type");
-            let value = witness.input_type().to_opt();
-            if value.is_none() || value.as_ref().unwrap().len() != 1 {
-                return Err(Error::BadWitnessInputType);
-            }
+            let (mode, stake_smt_update_infos) = {
+                let witness_input_type = witness.input_type().to_opt();
+                if witness_input_type.is_none() {
+                    return Err(Error::WitnessInputTypeError);
+                }
+                let value: stake_reader::StakeSmtWitness =
+                    Cursor::from(witness_input_type.unwrap().raw_data().to_vec()).into();
+                (value.mode(), value.update_info())
+            };
+            debug!("stake smt mode:{}", mode);
 
-            let input_type = *value.unwrap().raw_data().to_vec().first().unwrap();
-            debug!("stake smt input_type:{}", input_type);
-            let source = if input_type == 1 {
+            let source = if mode == 1 {
                 Source::Input
             } else {
                 Source::CellDep
@@ -79,10 +81,10 @@ pub fn main() -> Result<(), Error> {
             debug!("get type_ids");
             let type_ids = get_type_ids(&metadata_type_id, source)?;
 
-            match input_type {
+            match mode {
                 0 => {
                     // kicker update stake smt cell
-                    update_stake_smt(&witness, &type_ids, &stake_smt_type_id)?;
+                    update_stake_smt(&stake_smt_update_infos, &type_ids, &stake_smt_type_id)?;
                 }
                 1 => {
                     elect_validators(&metadata_type_id)?;
@@ -250,7 +252,7 @@ pub fn transform_to_set(stake_infos: &StakeInfos) -> BTreeSet<LockInfo> {
     stake_infos_set
 }
 
-fn is_output_lock_info_reset(output_stake_at_data: &StakeAtCellData) -> Result<(), Error> {
+fn is_output_lock_info_reset(output_stake_at_data: &StakeAtCellLockData) -> Result<(), Error> {
     let output_stake_info = output_stake_at_data.delta();
     let output_stake = bytes_to_u128(&output_stake_info.amount());
     let output_increase: bool = output_stake_info.is_increase() == 1;
@@ -264,7 +266,7 @@ fn is_output_lock_info_reset(output_stake_at_data: &StakeAtCellData) -> Result<(
 }
 
 fn update_stake_smt(
-    witness: &WitnessArgs,
+    stake_smt_update_infos: &StakeSmtUpdateInfo,
     type_ids: &metadata_reader::TypeIds,
     cell_type_id: &[u8; 32],
 ) -> Result<(), Error> {
@@ -282,17 +284,7 @@ fn update_stake_smt(
     let withdraw_code_hash = type_ids.withdraw_code_hash();
     let metadata_type_id =
         get_script_hash(&type_ids.metadata_code_hash(), &type_ids.metadata_type_id());
-    // get old_stakes & proof from Stake AT cells' witness of input
-    debug!("load witness stake_smt_update_infos");
-    let stake_smt_update_infos = {
-        let witness_lock = witness.lock().to_opt();
-        if witness_lock.is_none() {
-            return Err(Error::WitnessLockError);
-        }
-        let value: stake_reader::StakeSmtUpdateInfo =
-            Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
-        value
-    };
+
     if stake_smt_type_id != cell_type_id.as_slice() {
         return Err(Error::StakeSmtTypeIdMismatch);
     }

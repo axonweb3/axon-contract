@@ -32,11 +32,20 @@ vector DelegateInfoDeltas <DelegateInfoDelta>;
 
 // The data[0..16] is a le_u128 means xUDT amount.
 // So the cell data is decode from offset 16.
-table DelegateAtCellData {
+table DelegateAtCellLockData {
     version:            byte,
     l1_address:         Identity,
     metadata_type_id:   Byte32,
     delegator_infos:    DelegateInfoDeltas,
+}
+
+table DelegateAtCellData {
+    lock: DelegateAtCellLockData,
+#   data: BytesVec, // must be added!!! todo
+}
+
+table DelegateAtWitness {
+    mode:          byte, // 0 is update delegate at cell itself, 1 is update delegate smt cell
 }
 
 // delegate smt cell
@@ -71,4 +80,9 @@ vector StakeGroupInfos <StakeGroupInfo>;
 
 table DelegateSmtUpdateInfo {
     all_stake_group_infos: StakeGroupInfos,
+}
+
+table DelegateSmtWitness {
+    mode:          byte, // 0 is update delegate smt cell itself, 1 is update metadata cell to elect validators
+    update_info:   DelegateSmtUpdateInfo,
 }

@@ -42,7 +42,7 @@
     },
     {
       "type": "table",
-      "name": "StakeAtCellData",
+      "name": "StakeAtCellLockData",
       "fields": [
         {
           "name": "version",
@@ -71,6 +71,26 @@
         {
           "name": "delta",
           "type": "StakeInfoDelta"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "StakeAtCellData",
+      "fields": [
+        {
+          "name": "lock",
+          "type": "StakeAtCellLockData"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "StakeAtWitness",
+      "fields": [
+        {
+          "name": "mode",
+          "type": "byte"
         }
       ]
     },
@@ -126,6 +146,20 @@
         {
           "name": "new_epoch_proof",
           "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "StakeSmtWitness",
+      "fields": [
+        {
+          "name": "mode",
+          "type": "byte"
+        },
+        {
+          "name": "update_info",
+          "type": "StakeSmtUpdateInfo"
         }
       ]
     },
@@ -215,6 +249,12 @@
     {
       "type": "option",
       "name": "BytesOpt",
+      "item": "Bytes",
+      "imported_depth": 1
+    },
+    {
+      "type": "dynvec",
+      "name": "BytesVec",
       "item": "Bytes",
       "imported_depth": 1
     },

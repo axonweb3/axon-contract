@@ -41,61 +41,56 @@ pub fn main() -> Result<(), Error> {
     let witness_args = load_witness_args(0, Source::Input);
     match witness_args {
         Ok(witness) => {
-            let value = witness.input_type().to_opt();
-            if value.is_none() || value.as_ref().unwrap().len() != 1 {
-                return Err(Error::BadWitnessInputType);
-            }
+            let mode = {
+                let witness_lock = witness.lock().to_opt();
+                if witness_lock.is_none() {
+                    return Err(Error::WitnessLockError);
+                }
+                debug!(
+                    "witness_lock:{:?}",
+                    witness_lock.clone().unwrap().raw_data().len()
+                );
+                let value: delegate_reader::DelegateAtWitness =
+                    Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
+                debug!("witness mode: {}", value.mode());
+                value.mode()
+            };
+            debug!("delegate at mode: {}", mode);
 
-            let input_type = *value.unwrap().raw_data().to_vec().first().unwrap();
-            debug!("input_type: {}", input_type);
-            {
-                // let delegate_smt_update_infos = {
-                //     let witness_lock = witness.lock().to_opt();
-                //     // debug!("witness_lock: {:?}, {}", witness_lock, witness_lock.clone().unwrap().raw_data().len());
-                //     if witness_lock.is_none() {
-                //         return Err(Error::WitnessLockError);
-                //     }
-                //     let value: delegate_reader::DelegateSmtUpdateInfo =
-                //         Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
-                //     value
-                // };
-                // debug!("delegate_smt_update_infos:");
-                // let groups = delegate_smt_update_infos.all_stake_group_infos();
-                // debug!("stake_group_info:");
-                // let stake_group_info = groups.get(0);
-                // debug!("stake_group_info: {:?}", stake_group_info.staker());
-            }
-
-            if input_type == 0 {
-                // update delegate at cell
-                // extract delegate at cell lock hash
-                let delegate_at_lock_hash = { load_cell_lock_hash(0, Source::Input)? };
-                let checkpoint_script_hash = get_script_hash(
-                    &type_ids.checkpoint_code_hash(),
-                    &type_ids.checkpoint_type_id(),
-                );
-                debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
-                update_delegate_at_cell(
-                    &delegator_identity,
-                    &delegate_at_lock_hash,
-                    &checkpoint_script_hash.to_vec(),
-                    &type_ids.xudt_type_hash(),
-                )?;
-            } else if input_type == 1 {
-                // kicker update delegate smt cell
-                let delegate_smt_type_hash = get_script_hash(
-                    &type_ids.delegate_smt_code_hash(),
-                    &type_ids.delegate_smt_type_id(),
-                );
-                debug!("delegate_smt_type_hash: {:?}", delegate_smt_type_hash);
-                let checkpoint_script_hash = get_script_hash(
-                    &type_ids.checkpoint_code_hash(),
-                    &type_ids.checkpoint_type_id(),
-                );
-                debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
-                update_delegate_smt(&delegate_smt_type_hash.to_vec())?;
-            } else {
-                return Err(Error::UnknownMode);
+            match mode {
+                0 => {
+                    // update delegate at cell
+                    // extract delegate at cell lock hash
+                    let delegate_at_lock_hash = { load_cell_lock_hash(0, Source::Input)? };
+                    let checkpoint_script_hash = get_script_hash(
+                        &type_ids.checkpoint_code_hash(),
+                        &type_ids.checkpoint_type_id(),
+                    );
+                    debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
+                    update_delegate_at_cell(
+                        &delegator_identity,
+                        &delegate_at_lock_hash,
+                        &checkpoint_script_hash.to_vec(),
+                        &type_ids.xudt_type_hash(),
+                    )?;
+                }
+                1 => {
+                    // kicker update delegate smt cell
+                    let delegate_smt_type_hash = get_script_hash(
+                        &type_ids.delegate_smt_code_hash(),
+                        &type_ids.delegate_smt_type_id(),
+                    );
+                    debug!("delegate_smt_type_hash: {:?}", delegate_smt_type_hash);
+                    let checkpoint_script_hash = get_script_hash(
+                        &type_ids.checkpoint_code_hash(),
+                        &type_ids.checkpoint_type_id(),
+                    );
+                    debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
+                    update_delegate_smt(&delegate_smt_type_hash.to_vec())?;
+                }
+                _ => {
+                    return Err(Error::UnknownMode);
+                }
             }
         }
         Err(_) => {

@@ -23,6 +23,7 @@ pub enum Error {
     BadScriptArgs,
     UnknownMode,
     WitnessLockError,
+    WitnessInputTypeError,
     UpdateDataError,
 
     // SMT

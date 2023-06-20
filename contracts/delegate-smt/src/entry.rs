@@ -40,13 +40,16 @@ pub fn main() -> Result<(), Error> {
     let witness_args = load_witness_args(0, Source::GroupInput);
     match witness_args {
         Ok(witness) => {
-            let value = witness.input_type().to_opt();
-            if value.is_none() || value.as_ref().unwrap().len() != 1 {
-                return Err(Error::BadWitnessInputType);
-            }
-
-            let input_type = *value.unwrap().raw_data().to_vec().first().unwrap();
-            debug!("input_type: {}", input_type);
+            let (mode, delegate_smt_update_infos) = {
+                let witness_input_type = witness.input_type().to_opt();
+                if witness_input_type.is_none() {
+                    return Err(Error::WitnessInputTypeError);
+                }
+                let value: delegate_reader::DelegateSmtWitness =
+                    Cursor::from(witness_input_type.unwrap().raw_data().to_vec()).into();
+                (value.mode(), value.update_info())
+            };
+            debug!("delegate smt mode:{}", mode);
 
             let delegate_smt_type_id = {
                 let delegate_smt_type_id = load_cell_type_hash(0, Source::GroupInput)?;
@@ -64,48 +67,42 @@ pub fn main() -> Result<(), Error> {
                 .unwrap();
             debug!("metadata_type_id: {:?}", metadata_type_id);
 
-            if input_type == 0 {
-                // kicker update delegate smt cell
-                let delegate_smt_update_infos = {
-                    let witness_lock = witness.lock().to_opt();
-                    if witness_lock.is_none() {
-                        return Err(Error::WitnessLockError);
+            match mode {
+                0 => {
+                    // kicker update delegate smt cell
+                    let type_ids = get_type_ids(
+                        &metadata_type_id.as_slice().try_into().unwrap(),
+                        Source::CellDep,
+                    )?;
+
+                    let delegate_smt_type_hash = get_script_hash(
+                        &type_ids.delegate_smt_code_hash(),
+                        &type_ids.delegate_smt_type_id(),
+                    );
+                    if delegate_smt_type_hash != delegate_smt_type_id {
+                        return Err(Error::DelegateSmtTypeIdMismatch);
                     }
-                    let value: delegate_reader::DelegateSmtUpdateInfo =
-                        Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
-                    value
-                };
 
-                let type_ids = get_type_ids(
-                    &metadata_type_id.as_slice().try_into().unwrap(),
-                    Source::CellDep,
-                )?;
-
-                let delegate_smt_type_hash = get_script_hash(
-                    &type_ids.delegate_smt_code_hash(),
-                    &type_ids.delegate_smt_type_id(),
-                );
-                if delegate_smt_type_hash != delegate_smt_type_id {
-                    return Err(Error::DelegateSmtTypeIdMismatch);
+                    debug!("delegate_smt_type_hash: {:?}", delegate_smt_type_hash);
+                    let checkpoint_script_hash = get_script_hash(
+                        &type_ids.checkpoint_code_hash(),
+                        &type_ids.checkpoint_type_id(),
+                    );
+                    debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
+                    update_delegate_smt(
+                        &delegate_smt_update_infos,
+                        &checkpoint_script_hash.to_vec(),
+                        &type_ids.xudt_type_hash(),
+                        &metadata_type_id,
+                    )?;
                 }
-
-                debug!("delegate_smt_type_hash: {:?}", delegate_smt_type_hash);
-                let checkpoint_script_hash = get_script_hash(
-                    &type_ids.checkpoint_code_hash(),
-                    &type_ids.checkpoint_type_id(),
-                );
-                debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
-                update_delegate_smt(
-                    &delegate_smt_update_infos,
-                    &checkpoint_script_hash.to_vec(),
-                    &type_ids.xudt_type_hash(),
-                    &metadata_type_id,
-                )?;
-            } else if input_type == 1 {
-                // election
-                elect_validators(&metadata_type_id.as_slice().try_into().unwrap())?;
-            } else {
-                return Err(Error::UnknownMode);
+                1 => {
+                    // election
+                    elect_validators(&metadata_type_id.as_slice().try_into().unwrap())?;
+                }
+                _ => {
+                    return Err(Error::UnknownMode);
+                }
             }
         }
         Err(_) => {
@@ -320,11 +317,13 @@ fn update_delegate_smt(
 }
 
 fn elect_validators(metadata_type_id: &[u8; 32]) -> Result<(), Error> {
-    let input_metadata_cell_cnt = get_cell_count_by_type_hash(&metadata_type_id.to_vec(), Source::Input);
+    let input_metadata_cell_cnt =
+        get_cell_count_by_type_hash(&metadata_type_id.to_vec(), Source::Input);
     if input_metadata_cell_cnt != 1 {
         return Err(Error::BadInputMetadataCellCount);
     }
-    let output_metadata_cell_cnt = get_cell_count_by_type_hash(&metadata_type_id.to_vec(), Source::Output);
+    let output_metadata_cell_cnt =
+        get_cell_count_by_type_hash(&metadata_type_id.to_vec(), Source::Output);
     if output_metadata_cell_cnt != 1 {
         return Err(Error::BadOutputMetadataCellCount);
     }

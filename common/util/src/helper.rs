@@ -269,7 +269,7 @@ pub fn get_xudt_by_type_hash(type_hash: &Vec<u8>, source: Source) -> Result<u128
 pub fn get_stake_at_data_by_lock_hash(
     cell_lock_hash: &[u8; 32],
     source: Source,
-) -> Result<(u128, stake_reader::StakeAtCellData), Error> {
+) -> Result<(u128, stake_reader::StakeAtCellLockData), Error> {
     let mut sudt = None;
     let mut stake_at_data = None;
     QueryIter::new(load_cell_lock_hash, source)
@@ -285,7 +285,7 @@ pub fn get_stake_at_data_by_lock_hash(
                     stake_at_data = {
                         let stake_data: stake_reader::StakeAtCellData =
                             Cursor::from(data[16..].to_vec()).into();
-                        Some(stake_data)
+                        Some(stake_data.lock())
                     };
                 }
             }
@@ -302,7 +302,7 @@ pub fn get_stake_at_data_by_lock_hash(
 pub fn get_delegate_at_data_by_lock_hash(
     cell_lock_hash: &[u8; 32],
     source: Source,
-) -> Result<(u128, delegate_reader::DelegateAtCellData), Error> {
+) -> Result<(u128, delegate_reader::DelegateAtCellLockData), Error> {
     let mut sudt = None;
     let mut delegate_at_data = None;
     QueryIter::new(load_cell_lock_hash, source)
@@ -316,7 +316,7 @@ pub fn get_delegate_at_data_by_lock_hash(
                     delegate_at_data = {
                         let delegate_data: delegate_reader::DelegateAtCellData =
                             Cursor::from(data[16..].to_vec()).into();
-                        Some(delegate_data)
+                        Some(delegate_data.lock())
                     };
                 }
             }
@@ -389,14 +389,14 @@ pub fn get_stake_update_infos(
             if &type_hash.unwrap_or([0u8; 32]) == cell_type_hash {
                 let lock_hash = load_cell_lock_hash(i, source).unwrap();
                 let data = load_cell_data(i, source).unwrap();
-                let stake_at_data = {
+                let stake_xudt_lock = {
                     let stake_data: stake_reader::StakeAtCellData =
                         Cursor::from(data[16..].to_vec()).into();
-                    stake_data
+                    stake_data.lock()
                 };
-                let stake_info_delta = stake_at_data.delta();
+                let stake_info_delta = stake_xudt_lock.delta();
                 // get address from lock script args
-                let address: [u8; 20] = stake_at_data.l1_address().as_slice().try_into().unwrap();
+                let address: [u8; 20] = stake_xudt_lock.l1_address().as_slice().try_into().unwrap();
                 stake_update_infos.push((address, lock_hash, stake_info_delta));
             }
         });
@@ -419,7 +419,7 @@ pub fn get_delegate_update_infos(
                 let delegate_at_data = {
                     let delegate_data: delegate_reader::DelegateAtCellData =
                         Cursor::from(data[16..].to_vec()).into();
-                    delegate_data
+                    delegate_data.lock()
                 };
                 let delegate_infos = delegate_at_data.delegator_infos();
                 for i in 0..delegate_infos.len() {

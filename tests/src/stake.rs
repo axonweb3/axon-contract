@@ -192,11 +192,18 @@ fn test_stake_at_increase_success() {
         )
         .build();
 
+    let stake_at_witness = StakeAtWitness::new_builder().mode(0.into()).build();
+    println!("stake at witness: {:?}", stake_at_witness.as_bytes().len());
+    let stake_at_witness = WitnessArgs::new_builder()
+        .lock(Some(Bytes::from(stake_at_witness.as_bytes())).pack())
+        .build();
+
     // prepare signed tx
     let tx = TransactionBuilder::default()
         .inputs(inputs)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
+        .witness(stake_at_witness.as_bytes().pack())
         .cell_dep(contract_dep)
         .cell_dep(always_success_script_dep)
         .cell_dep(secp256k1_data_dep)
@@ -206,7 +213,7 @@ fn test_stake_at_increase_success() {
     let tx = context.complete_tx(tx);
 
     // sign tx for stake at cell (update stake at cell delta mode)
-    let tx = sign_tx(tx, &keypair.0, 0);
+    // let tx = sign_stake_tx(tx, &keypair.0, stake_at_witness);
 
     // run
     let cycles = context
@@ -504,13 +511,18 @@ fn test_stake_smt_success() {
         .new_epoch_proof(axon_bytes(&new_proof))
         // .old_bottom_proof(axon_bytes_none())
         .build();
-
-    let stake_smt_witness = WitnessArgs::new_builder()
-        .lock(Some(Bytes::from(stake_smt_update_info.as_bytes())).pack())
-        .input_type(Some(Bytes::from(vec![0])).pack())
+    let stake_smt_witness = StakeSmtWitness::new_builder()
+        .mode(0.into())
+        .update_info(stake_smt_update_info)
         .build();
+    let stake_smt_witness = WitnessArgs::new_builder()
+        .input_type(Some(Bytes::from(stake_smt_witness.as_bytes())).pack())
+        .build();
+
+    let stake_at_witness = StakeAtWitness::new_builder().mode(1.into()).build();
+    println!("stake at witness: {:?}", stake_at_witness.as_bytes().len());
     let stake_at_witness = WitnessArgs::new_builder()
-        .input_type(Some(Bytes::from(vec![1])).pack())
+        .lock(Some(Bytes::from(stake_at_witness.as_bytes())).pack())
         .build();
 
     // prepare signed tx
@@ -745,8 +757,9 @@ fn test_stake_election_success() {
         meta_data.as_bytes(),
     ];
 
+    let stake_smt_witness = StakeSmtWitness::new_builder().mode(1.into()).build();
     let stake_smt_witness = WitnessArgs::new_builder()
-        .input_type(Some(Bytes::from(vec![1])).pack())
+        .input_type(Some(Bytes::from(stake_smt_witness.as_bytes())).pack())
         .build();
 
     // prepare signed tx

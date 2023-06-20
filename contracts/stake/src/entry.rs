@@ -25,15 +25,27 @@ pub fn main() -> Result<(), Error> {
     let stake_args: stake_reader::StakeArgs = Cursor::from(args.to_vec()).into();
     let metadata_type_id = stake_args.metadata_type_id();
     let staker_identity = stake_args.stake_addr();
+    debug!("metadata_type_id:{:?}", metadata_type_id);
 
     // identify contract mode by witness
     let witness_args = load_witness_args(0, Source::GroupInput);
     match witness_args {
         Ok(witness) => {
-            let value = witness.input_type().to_opt();
-            if value.is_none() || value.as_ref().unwrap().len() != 1 {
-                return Err(Error::BadWitnessInputType);
-            }
+            let mode = {
+                let witness_lock = witness.lock().to_opt();
+                if witness_lock.is_none() {
+                    return Err(Error::WitnessLockError);
+                }
+                debug!(
+                    "witness_lock:{:?}",
+                    witness_lock.clone().unwrap().raw_data().len()
+                );
+                let value: stake_reader::StakeAtWitness =
+                    Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
+                debug!("witness mode: {}", value.mode());
+                value.mode()
+            };
+            debug!("stake at mode: {}", mode);
 
             let type_ids = get_type_ids(
                 &metadata_type_id.as_slice().try_into().unwrap(),
@@ -45,9 +57,7 @@ pub fn main() -> Result<(), Error> {
                 return Err(Error::MisMatchMetadataTypeId);
             }
 
-            let input_type = *value.unwrap().raw_data().to_vec().first().unwrap();
-            debug!("stake at input_type:{}", input_type);
-            match input_type {
+            match mode {
                 0 => {
                     // update stake at cell
                     // extract stake at cell lock hash

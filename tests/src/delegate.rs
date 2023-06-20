@@ -198,10 +198,20 @@ fn test_delegate_at_increase_success() {
         )
         .build();
 
+    let delegate_at_witness = DelegateAtWitness::new_builder().mode(0.into()).build();
+    println!(
+        "delegate at witness: {:?}",
+        delegate_at_witness.as_bytes().len()
+    );
+    let delegate_at_witness = WitnessArgs::new_builder()
+        .lock(Some(Bytes::from(delegate_at_witness.as_bytes())).pack())
+        .build();
+
     // prepare signed tx
     let tx = TransactionBuilder::default()
         .inputs(inputs)
         .outputs(outputs)
+        .witness(delegate_at_witness.as_bytes().pack())
         .outputs_data(outputs_data.pack())
         .cell_dep(contract_dep)
         .cell_dep(always_success_script_dep)
@@ -210,8 +220,8 @@ fn test_delegate_at_increase_success() {
         .build();
     let tx = context.complete_tx(tx);
 
-    // sign tx for stake at cell (update stake at cell delta mode)
-    let tx = sign_tx(tx, &delegator_keypair.0, 0);
+    // sign tx for delegate at cell (update stake at cell delta mode)
+    // let tx = sign_tx(tx, &delegator_keypair.0, 0);
 
     // run
     let cycles = context
@@ -473,12 +483,18 @@ fn test_delegate_smt_success() {
         delegate_smt_update_info.as_bytes().pack(),
         delegate_smt_update_info.as_bytes().len()
     );
-    let delegate_smt_witness = WitnessArgs::new_builder()
-        .lock(Some(Bytes::from(delegate_smt_update_info.as_bytes())).pack())
-        .input_type(Some(Bytes::from(vec![0])).pack())
-        .build();
+
+    let delegate_at_witness = DelegateAtWitness::new_builder().mode(1.into()).build();
     let delegate_at_witness = WitnessArgs::new_builder()
-        .input_type(Some(Bytes::from(vec![1])).pack())
+        .lock(Some(Bytes::from(delegate_at_witness.as_bytes())).pack())
+        .build();
+
+    let delegate_smt_witness = DelegateSmtWitness::new_builder()
+        .mode(0.into())
+        .update_info(delegate_smt_update_info)
+        .build();
+    let delegate_smt_witness = WitnessArgs::new_builder()
+        .input_type(Some(Bytes::from(delegate_smt_witness.as_bytes())).pack())
         .build();
 
     // prepare signed tx
@@ -665,7 +681,10 @@ fn test_delegate_election_success() {
         &metadata_type_script.calc_script_hash(),
         &staker_keypair.1,
     );
-    println!("metadata_type_script:{:?}", metadata_type_script.calc_script_hash().as_bytes().to_vec());
+    println!(
+        "metadata_type_script:{:?}",
+        metadata_type_script.calc_script_hash().as_bytes().to_vec()
+    );
 
     // prepare metadata cell_dep
     let metadata = Metadata::new_builder().epoch_len(axon_u32(100)).build();
@@ -729,14 +748,15 @@ fn test_delegate_election_success() {
         &metadata_type_script.calc_script_hash(),
         &staker_keypair.1,
     );
-    
+
     let outputs_data = vec![
         output_delegate_smt_cell_data.as_bytes(), // delegate smt cell
         meta_data.as_bytes(),
     ];
 
+    let delegate_smt_witness = DelegateSmtWitness::new_builder().mode(1.into()).build();
     let delegate_smt_witness = WitnessArgs::new_builder()
-        .input_type(Some(Bytes::from(vec![1])).pack())
+        .input_type(Some(Bytes::from(delegate_smt_witness.as_bytes())).pack())
         .build();
 
     // prepare signed tx

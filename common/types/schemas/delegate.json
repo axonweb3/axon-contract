@@ -99,7 +99,7 @@
     },
     {
       "type": "table",
-      "name": "DelegateAtCellData",
+      "name": "DelegateAtCellLockData",
       "fields": [
         {
           "name": "version",
@@ -116,6 +116,26 @@
         {
           "name": "delegator_infos",
           "type": "DelegateInfoDeltas"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "DelegateAtCellData",
+      "fields": [
+        {
+          "name": "lock",
+          "type": "DelegateAtCellLockData"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "DelegateAtWitness",
+      "fields": [
+        {
+          "name": "mode",
+          "type": "byte"
         }
       ]
     },
@@ -213,6 +233,20 @@
       ]
     },
     {
+      "type": "table",
+      "name": "DelegateSmtWitness",
+      "fields": [
+        {
+          "name": "mode",
+          "type": "byte"
+        },
+        {
+          "name": "update_info",
+          "type": "DelegateSmtUpdateInfo"
+        }
+      ]
+    },
+    {
       "type": "array",
       "name": "Byte4",
       "item": "byte",
@@ -298,6 +332,12 @@
     {
       "type": "option",
       "name": "BytesOpt",
+      "item": "Bytes",
+      "imported_depth": 1
+    },
+    {
+      "type": "dynvec",
+      "name": "BytesVec",
       "item": "Bytes",
       "imported_depth": 1
     },
