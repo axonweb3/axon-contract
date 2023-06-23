@@ -1,8 +1,8 @@
 import basic;
 
 table WithdrawInfo {
-    amount:    Uint128,
-    epoch:     Uint64,
+    amount:        Uint128,
+    unlock_epoch:  Uint64,
 }
 
 vector WithdrawInfos <WithdrawInfo>;
@@ -11,7 +11,7 @@ vector WithdrawInfos <WithdrawInfo>;
 // So the cell data is decode from offset 16.
 table WithdrawAtCellData {
     version:            byte,
-    metadata_type_id:       Byte32,
+    metadata_type_id:   Byte32,
     withdraw_infos:     WithdrawInfos,
 }
 

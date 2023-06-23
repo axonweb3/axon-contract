@@ -9,11 +9,12 @@ use axon_types::stake::*;
 // use bit_vec::BitVec;
 use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
+use ckb_testtool::ckb_types::core::ScriptHashType;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use util::smt::{LockInfo, BOTTOM_SMT};
+use util::smt::{new_blake2b, LockInfo, BOTTOM_SMT};
 
 #[test]
 fn test_stake_at_increase_success() {
@@ -34,7 +35,11 @@ fn test_stake_at_increase_success() {
         .build_script(&always_success_out_point, Bytes::from(vec![1]))
         .expect("always_success script");
     let checkpoint_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![2]))
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![2]),
+        )
         .expect("checkpoint script");
     println!(
         "checkpoint type hash: {:?}",
@@ -47,7 +52,11 @@ fn test_stake_at_increase_success() {
         .build_script(&always_success_out_point, Bytes::from(vec![4]))
         .expect("sudt script");
     let metadata_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![5]))
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![5]),
+        )
         .expect("metadata type script");
     let always_success_script_dep = CellDep::new_builder()
         .out_point(always_success_out_point.clone())
@@ -183,11 +192,18 @@ fn test_stake_at_increase_success() {
         )
         .build();
 
+    let stake_at_witness = StakeAtWitness::new_builder().mode(0.into()).build();
+    println!("stake at witness: {:?}", stake_at_witness.as_bytes().len());
+    let stake_at_witness = WitnessArgs::new_builder()
+        .lock(Some(Bytes::from(stake_at_witness.as_bytes())).pack())
+        .build();
+
     // prepare signed tx
     let tx = TransactionBuilder::default()
         .inputs(inputs)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
+        .witness(stake_at_witness.as_bytes().pack())
         .cell_dep(contract_dep)
         .cell_dep(always_success_script_dep)
         .cell_dep(secp256k1_data_dep)
@@ -197,7 +213,7 @@ fn test_stake_at_increase_success() {
     let tx = context.complete_tx(tx);
 
     // sign tx for stake at cell (update stake at cell delta mode)
-    let tx = sign_tx(tx, &keypair.0, 0);
+    // let tx = sign_stake_tx(tx, &keypair.0, stake_at_witness);
 
     // run
     let cycles = context
@@ -254,12 +270,12 @@ fn test_stake_smt_success() {
         .build_script(&always_success_out_point, Bytes::from(vec![1]))
         .expect("always_success script");
     let checkpoint_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![2]))
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![2]),
+        )
         .expect("checkpoint script");
-    // println!(
-    //     "checkpoint type hash: {:?}",
-    //     checkpoint_type_script.calc_script_hash().as_slice()
-    // );
 
     let stake_at_type_script = context
         .build_script(&always_success_out_point, Bytes::from(vec![4]))
@@ -269,7 +285,11 @@ fn test_stake_smt_success() {
         stake_at_type_script.calc_script_hash().as_bytes().to_vec()
     );
     let metadata_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![5]))
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![5]),
+        )
         .expect("metadata type script");
     let always_success_script_dep = CellDep::new_builder()
         .out_point(always_success_out_point.clone())
@@ -299,12 +319,13 @@ fn test_stake_smt_success() {
     let stake_at_lock_script = context
         .build_script(&at_contract_out_point, stake_at_args.as_bytes())
         .expect("stake at lock script");
-    // let stake_smt_args = stake::StakeArgs::new_builder()
-    //     .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-    //     .stake_addr(axon_identity(&keypair.1.serialize()))
-    //     .build();
+
     let stake_smt_type_script = context
-        .build_script(&smt_contract_out_point, Bytes::from(vec![6]))
+        .build_script_with_hash_type(
+            &smt_contract_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![6u8; 32]),
+        )
         .expect("stake smt type script");
     println!(
         "stake_smt_type_script: {:?}",
@@ -316,6 +337,18 @@ fn test_stake_smt_success() {
     let input_stake_infos = BTreeSet::new();
     let input_stake_smt_data =
         axon_stake_smt_cell_data(&input_stake_infos, &metadata_type_script.calc_script_hash());
+
+    let input_stake_smt_out_point = context.create_cell(
+        CellOutput::new_builder()
+            .capacity(1000.pack())
+            .lock(always_success_lock_script.clone())
+            .type_(Some(stake_smt_type_script.clone()).pack())
+            .build(),
+        input_stake_smt_data.as_bytes(),
+    );
+    // let stake_smt_input_dep = CellDep::new_builder()
+    //     .out_point(input_stake_smt_out_point.clone())
+    //     .build();
 
     let inputs = vec![
         // stake AT cell
@@ -334,17 +367,31 @@ fn test_stake_smt_success() {
         // stake smt cell
         CellInput::new_builder()
             .previous_output(
-                context.create_cell(
-                    CellOutput::new_builder()
-                        .capacity(1000.pack())
-                        .lock(always_success_lock_script.clone())
-                        .type_(Some(stake_smt_type_script.clone()).pack())
-                        .build(),
-                    input_stake_smt_data.as_bytes(),
-                ),
+                // context.create_cell(
+                //     CellOutput::new_builder()
+                //         .capacity(1000.pack())
+                //         .lock(always_success_lock_script.clone())
+                //         .type_(Some(stake_smt_type_script.clone()).pack())
+                //         .build(),
+                //     input_stake_smt_data.as_bytes(),
+                // ),
+                input_stake_smt_out_point,
             )
             .build(),
     ];
+
+    // let output_stake_smt_out_point = context.create_cell(
+    //     CellOutput::new_builder()
+    //         .capacity(1000.pack())
+    //         .lock(always_success_lock_script.clone())
+    //         .type_(Some(stake_smt_type_script.clone()).pack())
+    //         .build(),
+    //     input_stake_smt_data.as_bytes(),
+    // );
+    // let stake_smt_input_dep = CellDep::new_builder()
+    //     .out_point(input_stake_smt_out_point.clone())
+    //     .build();
+
     let outputs = vec![
         // stake at cell
         CellOutput::new_builder()
@@ -464,13 +511,18 @@ fn test_stake_smt_success() {
         .new_epoch_proof(axon_bytes(&new_proof))
         // .old_bottom_proof(axon_bytes_none())
         .build();
-
-    let stake_smt_witness = WitnessArgs::new_builder()
-        .lock(Some(Bytes::from(stake_smt_update_info.as_bytes())).pack())
-        .input_type(Some(Bytes::from(vec![0])).pack())
+    let stake_smt_witness = StakeSmtWitness::new_builder()
+        .mode(0.into())
+        .update_info(stake_smt_update_info)
         .build();
+    let stake_smt_witness = WitnessArgs::new_builder()
+        .input_type(Some(Bytes::from(stake_smt_witness.as_bytes())).pack())
+        .build();
+
+    let stake_at_witness = StakeAtWitness::new_builder().mode(1.into()).build();
+    println!("stake at witness: {:?}", stake_at_witness.as_bytes().len());
     let stake_at_witness = WitnessArgs::new_builder()
-        .input_type(Some(Bytes::from(vec![1])).pack())
+        .lock(Some(Bytes::from(stake_at_witness.as_bytes())).pack())
         .build();
 
     // prepare signed tx
@@ -488,6 +540,7 @@ fn test_stake_smt_success() {
         .cell_dep(secp256k1_data_dep)
         .cell_dep(checkpoint_script_dep)
         .cell_dep(metadata_script_dep)
+        // .cell_dep(stake_smt_input_dep)
         .build();
     let tx = context.complete_tx(tx);
 
@@ -502,11 +555,97 @@ fn test_stake_smt_success() {
 }
 
 #[test]
+fn test_stake_smt_create_success() {
+    // init context
+    let mut context = Context::default();
+
+    let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
+    let always_success_lock_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![1]))
+        .expect("always_success script");
+    let always_success_script_dep = CellDep::new_builder()
+        .out_point(always_success_out_point.clone())
+        .build();
+
+    let smt_contract_bin: Bytes = Loader::default().load_binary("stake-smt");
+    let smt_contract_out_point = context.deploy_cell(smt_contract_bin);
+    let smt_contract_dep = CellDep::new_builder()
+        .out_point(smt_contract_out_point.clone())
+        .build();
+
+    let input = CellInput::new_builder()
+        .previous_output(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(500.pack())
+                    .lock(always_success_lock_script.clone())
+                    .build(),
+                Bytes::new(),
+            ),
+        )
+        .build();
+
+    let input_hash = {
+        let mut blake2b = new_blake2b();
+        blake2b.update(input.as_slice());
+        blake2b.update(&0u64.to_le_bytes());
+        let mut ret = [0; 32];
+        blake2b.finalize(&mut ret);
+        Bytes::from(ret.to_vec())
+    };
+    let stake_smt_type_script = context
+        .build_script(&smt_contract_out_point, input_hash)
+        .expect("stake smt type script");
+    println!(
+        "stake_smt_type_script: {:?}",
+        stake_smt_type_script.calc_script_hash().as_bytes().to_vec()
+    );
+
+    let outputs = vec![
+        // stake smt cell
+        CellOutput::new_builder()
+            .capacity(1000.pack())
+            .lock(always_success_lock_script.clone())
+            .type_(Some(stake_smt_type_script.clone()).pack())
+            .build(),
+    ];
+
+    let output_stake_infos = BTreeSet::new();
+    let output_stake_smt_data = axon_stake_smt_cell_data(
+        &output_stake_infos,
+        &always_success_lock_script.calc_script_hash(),
+    );
+    println!(
+        "output stake smt data: {:?}",
+        output_stake_smt_data.as_bytes().len()
+    );
+    let outputs_data = vec![
+        output_stake_smt_data.as_bytes(), // stake smt cell
+    ];
+
+    // prepare signed tx
+    let tx = TransactionBuilder::default()
+        .input(input)
+        .outputs(outputs)
+        .outputs_data(outputs_data.pack())
+        .cell_dep(smt_contract_dep)
+        .cell_dep(always_success_script_dep)
+        .build();
+    let tx = context.complete_tx(tx);
+
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
 fn test_stake_election_success() {
     // init context
     let mut context = Context::default();
 
-    let contract_bin: Bytes = Loader::default().load_binary("stake");
+    let contract_bin: Bytes = Loader::default().load_binary("stake-smt");
     let contract_out_point = context.deploy_cell(contract_bin);
     let contract_dep = CellDep::new_builder()
         .out_point(contract_out_point.clone())
@@ -516,7 +655,11 @@ fn test_stake_election_success() {
         .build_script(&always_success_out_point, Bytes::from(vec![1]))
         .expect("always_success script");
     let checkpoint_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![2]))
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![2]),
+        )
         .expect("checkpoint script");
     println!(
         "checkpoint type hash: {:?}",
@@ -524,19 +667,27 @@ fn test_stake_election_success() {
     );
 
     let metadata_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![5]))
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![5]),
+        )
         .expect("metadata type script");
     let always_success_script_dep = CellDep::new_builder()
         .out_point(always_success_out_point.clone())
         .build();
 
     // prepare stake lock_script
-    let stake_smt_args = stake::StakeArgs::new_builder()
-        .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-        // .stake_addr(axon_identity_none())
-        .build();
+    // let stake_smt_args = stake::StakeArgs::new_builder()
+    //     .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
+    //     // .stake_addr(axon_identity_none())
+    //     .build();
     let stake_smt_type_script = context
-        .build_script(&contract_out_point, stake_smt_args.as_bytes())
+        .build_script_with_hash_type(
+            &contract_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![6u8; 32]),
+        )
         .expect("stake smt type script");
 
     // prepare tx inputs and outputs
@@ -606,8 +757,9 @@ fn test_stake_election_success() {
         meta_data.as_bytes(),
     ];
 
+    let stake_smt_witness = StakeSmtWitness::new_builder().mode(1.into()).build();
     let stake_smt_witness = WitnessArgs::new_builder()
-        .input_type(Some(Bytes::from(vec![2])).pack())
+        .input_type(Some(Bytes::from(stake_smt_witness.as_bytes())).pack())
         .build();
 
     // prepare signed tx

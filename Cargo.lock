@@ -145,7 +145,7 @@ dependencies = [
  "axon-types",
  "bit-vec",
  "blst 0.1.0",
- "ckb-std",
+ "ckb-std 0.12.1",
  "keccak-hash 0.8.0",
  "rlp",
  "util",
@@ -434,6 +434,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ckb-std"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f54eab6dca547f2123a6d84c64da2414e5532263568e81899b9806ba21d7c8f"
+dependencies = [
+ "buddy-alloc",
+ "cc",
+ "ckb-standalone-types",
+]
+
+[[package]]
 name = "ckb-system-scripts"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -454,9 +465,9 @@ checksum = "34104cf87242b62ce604ab0d9126e057549a4051a5c26985ac0ac04b77054021"
 
 [[package]]
 name = "ckb-testtool"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15fed7e8aeb21e981246bc39e0bd49067f7734851798bef996389a3b02bf9b4e"
+checksum = "a5ed676eb4411676d2e507067a714905fea8842ba2e0c0ac5ede68fe350b5547"
 dependencies = [
  "ckb-always-success-script",
  "ckb-chain-spec",
@@ -470,7 +481,7 @@ dependencies = [
  "ckb-types",
  "ckb-verification",
  "lazy_static",
- "rand 0.7.3",
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -480,6 +491,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c5fa4950994edb7efd35d035afc5f5f4739dd056f9c54ead62991c8f2f4f0fc"
 dependencies = [
  "ckb-types",
+]
+
+[[package]]
+name = "ckb-type-id"
+version = "0.1.0-alpha.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccdd735ee657a4da48992fcea2fed5c5f91cda6df3a79dd1a6a30750f62e53b9"
+dependencies = [
+ "blake2b-rs",
+ "ckb-std 0.13.0",
+ "molecule",
 ]
 
 [[package]]
@@ -622,7 +644,18 @@ name = "delegate"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std",
+ "ckb-std 0.13.0",
+ "sparse-merkle-tree",
+ "util",
+]
+
+[[package]]
+name = "delegate-smt"
+version = "0.1.0"
+dependencies = [
+ "axon-types",
+ "ckb-std 0.13.0",
+ "ckb-type-id",
  "sparse-merkle-tree",
  "util",
 ]
@@ -885,7 +918,7 @@ name = "metadata"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std",
+ "ckb-std 0.12.1",
  "sparse-merkle-tree",
  "util",
 ]
@@ -1246,7 +1279,7 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "ckb-smt",
- "ckb-std",
+ "ckb-std 0.12.1",
  "secp256k1 0.1.0",
  "util",
 ]
@@ -1362,7 +1395,7 @@ name = "selection"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std",
+ "ckb-std 0.12.1",
  "util",
 ]
 
@@ -1431,7 +1464,7 @@ name = "stake"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std",
+ "ckb-std 0.13.0",
  "secp256k1 0.1.0",
  "sparse-merkle-tree",
  "util",
@@ -1442,7 +1475,8 @@ name = "stake-smt"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std",
+ "ckb-std 0.13.0",
+ "ckb-type-id",
  "secp256k1 0.1.0",
  "sparse-merkle-tree",
  "util",
@@ -1570,7 +1604,8 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "blake2b-ref 0.3.1",
- "ckb-std",
+ "ckb-std 0.13.0",
+ "ckb-type-id",
  "hex",
  "sparse-merkle-tree",
 ]
@@ -1716,7 +1751,7 @@ name = "withdraw"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std",
+ "ckb-std 0.12.1",
  "secp256k1 0.1.0",
  "util",
 ]

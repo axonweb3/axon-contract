@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -18,19 +17,15 @@ impl From<Cursor> for DelegateArgs {
 
 impl DelegateArgs {
     pub fn metadata_type_id(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        let cur = self.cursor.slice_by_offset(0, 32).unwrap();
         cur.into()
     }
 }
 
 impl DelegateArgs {
-    pub fn delegator_addr(&self) -> Option<Vec<u8>> {
-        let cur = self.cursor.table_slice_by_index(1).unwrap();
-        if cur.option_is_none() {
-            None
-        } else {
-            Some(cur.into())
-        }
+    pub fn delegator_addr(&self) -> Vec<u8> {
+        let cur = self.cursor.slice_by_offset(32, 20).unwrap();
+        cur.into()
     }
 }
 
@@ -178,6 +173,44 @@ impl DelegateInfoDeltas {
     }
 }
 
+pub struct DelegateAtCellLockData {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for DelegateAtCellLockData {
+    fn from(cursor: Cursor) -> Self {
+        DelegateAtCellLockData { cursor }
+    }
+}
+
+impl DelegateAtCellLockData {
+    pub fn version(&self) -> u8 {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl DelegateAtCellLockData {
+    pub fn l1_address(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
+    }
+}
+
+impl DelegateAtCellLockData {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(2).unwrap();
+        cur.into()
+    }
+}
+
+impl DelegateAtCellLockData {
+    pub fn delegator_infos(&self) -> DelegateInfoDeltas {
+        let cur = self.cursor.table_slice_by_index(3).unwrap();
+        cur.into()
+    }
+}
+
 pub struct DelegateAtCellData {
     pub cursor: Cursor,
 }
@@ -189,29 +222,25 @@ impl From<Cursor> for DelegateAtCellData {
 }
 
 impl DelegateAtCellData {
-    pub fn version(&self) -> u8 {
+    pub fn lock(&self) -> DelegateAtCellLockData {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
 
-impl DelegateAtCellData {
-    pub fn l1_address(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(1).unwrap();
-        cur.into()
+pub struct DelegateAtWitness {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for DelegateAtWitness {
+    fn from(cursor: Cursor) -> Self {
+        DelegateAtWitness { cursor }
     }
 }
 
-impl DelegateAtCellData {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(2).unwrap();
-        cur.into()
-    }
-}
-
-impl DelegateAtCellData {
-    pub fn delegator_infos(&self) -> DelegateInfoDeltas {
-        let cur = self.cursor.table_slice_by_index(3).unwrap();
+impl DelegateAtWitness {
+    pub fn mode(&self) -> u8 {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
@@ -417,6 +446,30 @@ impl From<Cursor> for DelegateSmtUpdateInfo {
 impl DelegateSmtUpdateInfo {
     pub fn all_stake_group_infos(&self) -> StakeGroupInfos {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+pub struct DelegateSmtWitness {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for DelegateSmtWitness {
+    fn from(cursor: Cursor) -> Self {
+        DelegateSmtWitness { cursor }
+    }
+}
+
+impl DelegateSmtWitness {
+    pub fn mode(&self) -> u8 {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl DelegateSmtWitness {
+    pub fn update_info(&self) -> DelegateSmtUpdateInfo {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }
 }

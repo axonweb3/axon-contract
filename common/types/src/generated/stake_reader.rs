@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -61,6 +60,65 @@ impl StakeInfoDelta {
     }
 }
 
+pub struct StakeAtCellLockData {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for StakeAtCellLockData {
+    fn from(cursor: Cursor) -> Self {
+        StakeAtCellLockData { cursor }
+    }
+}
+
+impl StakeAtCellLockData {
+    pub fn version(&self) -> u8 {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtCellLockData {
+    pub fn l1_pub_key(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtCellLockData {
+    pub fn bls_pub_key(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(2).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtCellLockData {
+    pub fn l1_address(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(3).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtCellLockData {
+    pub fn l2_address(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(4).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtCellLockData {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(5).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtCellLockData {
+    pub fn delta(&self) -> StakeInfoDelta {
+        let cur = self.cursor.table_slice_by_index(6).unwrap();
+        cur.into()
+    }
+}
+
 pub struct StakeAtCellData {
     pub cursor: Cursor,
 }
@@ -72,50 +130,25 @@ impl From<Cursor> for StakeAtCellData {
 }
 
 impl StakeAtCellData {
-    pub fn version(&self) -> u8 {
+    pub fn lock(&self) -> StakeAtCellLockData {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
 
-impl StakeAtCellData {
-    pub fn l1_pub_key(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(1).unwrap();
-        cur.into()
+pub struct StakeAtWitness {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for StakeAtWitness {
+    fn from(cursor: Cursor) -> Self {
+        StakeAtWitness { cursor }
     }
 }
 
-impl StakeAtCellData {
-    pub fn bls_pub_key(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(2).unwrap();
-        cur.into()
-    }
-}
-
-impl StakeAtCellData {
-    pub fn l1_address(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(3).unwrap();
-        cur.into()
-    }
-}
-
-impl StakeAtCellData {
-    pub fn l2_address(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(4).unwrap();
-        cur.into()
-    }
-}
-
-impl StakeAtCellData {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(5).unwrap();
-        cur.into()
-    }
-}
-
-impl StakeAtCellData {
-    pub fn delta(&self) -> StakeInfoDelta {
-        let cur = self.cursor.table_slice_by_index(6).unwrap();
+impl StakeAtWitness {
+    pub fn mode(&self) -> u8 {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
@@ -228,5 +261,29 @@ impl StakeSmtUpdateInfo {
         let cur = self.cursor.table_slice_by_index(2).unwrap();
         let cur2 = cur.convert_to_rawbytes().unwrap();
         cur2.into()
+    }
+}
+
+pub struct StakeSmtWitness {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for StakeSmtWitness {
+    fn from(cursor: Cursor) -> Self {
+        StakeSmtWitness { cursor }
+    }
+}
+
+impl StakeSmtWitness {
+    pub fn mode(&self) -> u8 {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeSmtWitness {
+    pub fn update_info(&self) -> StakeSmtUpdateInfo {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
     }
 }

@@ -11,16 +11,25 @@ table StakeInfoDelta {
     inauguration_epoch: Uint64,
 }
 
-// The data[0..16] is a le_u128 means xUDT amount.
-// So the cell data is decode from offset 16.
-table StakeAtCellData {
+table StakeAtCellLockData {
     version:          byte,
     l1_pub_key:       Byte65,
     bls_pub_key:      Byte97,
     l1_address:       Identity,
     l2_address:       Identity,
     metadata_type_id: Byte32,
-    delta:            StakeInfoDelta,
+    delta:            StakeInfoDelta,  
+}
+
+// The data[0..16] is a le_u128 means xUDT amount.
+// So the cell data is decode from offset 16.
+table StakeAtCellData {
+    lock: StakeAtCellLockData,
+#   data: BytesVec, // must be added!!! todo
+}
+
+table StakeAtWitness {
+    mode:          byte, // 0 is update stake at cell itself, 1 is update stake smt cell
 }
 
 table StakeSmtCellData {
@@ -42,4 +51,9 @@ table StakeSmtUpdateInfo {
     // old_bottom_proof: BytesOpt,  // old amount proof, if none means the first time update
     old_epoch_proof:  Bytes,
     new_epoch_proof:  Bytes,
+}
+
+table StakeSmtWitness {
+    mode:          byte, // 0 is update stake at cell itself, 1 is update stake smt cell
+    update_info:   StakeSmtUpdateInfo,
 }

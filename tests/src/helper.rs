@@ -135,12 +135,15 @@ pub fn axon_stake_at_cell_data_without_amount(
     metadata_type_id: &packed::Byte32,
     delta: axon_types::stake::StakeInfoDelta,
 ) -> axon_types::stake::StakeAtCellData {
-    axon_types::stake::StakeAtCellData::new_builder()
+    let xudt_data_lock = axon_types::stake::StakeAtCellLockData::new_builder()
         .version(version.into())
         .l1_address(axon_identity(l1_address))
         .l2_address(axon_identity(l2_address))
         .metadata_type_id(axon_byte32(metadata_type_id))
         .delta(delta)
+        .build();
+    axon_types::stake::StakeAtCellData::new_builder()
+        .lock(xudt_data_lock)
         .build()
 }
 
@@ -161,11 +164,14 @@ pub fn axon_delegate_at_cell_data_without_amount(
     metadata_type_id: &packed::Byte32,
     delta: axon_types::delegate::DelegateInfoDeltas,
 ) -> axon_types::delegate::DelegateAtCellData {
-    axon_types::delegate::DelegateAtCellData::new_builder()
+    let lock_data = axon_types::delegate::DelegateAtCellLockData::new_builder()
         .version(version.into())
         .l1_address(axon_identity(l1_address))
         .metadata_type_id(axon_byte32(metadata_type_id))
         .delegator_infos(delta)
+        .build();
+    axon_types::delegate::DelegateAtCellData::new_builder()
+        .lock(lock_data)
         .build()
 }
 
@@ -246,6 +252,7 @@ pub fn axon_metadata_data_by_script(
 
 pub fn axon_delegate_smt_cell_data(
     delegate_infos: &BTreeSet<LockInfo>,
+    metadata_type_id: &packed::Byte32,
     pubkey: &Pubkey,
 ) -> (
     axon_types::delegate::DelegateSmtCellData,
@@ -276,6 +283,7 @@ pub fn axon_delegate_smt_cell_data(
         axon_types::delegate::DelegateSmtCellData::new_builder()
             .version(0.into())
             .smt_roots(stake_smt_roots)
+            .metadata_type_id(axon_byte32(metadata_type_id))
             .build(),
         delegate_epoch_proof,
     )
@@ -305,6 +313,35 @@ pub fn sign_tx(tx: TransactionView, key: &Privkey, mode: u8) -> TransactionView 
             .as_bytes()
             .pack(),
     );
+    tx.as_advanced_builder()
+        .set_witnesses(signed_witnesses)
+        .build()
+}
+
+pub fn sign_stake_tx(tx: TransactionView, key: &Privkey, witness: WitnessArgs) -> TransactionView {
+    let mut signed_witnesses: Vec<packed::Bytes> = Vec::new();
+    let mut blake2b = new_blake2b();
+    blake2b.update(&tx.hash().raw_data());
+    // digest the first witness
+    // let witness = WitnessArgs::new_builder()
+    //     .lock(Some(Bytes::from(vec![0u8; 65])).pack())
+    //     .build();
+    let witness_size = witness.as_bytes().len() as u64;
+    let mut message = [0u8; 32];
+    blake2b.update(&witness_size.to_le_bytes());
+    blake2b.update(&witness.as_bytes());
+    blake2b.finalize(&mut message);
+    let message = H256::from(message);
+    let sig = key.sign_recoverable(&message).expect("sign");
+    signed_witnesses.push(
+        witness
+            .as_builder()
+            .lock(Some(Bytes::from(sig.serialize())).pack())
+            .build()
+            .as_bytes()
+            .pack(),
+    );
+    println!("signed_witnesses: {:?}", signed_witnesses.len());
     tx.as_advanced_builder()
         .set_witnesses(signed_witnesses)
         .build()

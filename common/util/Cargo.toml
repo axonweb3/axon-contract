@@ -6,9 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ckb-std = "0.12"
+ckb-std = "0.13"
 blake2b-ref = { version = "0.3", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 axon-types = {path = "../types"}
 # ckb-smt = { path = "../../contracts/ckb-smt", default-features = false }
 sparse-merkle-tree = { version = "0.6.1", default-features = false }
+ckb-type-id = "0.1.0-alpha.3"
