@@ -120,12 +120,6 @@
       "imported_depth": 1
     },
     {
-      "type": "dynvec",
-      "name": "BytesVec",
-      "item": "Bytes",
-      "imported_depth": 1
-    },
-    {
       "type": "option",
       "name": "Byte32Opt",
       "item": "Byte32",

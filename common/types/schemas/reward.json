@@ -28,16 +28,6 @@
     },
     {
       "type": "table",
-      "name": "RewardArgs",
-      "fields": [
-        {
-          "name": "metadata_type_id",
-          "type": "Byte32"
-        }
-      ]
-    },
-    {
-      "type": "table",
       "name": "NotClaimInfo",
       "fields": [
         {
@@ -247,12 +237,6 @@
     {
       "type": "option",
       "name": "BytesOpt",
-      "item": "Bytes",
-      "imported_depth": 1
-    },
-    {
-      "type": "dynvec",
-      "name": "BytesVec",
       "item": "Bytes",
       "imported_depth": 1
     },

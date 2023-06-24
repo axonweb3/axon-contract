@@ -39,9 +39,11 @@ table DelegateAtCellLockData {
     delegator_infos:    DelegateInfoDeltas,
 }
 
+vector BytesVec <Bytes>;
+
 table DelegateAtCellData {
     lock: DelegateAtCellLockData,
-#   data: BytesVec, // must be added!!! todo
+    data: BytesVec, // must be added!!! todo
 }
 
 table DelegateAtWitness {

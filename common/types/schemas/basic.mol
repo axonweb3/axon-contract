@@ -14,7 +14,7 @@ array Uint128 [byte; 16];
 vector Bytes <byte>;
 option BytesOpt (Bytes); 
 
-vector BytesVec <Bytes>;
+# vector BytesVec <Bytes>;
 option Byte32Opt (Byte32);
 
 array Identity [byte; 20];

@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -119,6 +120,30 @@ impl StakeAtCellLockData {
     }
 }
 
+pub struct BytesVec {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for BytesVec {
+    fn from(cursor: Cursor) -> Self {
+        Self { cursor }
+    }
+}
+
+impl BytesVec {
+    pub fn len(&self) -> usize {
+        self.cursor.dynvec_length()
+    }
+}
+
+impl BytesVec {
+    pub fn get(&self, index: usize) -> Vec<u8> {
+        let cur = self.cursor.dynvec_slice_by_index(index).unwrap();
+        let cur2 = cur.convert_to_rawbytes().unwrap();
+        cur2.into()
+    }
+}
+
 pub struct StakeAtCellData {
     pub cursor: Cursor,
 }
@@ -136,6 +161,13 @@ impl StakeAtCellData {
     }
 }
 
+impl StakeAtCellData {
+    pub fn data(&self) -> BytesVec {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
+    }
+}
+
 pub struct StakeAtWitness {
     pub cursor: Cursor,
 }
@@ -149,6 +181,13 @@ impl From<Cursor> for StakeAtWitness {
 impl StakeAtWitness {
     pub fn mode(&self) -> u8 {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtWitness {
+    pub fn eth_sig(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }
 }
