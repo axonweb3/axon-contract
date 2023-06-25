@@ -13,6 +13,7 @@ members = [
     "contracts/stake-smt",
     "contracts/delegate",
     "contracts/delegate-smt",
+    "contracts/requirement",
     "contracts/reward",
     "contracts/withdraw",
 ]

@@ -1,0 +1,12 @@
+[package]
+name = "requirement"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ckb-std = "0.13"
+ckb-type-id = "0.1.0-alpha.3"
+axon-types = { path = "../../common/types" }
+util = { path = "../../common/util" }
