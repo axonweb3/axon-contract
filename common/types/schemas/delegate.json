@@ -120,12 +120,21 @@
       ]
     },
     {
+      "type": "dynvec",
+      "name": "BytesVec",
+      "item": "Bytes"
+    },
+    {
       "type": "table",
       "name": "DelegateAtCellData",
       "fields": [
         {
           "name": "lock",
           "type": "DelegateAtCellLockData"
+        },
+        {
+          "name": "data",
+          "type": "BytesVec"
         }
       ]
     },
@@ -332,12 +341,6 @@
     {
       "type": "option",
       "name": "BytesOpt",
-      "item": "Bytes",
-      "imported_depth": 1
-    },
-    {
-      "type": "dynvec",
-      "name": "BytesVec",
       "item": "Bytes",
       "imported_depth": 1
     },

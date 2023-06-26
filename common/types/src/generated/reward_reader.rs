@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -32,23 +33,6 @@ impl RewardSmtCellData {
 impl RewardSmtCellData {
     pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(2).unwrap();
-        cur.into()
-    }
-}
-
-pub struct RewardArgs {
-    pub cursor: Cursor,
-}
-
-impl From<Cursor> for RewardArgs {
-    fn from(cursor: Cursor) -> Self {
-        RewardArgs { cursor }
-    }
-}
-
-impl RewardArgs {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }

@@ -74,6 +74,16 @@
       "item": "byte"
     },
     {
+      "type": "option",
+      "name": "BytesOpt",
+      "item": "Bytes"
+    },
+    {
+      "type": "option",
+      "name": "Byte32Opt",
+      "item": "Byte32"
+    },
+    {
       "type": "array",
       "name": "Identity",
       "item": "byte",

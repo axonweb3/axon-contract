@@ -279,6 +279,24 @@ impl Bytes {
         cur.into()
     }
 }
+// warning: BytesOpt not implemented for Rust
+pub struct BytesOpt {
+    pub cursor: Cursor,
+}
+impl From<Cursor> for BytesOpt {
+    fn from(cursor: Cursor) -> Self {
+        Self { cursor }
+    }
+}
+// warning: Byte32Opt not implemented for Rust
+pub struct Byte32Opt {
+    pub cursor: Cursor,
+}
+impl From<Cursor> for Byte32Opt {
+    fn from(cursor: Cursor) -> Self {
+        Self { cursor }
+    }
+}
 
 pub struct Identity {
     pub cursor: Cursor,

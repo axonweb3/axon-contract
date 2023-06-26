@@ -75,12 +75,21 @@
       ]
     },
     {
+      "type": "dynvec",
+      "name": "BytesVec",
+      "item": "Bytes"
+    },
+    {
       "type": "table",
       "name": "StakeAtCellData",
       "fields": [
         {
           "name": "lock",
           "type": "StakeAtCellLockData"
+        },
+        {
+          "name": "data",
+          "type": "BytesVec"
         }
       ]
     },
@@ -91,6 +100,10 @@
         {
           "name": "mode",
           "type": "byte"
+        },
+        {
+          "name": "eth_sig",
+          "type": "Byte65"
         }
       ]
     },
@@ -249,12 +262,6 @@
     {
       "type": "option",
       "name": "BytesOpt",
-      "item": "Bytes",
-      "imported_depth": 1
-    },
-    {
-      "type": "dynvec",
-      "name": "BytesVec",
       "item": "Bytes",
       "imported_depth": 1
     },

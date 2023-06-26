@@ -21,15 +21,18 @@ table StakeAtCellLockData {
     delta:            StakeInfoDelta,  
 }
 
+vector BytesVec <Bytes>;
+
 // The data[0..16] is a le_u128 means xUDT amount.
 // So the cell data is decode from offset 16.
 table StakeAtCellData {
     lock: StakeAtCellLockData,
-#   data: BytesVec, // must be added!!! todo
+    data: BytesVec, // must be added!!! todo
 }
 
 table StakeAtWitness {
     mode:          byte, // 0 is update stake at cell itself, 1 is update stake smt cell
+    eth_sig:       Byte65,
 }
 
 table StakeSmtCellData {

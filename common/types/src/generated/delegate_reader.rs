@@ -1,3 +1,4 @@
+
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -211,6 +212,30 @@ impl DelegateAtCellLockData {
     }
 }
 
+pub struct BytesVec {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for BytesVec {
+    fn from(cursor: Cursor) -> Self {
+        Self { cursor }
+    }
+}
+
+impl BytesVec {
+    pub fn len(&self) -> usize {
+        self.cursor.dynvec_length()
+    }
+}
+
+impl BytesVec {
+    pub fn get(&self, index: usize) -> Vec<u8> {
+        let cur = self.cursor.dynvec_slice_by_index(index).unwrap();
+        let cur2 = cur.convert_to_rawbytes().unwrap();
+        cur2.into()
+    }
+}
+
 pub struct DelegateAtCellData {
     pub cursor: Cursor,
 }
@@ -224,6 +249,13 @@ impl From<Cursor> for DelegateAtCellData {
 impl DelegateAtCellData {
     pub fn lock(&self) -> DelegateAtCellLockData {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl DelegateAtCellData {
+    pub fn data(&self) -> BytesVec {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }
 }
