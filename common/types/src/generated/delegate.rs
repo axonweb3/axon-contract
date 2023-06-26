@@ -3,8 +3,8 @@
 use super::basic::*;
 use molecule::prelude::*;
 #[derive(Clone)]
-pub struct DelegateArgs(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for DelegateArgs {
+pub struct DelegateRequirementArgs(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for DelegateRequirementArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -13,47 +13,53 @@ impl ::core::fmt::LowerHex for DelegateArgs {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for DelegateArgs {
+impl ::core::fmt::Debug for DelegateRequirementArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for DelegateArgs {
+impl ::core::fmt::Display for DelegateRequirementArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
-        write!(f, ", {}: {}", "delegator_addr", self.delegator_addr())?;
+        write!(
+            f,
+            ", {}: {}",
+            "requirement_type_id",
+            self.requirement_type_id()
+        )?;
         write!(f, " }}")
     }
 }
-impl ::core::default::Default for DelegateArgs {
+impl ::core::default::Default for DelegateRequirementArgs {
     fn default() -> Self {
         let v: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
         ];
-        DelegateArgs::new_unchecked(v.into())
+        DelegateRequirementArgs::new_unchecked(v.into())
     }
 }
-impl DelegateArgs {
-    pub const TOTAL_SIZE: usize = 52;
-    pub const FIELD_SIZES: [usize; 2] = [32, 20];
+impl DelegateRequirementArgs {
+    pub const TOTAL_SIZE: usize = 64;
+    pub const FIELD_SIZES: [usize; 2] = [32, 32];
     pub const FIELD_COUNT: usize = 2;
     pub fn metadata_type_id(&self) -> Byte32 {
         Byte32::new_unchecked(self.0.slice(0..32))
     }
-    pub fn delegator_addr(&self) -> Identity {
-        Identity::new_unchecked(self.0.slice(32..52))
+    pub fn requirement_type_id(&self) -> Byte32 {
+        Byte32::new_unchecked(self.0.slice(32..64))
     }
-    pub fn as_reader<'r>(&'r self) -> DelegateArgsReader<'r> {
-        DelegateArgsReader::new_unchecked(self.as_slice())
+    pub fn as_reader<'r>(&'r self) -> DelegateRequirementArgsReader<'r> {
+        DelegateRequirementArgsReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for DelegateArgs {
-    type Builder = DelegateArgsBuilder;
-    const NAME: &'static str = "DelegateArgs";
+impl molecule::prelude::Entity for DelegateRequirementArgs {
+    type Builder = DelegateRequirementArgsBuilder;
+    const NAME: &'static str = "DelegateRequirementArgs";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        DelegateArgs(data)
+        DelegateRequirementArgs(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -62,10 +68,10 @@ impl molecule::prelude::Entity for DelegateArgs {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        DelegateArgsReader::from_slice(slice).map(|reader| reader.to_entity())
+        DelegateRequirementArgsReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        DelegateArgsReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+        DelegateRequirementArgsReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
@@ -73,12 +79,12 @@ impl molecule::prelude::Entity for DelegateArgs {
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
             .metadata_type_id(self.metadata_type_id())
-            .delegator_addr(self.delegator_addr())
+            .requirement_type_id(self.requirement_type_id())
     }
 }
 #[derive(Clone, Copy)]
-pub struct DelegateArgsReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for DelegateArgsReader<'r> {
+pub struct DelegateRequirementArgsReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for DelegateRequirementArgsReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -87,38 +93,43 @@ impl<'r> ::core::fmt::LowerHex for DelegateArgsReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for DelegateArgsReader<'r> {
+impl<'r> ::core::fmt::Debug for DelegateRequirementArgsReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for DelegateArgsReader<'r> {
+impl<'r> ::core::fmt::Display for DelegateRequirementArgsReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
-        write!(f, ", {}: {}", "delegator_addr", self.delegator_addr())?;
+        write!(
+            f,
+            ", {}: {}",
+            "requirement_type_id",
+            self.requirement_type_id()
+        )?;
         write!(f, " }}")
     }
 }
-impl<'r> DelegateArgsReader<'r> {
-    pub const TOTAL_SIZE: usize = 52;
-    pub const FIELD_SIZES: [usize; 2] = [32, 20];
+impl<'r> DelegateRequirementArgsReader<'r> {
+    pub const TOTAL_SIZE: usize = 64;
+    pub const FIELD_SIZES: [usize; 2] = [32, 32];
     pub const FIELD_COUNT: usize = 2;
     pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
         Byte32Reader::new_unchecked(&self.as_slice()[0..32])
     }
-    pub fn delegator_addr(&self) -> IdentityReader<'r> {
-        IdentityReader::new_unchecked(&self.as_slice()[32..52])
+    pub fn requirement_type_id(&self) -> Byte32Reader<'r> {
+        Byte32Reader::new_unchecked(&self.as_slice()[32..64])
     }
 }
-impl<'r> molecule::prelude::Reader<'r> for DelegateArgsReader<'r> {
-    type Entity = DelegateArgs;
-    const NAME: &'static str = "DelegateArgsReader";
+impl<'r> molecule::prelude::Reader<'r> for DelegateRequirementArgsReader<'r> {
+    type Entity = DelegateRequirementArgs;
+    const NAME: &'static str = "DelegateRequirementArgsReader";
     fn to_entity(&self) -> Self::Entity {
         Self::Entity::new_unchecked(self.as_slice().to_owned().into())
     }
     fn new_unchecked(slice: &'r [u8]) -> Self {
-        DelegateArgsReader(slice)
+        DelegateRequirementArgsReader(slice)
     }
     fn as_slice(&self) -> &'r [u8] {
         self.0
@@ -133,39 +144,39 @@ impl<'r> molecule::prelude::Reader<'r> for DelegateArgsReader<'r> {
     }
 }
 #[derive(Debug, Default)]
-pub struct DelegateArgsBuilder {
+pub struct DelegateRequirementArgsBuilder {
     pub(crate) metadata_type_id: Byte32,
-    pub(crate) delegator_addr: Identity,
+    pub(crate) requirement_type_id: Byte32,
 }
-impl DelegateArgsBuilder {
-    pub const TOTAL_SIZE: usize = 52;
-    pub const FIELD_SIZES: [usize; 2] = [32, 20];
+impl DelegateRequirementArgsBuilder {
+    pub const TOTAL_SIZE: usize = 64;
+    pub const FIELD_SIZES: [usize; 2] = [32, 32];
     pub const FIELD_COUNT: usize = 2;
     pub fn metadata_type_id(mut self, v: Byte32) -> Self {
         self.metadata_type_id = v;
         self
     }
-    pub fn delegator_addr(mut self, v: Identity) -> Self {
-        self.delegator_addr = v;
+    pub fn requirement_type_id(mut self, v: Byte32) -> Self {
+        self.requirement_type_id = v;
         self
     }
 }
-impl molecule::prelude::Builder for DelegateArgsBuilder {
-    type Entity = DelegateArgs;
-    const NAME: &'static str = "DelegateArgsBuilder";
+impl molecule::prelude::Builder for DelegateRequirementArgsBuilder {
+    type Entity = DelegateRequirementArgs;
+    const NAME: &'static str = "DelegateRequirementArgsBuilder";
     fn expected_length(&self) -> usize {
         Self::TOTAL_SIZE
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         writer.write_all(self.metadata_type_id.as_slice())?;
-        writer.write_all(self.delegator_addr.as_slice())?;
+        writer.write_all(self.requirement_type_id.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {
         let mut inner = Vec::with_capacity(self.expected_length());
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        DelegateArgs::new_unchecked(inner.into())
+        DelegateRequirementArgs::new_unchecked(inner.into())
     }
 }
 #[derive(Clone)]
@@ -819,6 +830,172 @@ impl molecule::prelude::Builder for DelegateCellDataBuilder {
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
         DelegateCellData::new_unchecked(inner.into())
+    }
+}
+#[derive(Clone)]
+pub struct DelegateArgs(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for DelegateArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl ::core::fmt::Debug for DelegateArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl ::core::fmt::Display for DelegateArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, ", {}: {}", "delegator_addr", self.delegator_addr())?;
+        write!(f, " }}")
+    }
+}
+impl ::core::default::Default for DelegateArgs {
+    fn default() -> Self {
+        let v: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        DelegateArgs::new_unchecked(v.into())
+    }
+}
+impl DelegateArgs {
+    pub const TOTAL_SIZE: usize = 52;
+    pub const FIELD_SIZES: [usize; 2] = [32, 20];
+    pub const FIELD_COUNT: usize = 2;
+    pub fn metadata_type_id(&self) -> Byte32 {
+        Byte32::new_unchecked(self.0.slice(0..32))
+    }
+    pub fn delegator_addr(&self) -> Identity {
+        Identity::new_unchecked(self.0.slice(32..52))
+    }
+    pub fn as_reader<'r>(&'r self) -> DelegateArgsReader<'r> {
+        DelegateArgsReader::new_unchecked(self.as_slice())
+    }
+}
+impl molecule::prelude::Entity for DelegateArgs {
+    type Builder = DelegateArgsBuilder;
+    const NAME: &'static str = "DelegateArgs";
+    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
+        DelegateArgs(data)
+    }
+    fn as_bytes(&self) -> molecule::bytes::Bytes {
+        self.0.clone()
+    }
+    fn as_slice(&self) -> &[u8] {
+        &self.0[..]
+    }
+    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        DelegateArgsReader::from_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        DelegateArgsReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn new_builder() -> Self::Builder {
+        ::core::default::Default::default()
+    }
+    fn as_builder(self) -> Self::Builder {
+        Self::new_builder()
+            .metadata_type_id(self.metadata_type_id())
+            .delegator_addr(self.delegator_addr())
+    }
+}
+#[derive(Clone, Copy)]
+pub struct DelegateArgsReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for DelegateArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl<'r> ::core::fmt::Debug for DelegateArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl<'r> ::core::fmt::Display for DelegateArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, ", {}: {}", "delegator_addr", self.delegator_addr())?;
+        write!(f, " }}")
+    }
+}
+impl<'r> DelegateArgsReader<'r> {
+    pub const TOTAL_SIZE: usize = 52;
+    pub const FIELD_SIZES: [usize; 2] = [32, 20];
+    pub const FIELD_COUNT: usize = 2;
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+        Byte32Reader::new_unchecked(&self.as_slice()[0..32])
+    }
+    pub fn delegator_addr(&self) -> IdentityReader<'r> {
+        IdentityReader::new_unchecked(&self.as_slice()[32..52])
+    }
+}
+impl<'r> molecule::prelude::Reader<'r> for DelegateArgsReader<'r> {
+    type Entity = DelegateArgs;
+    const NAME: &'static str = "DelegateArgsReader";
+    fn to_entity(&self) -> Self::Entity {
+        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
+    }
+    fn new_unchecked(slice: &'r [u8]) -> Self {
+        DelegateArgsReader(slice)
+    }
+    fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+    fn verify(slice: &[u8], _compatible: bool) -> molecule::error::VerificationResult<()> {
+        use molecule::verification_error as ve;
+        let slice_len = slice.len();
+        if slice_len != Self::TOTAL_SIZE {
+            return ve!(Self, TotalSizeNotMatch, Self::TOTAL_SIZE, slice_len);
+        }
+        Ok(())
+    }
+}
+#[derive(Debug, Default)]
+pub struct DelegateArgsBuilder {
+    pub(crate) metadata_type_id: Byte32,
+    pub(crate) delegator_addr: Identity,
+}
+impl DelegateArgsBuilder {
+    pub const TOTAL_SIZE: usize = 52;
+    pub const FIELD_SIZES: [usize; 2] = [32, 20];
+    pub const FIELD_COUNT: usize = 2;
+    pub fn metadata_type_id(mut self, v: Byte32) -> Self {
+        self.metadata_type_id = v;
+        self
+    }
+    pub fn delegator_addr(mut self, v: Identity) -> Self {
+        self.delegator_addr = v;
+        self
+    }
+}
+impl molecule::prelude::Builder for DelegateArgsBuilder {
+    type Entity = DelegateArgs;
+    const NAME: &'static str = "DelegateArgsBuilder";
+    fn expected_length(&self) -> usize {
+        Self::TOTAL_SIZE
+    }
+    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        writer.write_all(self.metadata_type_id.as_slice())?;
+        writer.write_all(self.delegator_addr.as_slice())?;
+        Ok(())
+    }
+    fn build(&self) -> Self::Entity {
+        let mut inner = Vec::with_capacity(self.expected_length());
+        self.write(&mut inner)
+            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
+        DelegateArgs::new_unchecked(inner.into())
     }
 }
 #[derive(Clone)]

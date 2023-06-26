@@ -1,7 +1,7 @@
 use ckb_std::error::SysError;
 
 /// Error
-#[repr(u8)]
+#[repr(i8)]
 pub enum Error {
     IndexOutOfBound = 1,
     ItemMissing,
@@ -109,6 +109,13 @@ pub enum Error {
 
     // requirement
     CommissionRateTooLarge,
+
+    // molecule::error::VerificationError
+    TotalSizeNotMatch = -10,
+    HeaderIsBroken,
+    UnknownItem,
+    OffsetsNotMatch,
+    FieldCountNotMatch,
 }
 
 impl From<SysError> for Error {
@@ -146,6 +153,22 @@ impl From<ckb_type_id::Error> for Error {
                 ckb_type_id::TypeIDError::TypeIDNotMatch => Self::TypeIDNotMatch,
                 ckb_type_id::TypeIDError::ArgsLengthNotEnough => Self::ArgsLengthNotEnough,
             },
+        }
+    }
+}
+
+impl From<molecule::error::VerificationError> for Error {
+    fn from(err: molecule::error::VerificationError) -> Self {
+        match err {
+            molecule::error::VerificationError::TotalSizeNotMatch(_, _, _) => {
+                Self::TotalSizeNotMatch
+            }
+            molecule::error::VerificationError::HeaderIsBroken(_, _, _) => Self::HeaderIsBroken,
+            molecule::error::VerificationError::UnknownItem(_, _, _) => Self::UnknownItem,
+            molecule::error::VerificationError::OffsetsNotMatch(_) => Self::OffsetsNotMatch,
+            molecule::error::VerificationError::FieldCountNotMatch(_, _, _) => {
+                Self::FieldCountNotMatch
+            }
         }
     }
 }

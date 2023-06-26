@@ -1618,6 +1618,7 @@ dependencies = [
  "ckb-std 0.13.0",
  "ckb-type-id",
  "hex",
+ "molecule",
  "sparse-merkle-tree",
  "tiny-keccak",
 ]

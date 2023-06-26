@@ -10,15 +10,15 @@
   "declarations": [
     {
       "type": "struct",
-      "name": "DelegateArgs",
+      "name": "DelegateRequirementArgs",
       "fields": [
         {
           "name": "metadata_type_id",
           "type": "Byte32"
         },
         {
-          "name": "delegator_addr",
-          "type": "Identity"
+          "name": "requirement_type_id",
+          "type": "Byte32"
         }
       ]
     },
@@ -63,6 +63,20 @@
         {
           "name": "metadata_type_id",
           "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "DelegateArgs",
+      "fields": [
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "delegator_addr",
+          "type": "Identity"
         }
       ]
     },
