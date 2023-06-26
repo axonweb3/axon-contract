@@ -358,7 +358,7 @@ pub fn get_withdraw_at_data_by_lock_hash(
         return Err(Error::BadSudtDataFormat);
     }
     if withdraw_at_data.is_none() {
-        return Err(Error::StakeDataEmpty);
+        return Err(Error::WithdrawDataEmpty);
     }
     Ok((sudt.unwrap(), withdraw_at_data.unwrap()))
 }

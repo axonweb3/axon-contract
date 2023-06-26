@@ -29,19 +29,34 @@
     },
     {
       "type": "table",
-      "name": "WithdrawAtCellData",
+      "name": "WithdrawAtCellLockData",
       "fields": [
         {
           "name": "version",
           "type": "byte"
         },
         {
-          "name": "metadata_type_id",
-          "type": "Byte32"
-        },
-        {
           "name": "withdraw_infos",
           "type": "WithdrawInfos"
+        }
+      ]
+    },
+    {
+      "type": "dynvec",
+      "name": "BytesVec",
+      "item": "Bytes"
+    },
+    {
+      "type": "table",
+      "name": "WithdrawAtCellData",
+      "fields": [
+        {
+          "name": "lock",
+          "type": "WithdrawAtCellLockData"
+        },
+        {
+          "name": "data",
+          "type": "BytesVec"
         }
       ]
     },

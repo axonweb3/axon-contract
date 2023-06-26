@@ -1288,9 +1288,10 @@ name = "reward"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-smt",
- "ckb-std 0.12.1",
+ "ckb-std 0.13.0",
+ "ckb-type-id",
  "secp256k1 0.1.0",
+ "sparse-merkle-tree",
  "util",
 ]
 
@@ -1618,6 +1619,7 @@ dependencies = [
  "ckb-type-id",
  "hex",
  "sparse-merkle-tree",
+ "tiny-keccak",
 ]
 
 [[package]]
@@ -1761,8 +1763,7 @@ name = "withdraw"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.12.1",
- "secp256k1 0.1.0",
+ "ckb-std 0.13.0",
  "util",
 ]
 

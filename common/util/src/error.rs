@@ -102,6 +102,7 @@ pub enum Error {
     OutLessThanIn,
     WithdrawUpdateDataError,
     BadUnstake,
+    WithdrawDataEmpty,
 
     // reward
     RewardWrongAmount,

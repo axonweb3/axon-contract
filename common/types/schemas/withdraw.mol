@@ -9,10 +9,16 @@ vector WithdrawInfos <WithdrawInfo>;
 
 // The data[0..16] is a le_u128 means xUDT amount.
 // So the cell data is decode from offset 16.
-table WithdrawAtCellData {
+table WithdrawAtCellLockData {
     version:            byte,
-    metadata_type_id:   Byte32,
     withdraw_infos:     WithdrawInfos,
+}
+
+vector BytesVec <Bytes>;
+
+table WithdrawAtCellData {
+    lock: WithdrawAtCellLockData,
+    data: BytesVec, // must be added!!! todo
 }
 
 table WithdrawArgs {

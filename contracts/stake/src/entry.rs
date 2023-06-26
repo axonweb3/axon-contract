@@ -92,6 +92,24 @@ pub fn main() -> Result<(), Error> {
     Ok(())
 }
 
+fn check_stake_change(
+    input_stake: u128,
+    output_stake: u128,
+    input_amount: u128,
+    output_amount: u128,
+) -> Result<(), Error> {
+    if output_stake >= input_stake {
+        if output_stake - input_stake != output_amount - input_amount {
+            return Err(Error::BadStakeStakeChange);
+        }
+    } else {
+        if input_stake - output_stake != input_amount - output_amount {
+            return Err(Error::BadStakeStakeChange);
+        }
+    }
+    Ok(())
+}
+
 pub fn update_stake_at_cell(
     staker_identity: &Vec<u8>,
     stake_at_lock_hash: &[u8; 32],
@@ -148,9 +166,7 @@ pub fn update_stake_at_cell(
 
     if input_increase {
         if output_increase {
-            if output_stake - input_stake != output_amount - input_amount {
-                return Err(Error::BadStakeStakeChange);
-            }
+            check_stake_change(input_stake, output_stake, input_amount, output_amount)?;
         } else {
             if input_stake != input_amount - output_amount {
                 return Err(Error::BadStakeRedeemChange);
