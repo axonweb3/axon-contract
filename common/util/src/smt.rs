@@ -159,6 +159,14 @@ pub fn u64_to_h256(epoch: u64) -> H256 {
     buf.into()
 }
 
+pub fn u128_to_h256(amount: u128) -> H256 {
+    let mut buf = [0u8; 32];
+    let mut hasher = new_blake2b();
+    hasher.update(&amount.to_le_bytes());
+    hasher.finalize(&mut buf);
+    buf.into()
+}
+
 pub fn get_bottom_smt_root(lock_infos: &BTreeSet<LockInfo>) -> H256 {
     let mut tree = BOTTOM_SMT::default();
     // travese lock_infos and insert into smt
@@ -182,6 +190,20 @@ pub fn get_bottom_smt_root_propose(propose_infos: &Vec<ProposeCountObject>) -> H
 
     // let root: [u8; 32] = tree.root().as_slice().try_into().unwrap();
     *tree.root()
+}
+
+pub fn smt_verify_leaves(
+    leaves: Vec<(H256, H256)>,
+    root: H256,
+    proof: CompiledMerkleProof,
+) -> Result<bool, Error> {
+    let result = proof
+        .verify::<Blake2bHasher>(&root, leaves)
+        .map_err(|_err| {
+            debug!("update smt tree error: {}", _err);
+            Error::SmterrorCodeErrorUpdate
+        })?;
+    Ok(result)
 }
 
 pub fn verify_top_smt(

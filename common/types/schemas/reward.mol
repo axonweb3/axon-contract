@@ -31,18 +31,18 @@ table RewardStakeInfo {
 }
 vector RewardStakeInfos <RewardStakeInfo>; // one delegator may delegate multiple staker
 table EpochRewardStakeInfo { // this epoch, one miner's all releated staker delegator infos
-    reward_stake_infos: RewardStakeInfos, // actually bottom smt leaves
-    count_proof: Bytes, // bottom propose count smt proof
-    count_root: Bytes, // smt root of bottom propose count smt, optimize
+    reward_stake_infos: RewardStakeInfos, // actually bottom smt leaves, not all staker, just related
+    count_proof: Bytes,       // bottom propose count smt proof
+    count_root: Bytes,        // smt root of bottom propose count smt, optimize
     count_epoch_proof: Bytes, // smt proof of top propose count smt
-    amount_proof: Bytes, // bottom stake amount smt proof
+    amount_proof: Bytes,      // bottom stake amount smt proof
     amount_root: Bytes, 
     amount_epoch_proof: Bytes,
 }
 vector EpochRewardStakeInfos <EpochRewardStakeInfo>; // 
 
 table RewardWitness {
-    miner: Identity, // the one who are claiming its rewards
+    miner: Identity, // the one who are claiming it's rewards
     old_not_claim_info: NotClaimInfo, // prove the miner has claimed reward of [0, n]
     reward_infos: EpochRewardStakeInfos, // the validator's proof, assume epoch [n + 1, m]
     new_not_claim_info: NotClaimInfo, // prove the miner has claimed reward of [0, m]

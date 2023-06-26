@@ -93,7 +93,7 @@ pub enum Error {
     MetadataNotFound,
 
     // withdraw
-    WrongOutWithdrawArraySize = 120,
+    WrongOutWithdrawArraySize = 110,
     WrongLockEpoch,
     WrongOutWithdrawEpoch,
     WrongOutWithdraw,
@@ -102,6 +102,9 @@ pub enum Error {
     OutLessThanIn,
     WithdrawUpdateDataError,
     BadUnstake,
+
+    // reward
+    RewardWrongAmount,
 
     // requirement
     CommissionRateTooLarge,
