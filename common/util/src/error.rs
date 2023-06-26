@@ -102,6 +102,9 @@ pub enum Error {
     OutLessThanIn,
     WithdrawUpdateDataError,
     BadUnstake,
+
+    // requirement
+    CommissionRateTooLarge,
 }
 
 impl From<SysError> for Error {

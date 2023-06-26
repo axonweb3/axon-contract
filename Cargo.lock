@@ -1274,6 +1274,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
+name = "requirement"
+version = "0.1.0"
+dependencies = [
+ "axon-types",
+ "ckb-std 0.13.0",
+ "ckb-type-id",
+ "util",
+]
+
+[[package]]
 name = "reward"
 version = "0.1.0"
 dependencies = [
