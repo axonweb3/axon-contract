@@ -10,6 +10,7 @@ mod delegate;
 mod eth;
 mod helper;
 mod metadata;
+mod reward;
 #[cfg(test)]
 mod selection;
 mod smt;

@@ -277,6 +277,7 @@ fn test_metadata_success() {
         &delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &keypair.1,
+        3,
     );
 
     let inputs = vec![

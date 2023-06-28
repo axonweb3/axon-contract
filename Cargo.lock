@@ -145,7 +145,7 @@ dependencies = [
  "axon-types",
  "bit-vec",
  "blst 0.1.0",
- "ckb-std 0.12.1",
+ "ckb-std 0.13.0",
  "keccak-hash 0.8.0",
  "rlp",
  "util",
