@@ -6,6 +6,7 @@ use axon_types::{
     basic,
     delegate::{StakerSmtRoot, StakerSmtRoots},
     metadata::MetadataList,
+    withdraw::{WithdrawInfo, WithdrawInfos},
 };
 use ckb_testtool::{
     ckb_crypto::secp::{Privkey, Pubkey},
@@ -195,6 +196,56 @@ pub fn axon_delegate_requirement_cell_data(
     axon_types::delegate::DelegateCellData::new_builder()
         .delegate_requirement(requirement)
         .build()
+}
+
+// construct stake_at cell data based on version, l1_address, l2_address, metadata_type_id, delta
+pub fn axon_withdraw_at_cell_data_without_amount(
+    withdraw_infos: Vec<(u64, u128)>,
+) -> axon_types::withdraw::WithdrawAtCellData {
+    let mut infos = Vec::new();
+    for i in 0..withdraw_infos.len() {
+        let (unlock_epoch, amount) = withdraw_infos[i];
+        let info = WithdrawInfo::new_builder()
+            .unlock_epoch(axon_u64(unlock_epoch))
+            .amount(axon_u128(amount))
+            .build();
+        infos.push(info);
+    }
+    let withdraw_infos = WithdrawInfos::new_builder().set(infos).build();
+
+    let xudt_data_lock = axon_types::withdraw::WithdrawAtCellLockData::new_builder()
+        .withdraw_infos(withdraw_infos)
+        .build();
+    axon_types::withdraw::WithdrawAtCellData::new_builder()
+        .lock(xudt_data_lock)
+        .build()
+}
+
+pub fn axon_withdraw_at_cell_data(
+    amount: u128,
+    withdraw_at_cell_data: axon_types::withdraw::WithdrawAtCellData,
+) -> Vec<u8> {
+    // merge amount and stake_at_cell_data to Vec<u8>
+    let mut data = Vec::new();
+    data.extend_from_slice(&amount.to_le_bytes());
+    data.extend_from_slice(withdraw_at_cell_data.as_slice());
+    data
+}
+
+// construct stake_at cell data based on version, l1_address, l2_address, metadata_type_id, delta
+pub fn axon_normal_at_cell_data_without_amount() -> axon_types::withdraw::WithdrawAtCellData {
+    axon_types::withdraw::WithdrawAtCellData::new_builder().build()
+}
+
+pub fn axon_normal_at_cell_data(
+    amount: u128,
+    withdraw_at_cell_data: axon_types::withdraw::WithdrawAtCellData,
+) -> Vec<u8> {
+    // merge amount and stake_at_cell_data to Vec<u8>
+    let mut data = Vec::new();
+    data.extend_from_slice(&amount.to_le_bytes());
+    data.extend_from_slice(withdraw_at_cell_data.as_slice());
+    data
 }
 
 pub fn axon_checkpoint_data(
