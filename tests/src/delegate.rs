@@ -776,3 +776,78 @@ fn test_delegate_election_success() {
         .expect("pass verification");
     println!("consume cycles: {}", cycles);
 }
+
+#[test]
+fn test_delegate_requirement_success() {
+    // init context
+    let mut context = Context::default();
+
+    let contract_bin: Bytes = Loader::default().load_binary("requirement");
+    let contract_out_point = context.deploy_cell(contract_bin);
+    let contract_dep = CellDep::new_builder()
+        .out_point(contract_out_point.clone())
+        .build();
+    let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
+    let always_success_lock_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![1]))
+        .expect("always_success script");
+
+    let always_success_script_dep = CellDep::new_builder()
+        .out_point(always_success_out_point.clone())
+        .build();
+
+    let delegate_cell_data = axon_delegate_requirement_cell_data(10);
+
+    // prepare tx inputs and outputs
+    let input = CellInput::new_builder()
+        .previous_output(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(1000.pack())
+                    .lock(always_success_lock_script.clone())
+                    .build(),
+                delegate_cell_data.as_bytes(),
+            ),
+        )
+        .build();
+
+    let input_hash = get_input_hash(&input);
+    let delegate_requirement_args = DelegateRequirementArgs::new_builder()
+        .metadata_type_id(axon_array32_byte32([0u8; 32]))
+        .requirement_type_id(axon_bytes_byte32(&input_hash))
+        .build();
+
+    let delegate_requirement_type_script = context
+        .build_script(&contract_out_point, delegate_requirement_args.as_bytes())
+        .expect("delegate requirement type script");
+
+    let outputs = vec![
+        // delegate at cell
+        CellOutput::new_builder()
+            .capacity(1000.pack())
+            .lock(always_success_lock_script)
+            .type_(Some(delegate_requirement_type_script.clone()).pack())
+            .build(),
+    ];
+
+    let outputs_data = vec![delegate_cell_data.as_bytes()];
+
+    // prepare signed tx
+    let tx = TransactionBuilder::default()
+        .input(input)
+        .outputs(outputs)
+        .outputs_data(outputs_data.pack())
+        .cell_dep(contract_dep)
+        .cell_dep(always_success_script_dep)
+        .build();
+    let tx = context.complete_tx(tx);
+
+    // sign tx for delegate at cell (update stake at cell delta mode)
+    // let tx = sign_tx(tx, &delegator_keypair.0, 0);
+
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}

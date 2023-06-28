@@ -9,7 +9,7 @@ use ckb_std::{
 };
 use ckb_type_id::{load_type_id_from_script_args, validate_type_id};
 
-use axon_types::delegate::DelegateRequirement;
+use axon_types::delegate::DelegateCellData;
 use util::error::Error;
 
 pub fn main() -> Result<(), Error> {
@@ -20,19 +20,23 @@ pub fn main() -> Result<(), Error> {
     debug!("type_id: {:?}", type_id);
     validate_type_id(type_id)?;
 
+    debug!("find script idx");
     let script_args = script.args();
     let idx = QueryIter::new(load_cell_type, Source::Output)
         .into_iter()
         .position(|type_script| {
             type_script
-                .map(|s| s.args() == script_args)
+                .map(|s| s.args().as_slice()[..] == script_args.as_slice()[..])
                 .unwrap_or_default()
         })
         .unwrap();
+    debug!("script idx: {:?}", idx);
     let data = load_cell_data(idx, Source::Output)?;
-    let req = DelegateRequirement::from_slice(&data)?;
-
-    if req.commission_rate().as_slice()[0] > 100 {
+    debug!("DelegateRequirement::from_slice");
+    let req = DelegateCellData::from_slice(&data)?;
+    let commission_rate = req.delegate_requirement().commission_rate().as_slice()[0];
+    debug!("req: {:?}, {:?}", req, commission_rate);
+    if commission_rate > 100 {
         return Err(Error::CommissionRateTooLarge);
     }
 

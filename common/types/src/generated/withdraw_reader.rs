@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -53,6 +52,54 @@ impl WithdrawInfos {
     }
 }
 
+pub struct WithdrawAtCellLockData {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for WithdrawAtCellLockData {
+    fn from(cursor: Cursor) -> Self {
+        WithdrawAtCellLockData { cursor }
+    }
+}
+
+impl WithdrawAtCellLockData {
+    pub fn version(&self) -> u8 {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl WithdrawAtCellLockData {
+    pub fn withdraw_infos(&self) -> WithdrawInfos {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
+    }
+}
+
+pub struct BytesVec {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for BytesVec {
+    fn from(cursor: Cursor) -> Self {
+        Self { cursor }
+    }
+}
+
+impl BytesVec {
+    pub fn len(&self) -> usize {
+        self.cursor.dynvec_length()
+    }
+}
+
+impl BytesVec {
+    pub fn get(&self, index: usize) -> Vec<u8> {
+        let cur = self.cursor.dynvec_slice_by_index(index).unwrap();
+        let cur2 = cur.convert_to_rawbytes().unwrap();
+        cur2.into()
+    }
+}
+
 pub struct WithdrawAtCellData {
     pub cursor: Cursor,
 }
@@ -64,22 +111,15 @@ impl From<Cursor> for WithdrawAtCellData {
 }
 
 impl WithdrawAtCellData {
-    pub fn version(&self) -> u8 {
+    pub fn lock(&self) -> WithdrawAtCellLockData {
         let cur = self.cursor.table_slice_by_index(0).unwrap();
         cur.into()
     }
 }
 
 impl WithdrawAtCellData {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
+    pub fn data(&self) -> BytesVec {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
-        cur.into()
-    }
-}
-
-impl WithdrawAtCellData {
-    pub fn withdraw_infos(&self) -> WithdrawInfos {
-        let cur = self.cursor.table_slice_by_index(2).unwrap();
         cur.into()
     }
 }

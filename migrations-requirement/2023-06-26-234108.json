@@ -1,0 +1,13 @@
+{
+  "cell_recipes": [
+    {
+      "name": "requirement",
+      "tx_hash": "0x95876df71b1c631ba6cc1abb1e2d789cebef35837f223bfd56ad7b66bc8fcb0e",
+      "index": 0,
+      "occupied_capacity": 4595800000000,
+      "data_hash": "0x9d126069b3c571b821c9dad68331499c61e325006cb526a55854d8be9e643917",
+      "type_id": "0x1122036fd7be9796625b60a22e045fe5d03ffb2d559e86098d896645f3f356b0"
+    }
+  ],
+  "dep_group_recipes": []
+}

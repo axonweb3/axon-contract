@@ -6,6 +6,7 @@ use axon_types::{
     basic, checkpoint_reader,
     delegate_reader::{self, DelegateInfoDelta, DelegateSmtCellData},
     metadata_reader::{self, MetadataCellData, TypeIds},
+    reward_reader::RewardSmtCellData,
     stake_reader::{self, StakeInfoDelta, StakeSmtCellData},
     withdraw, withdraw_reader, Cursor,
 };
@@ -23,6 +24,7 @@ use ckb_std::{
     },
 };
 use core::{cmp::Ordering, result::Result};
+use tiny_keccak::{Hasher, Keccak};
 
 // #[derive(Clone, Copy, Default, Eq, PartialOrd, Debug)]
 // pub struct DelegateInfoObject {
@@ -356,7 +358,7 @@ pub fn get_withdraw_at_data_by_lock_hash(
         return Err(Error::BadSudtDataFormat);
     }
     if withdraw_at_data.is_none() {
-        return Err(Error::StakeDataEmpty);
+        return Err(Error::WithdrawDataEmpty);
     }
     Ok((sudt.unwrap(), withdraw_at_data.unwrap()))
 }
@@ -659,6 +661,25 @@ pub fn get_delegate_smt_data(
     Ok(delegate_smt_data.unwrap())
 }
 
+pub fn get_reward_smt_data(type_id: &[u8; 32], source: Source) -> Result<RewardSmtCellData, Error> {
+    let mut reward_smt_data: Option<RewardSmtCellData> = None;
+    QueryIter::new(load_cell_type_hash, source)
+        .enumerate()
+        .for_each(|(i, type_hash)| {
+            if &type_hash.unwrap_or([0u8; 32]) == type_id {
+                debug!(
+                    "get_reward_smt_data index: {}, type_hash: {:?}",
+                    i, type_hash
+                );
+                let data = load_cell_data(i, source).unwrap();
+                debug!("get_reward_smt_data data len: {}", data.len());
+                reward_smt_data = Some(Cursor::from(data[..].to_vec()).into());
+            }
+        });
+    debug!("get_reward_smt_data ok");
+    Ok(reward_smt_data.unwrap())
+}
+
 pub fn axon_byte32(bytes: &[u8]) -> basic::Byte32 {
     basic::Byte32::new_unchecked(bytes.to_vec().into())
 }
@@ -698,4 +719,14 @@ pub fn calc_withdrawal_lock_hash(
     blake2b.update(withdraw_lock.as_slice());
     blake2b.finalize(&mut lock_hash);
     lock_hash
+}
+
+pub fn pubkey_to_eth_addr(pubkey: &Vec<u8>) -> [u8; 20] {
+    let mut keccak = Keccak::v256();
+    let input = pubkey.as_slice();
+    keccak.update(input);
+    let mut output = [0; 32];
+    keccak.finalize(&mut output);
+    let pubkey_hash = output[12..].to_vec();
+    pubkey_hash.try_into().unwrap()
 }

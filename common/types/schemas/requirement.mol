@@ -1,6 +1,0 @@
-import basic;
-
-struct RequirementArgs {
-    metadata_type_id: Byte32,
-    requirement_type_id: Byte32,
-}

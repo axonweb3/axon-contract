@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ckb-std = "0.12"
+ckb-std = "0.13"
 axon-types = { path = "../../common/types" }
 blst = { path = "../../common/blst" }
 util = { path = "../../common/util" }

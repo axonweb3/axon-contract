@@ -186,6 +186,17 @@ pub fn axon_delegate_at_cell_data(
     data
 }
 
+pub fn axon_delegate_requirement_cell_data(
+    commission_rate: u8,
+) -> axon_types::delegate::DelegateCellData {
+    let requirement = axon_types::delegate::DelegateRequirement::new_builder()
+        .commission_rate(commission_rate.into())
+        .build();
+    axon_types::delegate::DelegateCellData::new_builder()
+        .delegate_requirement(requirement)
+        .build()
+}
+
 pub fn axon_checkpoint_data(
     metadata_type_id: &packed::Byte32,
 ) -> axon_types::checkpoint::CheckpointCellData {
@@ -287,6 +298,15 @@ pub fn axon_delegate_smt_cell_data(
             .build(),
         delegate_epoch_proof,
     )
+}
+
+pub fn get_input_hash(input: &CellInput) -> Bytes {
+    let mut blake2b = new_blake2b();
+    blake2b.update(input.as_slice());
+    blake2b.update(&0u64.to_le_bytes());
+    let mut ret = [0; 32];
+    blake2b.finalize(&mut ret);
+    Bytes::from(ret.to_vec())
 }
 
 pub fn sign_tx(tx: TransactionView, key: &Privkey, mode: u8) -> TransactionView {

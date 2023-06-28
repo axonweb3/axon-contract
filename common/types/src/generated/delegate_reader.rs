@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 #![allow(unused_imports)]
 extern crate alloc;
@@ -6,26 +5,26 @@ use alloc::vec::Vec;
 use molecule2::Cursor;
 
 use super::basic::*;
-pub struct DelegateArgs {
+pub struct DelegateRequirementArgs {
     pub cursor: Cursor,
 }
 
-impl From<Cursor> for DelegateArgs {
+impl From<Cursor> for DelegateRequirementArgs {
     fn from(cursor: Cursor) -> Self {
-        DelegateArgs { cursor }
+        DelegateRequirementArgs { cursor }
     }
 }
 
-impl DelegateArgs {
+impl DelegateRequirementArgs {
     pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.slice_by_offset(0, 32).unwrap();
         cur.into()
     }
 }
 
-impl DelegateArgs {
-    pub fn delegator_addr(&self) -> Vec<u8> {
-        let cur = self.cursor.slice_by_offset(32, 20).unwrap();
+impl DelegateRequirementArgs {
+    pub fn requirement_type_id(&self) -> Vec<u8> {
+        let cur = self.cursor.slice_by_offset(32, 32).unwrap();
         cur.into()
     }
 }
@@ -102,6 +101,30 @@ impl DelegateCellData {
 impl DelegateCellData {
     pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(4).unwrap();
+        cur.into()
+    }
+}
+
+pub struct DelegateArgs {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for DelegateArgs {
+    fn from(cursor: Cursor) -> Self {
+        DelegateArgs { cursor }
+    }
+}
+
+impl DelegateArgs {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
+        let cur = self.cursor.slice_by_offset(0, 32).unwrap();
+        cur.into()
+    }
+}
+
+impl DelegateArgs {
+    pub fn delegator_addr(&self) -> Vec<u8> {
+        let cur = self.cursor.slice_by_offset(32, 20).unwrap();
         cur.into()
     }
 }

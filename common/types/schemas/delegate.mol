@@ -1,8 +1,8 @@
 import basic;
 
-struct DelegateArgs {
+struct DelegateRequirementArgs {
     metadata_type_id: Byte32,
-    delegator_addr:   Identity,
+    requirement_type_id: Byte32,
 }
 
 table DelegateRequirement {
@@ -17,6 +17,12 @@ table DelegateCellData {
     l2_address:               Identity,
     delegate_requirement:     DelegateRequirement,
     metadata_type_id:         Byte32,
+}
+
+// delegate at cell lock script args
+struct DelegateArgs {
+    metadata_type_id: Byte32,
+    delegator_addr:   Identity,
 }
 
 // delegate AT cell
