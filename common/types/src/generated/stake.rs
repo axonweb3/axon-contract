@@ -504,17 +504,16 @@ impl ::core::fmt::Display for StakeAtCellLockData {
 impl ::core::default::Default for StakeAtCellLockData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            52, 1, 0, 0, 32, 0, 0, 0, 33, 0, 0, 0, 98, 0, 0, 0, 195, 0, 0, 0, 215, 0, 0, 0, 235, 0,
-            0, 0, 11, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            3, 1, 0, 0, 32, 0, 0, 0, 33, 0, 0, 0, 98, 0, 0, 0, 146, 0, 0, 0, 166, 0, 0, 0, 186, 0,
+            0, 0, 218, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17,
+            0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0,
         ];
         StakeAtCellLockData::new_unchecked(v.into())
     }
@@ -549,11 +548,11 @@ impl StakeAtCellLockData {
         let end = molecule::unpack_number(&slice[12..]) as usize;
         Byte65::new_unchecked(self.0.slice(start..end))
     }
-    pub fn bls_pub_key(&self) -> Byte97 {
+    pub fn bls_pub_key(&self) -> Byte48 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
-        Byte97::new_unchecked(self.0.slice(start..end))
+        Byte48::new_unchecked(self.0.slice(start..end))
     }
     pub fn l1_address(&self) -> Identity {
         let slice = self.as_slice();
@@ -682,11 +681,11 @@ impl<'r> StakeAtCellLockDataReader<'r> {
         let end = molecule::unpack_number(&slice[12..]) as usize;
         Byte65Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn bls_pub_key(&self) -> Byte97Reader<'r> {
+    pub fn bls_pub_key(&self) -> Byte48Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
-        Byte97Reader::new_unchecked(&self.as_slice()[start..end])
+        Byte48Reader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn l1_address(&self) -> IdentityReader<'r> {
         let slice = self.as_slice();
@@ -768,7 +767,7 @@ impl<'r> molecule::prelude::Reader<'r> for StakeAtCellLockDataReader<'r> {
         }
         ByteReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
         Byte65Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        Byte97Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        Byte48Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         IdentityReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
         IdentityReader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
         Byte32Reader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
@@ -780,7 +779,7 @@ impl<'r> molecule::prelude::Reader<'r> for StakeAtCellLockDataReader<'r> {
 pub struct StakeAtCellLockDataBuilder {
     pub(crate) version: Byte,
     pub(crate) l1_pub_key: Byte65,
-    pub(crate) bls_pub_key: Byte97,
+    pub(crate) bls_pub_key: Byte48,
     pub(crate) l1_address: Identity,
     pub(crate) l2_address: Identity,
     pub(crate) metadata_type_id: Byte32,
@@ -796,7 +795,7 @@ impl StakeAtCellLockDataBuilder {
         self.l1_pub_key = v;
         self
     }
-    pub fn bls_pub_key(mut self, v: Byte97) -> Self {
+    pub fn bls_pub_key(mut self, v: Byte48) -> Self {
         self.bls_pub_key = v;
         self
     }
@@ -1237,18 +1236,16 @@ impl ::core::fmt::Display for StakeAtCellData {
 impl ::core::default::Default for StakeAtCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            68, 1, 0, 0, 12, 0, 0, 0, 64, 1, 0, 0, 52, 1, 0, 0, 32, 0, 0, 0, 33, 0, 0, 0, 98, 0, 0,
-            0, 195, 0, 0, 0, 215, 0, 0, 0, 235, 0, 0, 0, 11, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            19, 1, 0, 0, 12, 0, 0, 0, 15, 1, 0, 0, 3, 1, 0, 0, 32, 0, 0, 0, 33, 0, 0, 0, 98, 0, 0,
+            0, 146, 0, 0, 0, 166, 0, 0, 0, 186, 0, 0, 0, 218, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0,
-            0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
         StakeAtCellData::new_unchecked(v.into())
     }

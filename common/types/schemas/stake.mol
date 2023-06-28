@@ -14,7 +14,7 @@ table StakeInfoDelta {
 table StakeAtCellLockData {
     version:          byte,
     l1_pub_key:       Byte65,
-    bls_pub_key:      Byte97,
+    bls_pub_key:      Byte48,
     l1_address:       Identity,
     l2_address:       Identity,
     metadata_type_id: Byte32,
