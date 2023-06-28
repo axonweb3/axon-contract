@@ -139,12 +139,12 @@ pub fn main() -> Result<(), Error> {
     // identify contract mode by witness
     let witness_args = load_witness_args(0, Source::GroupInput)?;
     let reward_witness = {
-        let witness_lock = witness_args.lock().to_opt();
-        if witness_lock.is_none() {
+        let witness_input_type = witness_args.input_type().to_opt();
+        if witness_input_type.is_none() {
             return Err(Error::WitnessLockError);
         }
         let value: reward_reader::RewardWitness =
-            Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
+            Cursor::from(witness_input_type.unwrap().raw_data().to_vec()).into();
         value
     };
 

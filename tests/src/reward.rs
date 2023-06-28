@@ -1,18 +1,11 @@
+use crate::smt::{u64_to_h256, Blake2bHasher};
 use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::iter::FromIterator;
-// use std::convert::TryInto;
-
-// use crate::smt::{
-// construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
-// };
-
-use crate::smt::{u64_to_h256, Blake2bHasher};
 
 use super::*;
 use axon_types::checkpoint::CheckpointCellData;
 use axon_types::delegate::DelegateInfoDeltas;
-// use axon_types::delegate::{DelegateInfos, StakerSmtRoot, StakerSmtRoots};
 use axon_types::metadata::MetadataList;
 use axon_types::reward::{
     EpochRewardStakeInfo, EpochRewardStakeInfos, NotClaimInfo, RewardDelegateInfos,
@@ -20,17 +13,11 @@ use axon_types::reward::{
 };
 use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::core::ScriptHashType;
-// use ckb_testtool::ckb_types::H256;
-// use axon_types::stake::*;
-// use bit_vec::BitVec;
-// use ckb_system_scripts::BUNDLED_CELL;
-// use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
 use sparse_merkle_tree::{CompiledMerkleProof, H256};
-// use sparse_merkle_tree::CompiledMerkleProof;
 use util::smt::{
     addr_to_h256, u128_to_h256, BottomValue, EpochValue, LockInfo, ProposeBottomValue, BOTTOM_SMT,
     CLAIM_SMT, PROPOSE_BOTTOM_SMT, TOP_SMT,
@@ -443,7 +430,7 @@ fn test_reward_success() {
         .new_not_claim_info(new_not_claim_info)
         .build();
     let reward_witness = WitnessArgs::new_builder()
-        .lock(Some(Bytes::from(reward_witness.as_bytes())).pack())
+        .input_type(Some(Bytes::from(reward_witness.as_bytes())).pack())
         .build();
 
     // prepare signed tx

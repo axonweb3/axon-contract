@@ -2,7 +2,7 @@
 
 use super::*;
 use axon_types::checkpoint::CheckpointCellData;
-use axon_types::metadata::{MetadataList};
+use axon_types::metadata::MetadataList;
 use axon_types::withdraw::{WithdrawArgs, WithdrawWitness};
 // use bit_vec::BitVec;
 use ckb_testtool::ckb_types::core::ScriptHashType;
@@ -229,23 +229,23 @@ fn test_increase_withdraw_success() {
         )
         .build();
 
-    let output_withdraw_infos = vec![(3 as u64, 1000 as u128), (4 as u64, 2000 as u128), (5, 3000)];
+    let output_withdraw_infos = vec![
+        (3 as u64, 1000 as u128),
+        (4 as u64, 2000 as u128),
+        (5, 3000),
+    ];
     let output_withdraw_at_cell_data =
         axon_withdraw_at_cell_data_without_amount(output_withdraw_infos);
-    let outputs = vec![
-        CellOutput::new_builder()
-            .capacity(1000.pack())
-            .lock(withdraw_lock_script.clone())
-            .type_(Some(at_type_script.clone()).pack())
-            .build(),
-    ];
+    let outputs = vec![CellOutput::new_builder()
+        .capacity(1000.pack())
+        .lock(withdraw_lock_script.clone())
+        .type_(Some(at_type_script.clone()).pack())
+        .build()];
 
-    let outputs_data = vec![
-        Bytes::from(axon_withdraw_at_cell_data(
-            6000,
-            output_withdraw_at_cell_data.clone(),
-        )),
-    ];
+    let outputs_data = vec![Bytes::from(axon_withdraw_at_cell_data(
+        6000,
+        output_withdraw_at_cell_data.clone(),
+    ))];
 
     let checkpoint_type_script = context
         .build_script_with_hash_type(
@@ -295,8 +295,7 @@ fn test_increase_withdraw_success() {
         )
         .build();
 
-    let withdraw_witness = WitnessArgs::new_builder()
-        .build();
+    let withdraw_witness = WitnessArgs::new_builder().build();
 
     // prepare signed tx
     let tx = TransactionBuilder::default()

@@ -102,12 +102,12 @@ fn verify_multsig(output_checkpoint_data: &CheckpointCellData) -> Result<(), Err
     let witness_args = load_witness_args(0, Source::GroupInput)?;
     // extract proposal and proof data from witness lock
     let (proposal, proof) = {
-        let witness_lock = witness_args.lock().to_opt();
-        if witness_lock.is_none() {
+        let witness_input_type = witness_args.input_type().to_opt();
+        if witness_input_type.is_none() {
             return Err(Error::WitnessLockError);
         }
         let value: axon::CheckpointWitness =
-            Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
+            Cursor::from(witness_input_type.unwrap().raw_data().to_vec()).into();
         (value.proposal(), value.proof())
     };
 
