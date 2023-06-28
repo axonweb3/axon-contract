@@ -265,13 +265,14 @@ pub fn axon_delegate_smt_cell_data(
     delegate_infos: &BTreeSet<LockInfo>,
     metadata_type_id: &packed::Byte32,
     pubkey: &Pubkey,
+    epoch: u64,
 ) -> (
     axon_types::delegate::DelegateSmtCellData,
     CompiledMerkleProof,
 ) {
     let (delegate_root, _delegate_proof) = construct_lock_info_smt(&delegate_infos);
     let delegate_top_smt_infos = vec![TopSmtInfo {
-        epoch: 3,
+        epoch: epoch,
         smt_root: delegate_root,
     }];
     let (delegate_epoch_root, delegate_epoch_proof) = construct_epoch_smt(&delegate_top_smt_infos);
@@ -298,6 +299,17 @@ pub fn axon_delegate_smt_cell_data(
             .build(),
         delegate_epoch_proof,
     )
+}
+
+pub fn axon_reward_smt_data(
+    metadata_type_id: [u8; 32],
+    claim_smt_root: [u8; 32],
+) -> axon_types::reward::RewardSmtCellData {
+    axon_types::reward::RewardSmtCellData::new_builder()
+        .version(0.into())
+        .metadata_type_id(axon_array32_byte32(metadata_type_id))
+        .claim_smt_root(axon_array32_byte32(claim_smt_root))
+        .build()
 }
 
 pub fn get_input_hash(input: &CellInput) -> Bytes {

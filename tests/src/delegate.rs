@@ -331,6 +331,7 @@ fn test_delegate_smt_success() {
         &delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &staker_keypair.1,
+        3,
     );
 
     // prepare tx inputs and outputs
@@ -404,6 +405,7 @@ fn test_delegate_smt_success() {
         &output_delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &staker_keypair.1,
+        3,
     );
 
     let outputs_data = vec![
@@ -597,6 +599,7 @@ fn test_delegate_smt_create_success() {
         &output_delegate_infos,
         &always_success_lock_script.calc_script_hash(),
         &staker_keypair.1,
+        3,
     );
     println!(
         "output delegate smt data: {:?}",
@@ -680,6 +683,7 @@ fn test_delegate_election_success() {
         &delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &staker_keypair.1,
+        3,
     );
     println!(
         "metadata_type_script:{:?}",
@@ -747,6 +751,7 @@ fn test_delegate_election_success() {
         &output_delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &staker_keypair.1,
+        3,
     );
 
     let outputs_data = vec![

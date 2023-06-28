@@ -74,6 +74,22 @@ impl Value for ProposeBottomValue {
     }
 }
 
+#[derive(Default, Clone, Copy)]
+pub struct EpochValue(pub u64);
+impl Value for EpochValue {
+    fn to_h256(&self) -> H256 {
+        let mut buf = [0u8; 32];
+        let mut hasher = new_blake2b();
+        // println!("epoch: {}", self.0);
+        hasher.update(&self.0.to_le_bytes());
+        hasher.finalize(&mut buf);
+        buf.into()
+    }
+    fn zero() -> Self {
+        Default::default()
+    }
+}
+
 // define SMT
 #[allow(non_camel_case_types)]
 pub type TOP_SMT = SparseMerkleTree<Blake2bHasher, H256, DefaultStore<H256>>;
@@ -82,6 +98,9 @@ pub type BOTTOM_SMT = SparseMerkleTree<Blake2bHasher, BottomValue, DefaultStore<
 #[allow(non_camel_case_types)]
 pub type PROPOSE_BOTTOM_SMT =
     SparseMerkleTree<Blake2bHasher, ProposeBottomValue, DefaultStore<ProposeBottomValue>>;
+#[allow(non_camel_case_types)]
+pub type CLAIM_SMT = SparseMerkleTree<Blake2bHasher, EpochValue, DefaultStore<EpochValue>>;
+
 // helper function
 pub fn new_blake2b() -> Blake2b {
     Blake2bBuilder::new(32)

@@ -1,6 +1,8 @@
 // Import from `core` instead of from `std` since we are in no-std mode
 use alloc::vec::Vec;
 use alloc::{collections::BTreeSet, vec};
+use axon_types::reward_reader::NotClaimInfo;
+use axon_types::reward_reader::RewardSmtCellData;
 use ckb_type_id::{load_type_id_from_script_args, validate_type_id};
 use core::result::Result;
 use sparse_merkle_tree::{CompiledMerkleProof, H256};
@@ -21,7 +23,7 @@ use ckb_std::{
 use axon_types::{reward_reader, Cursor};
 use util::{error::Error, helper::*};
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 struct RewardStakeInfoObject {
     staker: [u8; 20],
     propose_count: u64,
@@ -54,6 +56,72 @@ struct EpochRewardObject {
     reward_objs: Vec<RewardObject>,
 }
 
+fn verify_claim_smt(
+    miner: &Vec<u8>,
+    claim_epoch: &u64,
+    not_claim_info: &NotClaimInfo,
+    reward_smt_data: &RewardSmtCellData,
+) -> Result<(), Error> {
+    let miner_h256 = addr_to_h256(&miner.as_slice().try_into().unwrap());
+    let proof = CompiledMerkleProof(not_claim_info.proof());
+    let mut claim_epoch_h256 = u64_to_h256(*claim_epoch);
+    if *claim_epoch == 0 {
+        claim_epoch_h256 = H256::default();
+    }
+    let claim_root: [u8; 32] = reward_smt_data
+        .claim_smt_root()
+        .as_slice()
+        .try_into()
+        .unwrap();
+    let claim_root: H256 = claim_root.into();
+    let result = verify_top_smt(miner_h256, claim_epoch_h256, claim_root, proof)?;
+    debug!("verify claim smt result: {}", result);
+    Ok(())
+}
+
+fn verify_old_new_claim_smt(
+    reward_smt_type_id: &Vec<u8>,
+    miner: &Vec<u8>,
+    old_not_claim_info: &NotClaimInfo,
+    new_not_claim_info: &NotClaimInfo,
+) -> Result<(u64, u64, Vec<u8>), Error> {
+    let old_claim_epoch = old_not_claim_info.epoch();
+    let new_claim_epoch = new_not_claim_info.epoch();
+
+    let old_reward_smt_data = get_reward_smt_data(
+        reward_smt_type_id.as_slice().try_into().unwrap(),
+        Source::GroupInput,
+    )?;
+
+    verify_claim_smt(
+        &miner,
+        &old_claim_epoch,
+        &old_not_claim_info,
+        &old_reward_smt_data,
+    )?;
+
+    let new_reward_smt_data = get_reward_smt_data(
+        reward_smt_type_id.as_slice().try_into().unwrap(),
+        Source::GroupOutput,
+    )?;
+    verify_claim_smt(
+        &miner,
+        &new_claim_epoch,
+        &new_not_claim_info,
+        &new_reward_smt_data,
+    )?;
+
+    if old_reward_smt_data.metadata_type_id() != new_reward_smt_data.metadata_type_id() {
+        return Err(Error::MisMatchMetadataTypeId);
+    }
+
+    Ok((
+        old_claim_epoch,
+        new_claim_epoch,
+        old_reward_smt_data.metadata_type_id(),
+    ))
+}
+
 pub fn main() -> Result<(), Error> {
     let type_id = load_type_id_from_script_args(0)?;
     debug!("type_id: {:?}", type_id);
@@ -80,51 +148,36 @@ pub fn main() -> Result<(), Error> {
         value
     };
 
+    debug!("verify reward claim info");
     let miner = reward_witness.miner();
-    let no_claim_proof = reward_witness.old_not_claim_info();
-    let epoch = no_claim_proof.epoch();
-
-    let old_reward_smt_data = get_reward_smt_data(
-        reward_smt_type_id.as_slice().try_into().unwrap(),
-        Source::GroupInput,
-    )?;
-    let old_claim_root: [u8; 32] = old_reward_smt_data
-        .claim_smt_root()
-        .as_slice()
-        .try_into()
-        .unwrap();
-    let old_claim_root: H256 = old_claim_root.into();
-
-    let new_reward_smt_data = get_reward_smt_data(
-        reward_smt_type_id.as_slice().try_into().unwrap(),
-        Source::GroupOutput,
+    let old_not_claim_info = reward_witness.old_not_claim_info();
+    let new_not_claim_info = reward_witness.new_not_claim_info();
+    let (old_claim_epoch, new_claim_epoch, meta_type_id) = verify_old_new_claim_smt(
+        &reward_smt_type_id,
+        &miner,
+        &old_not_claim_info,
+        &new_not_claim_info,
     )?;
 
-    if old_reward_smt_data.metadata_type_id() != new_reward_smt_data.metadata_type_id() {
-        return Err(Error::MisMatchMetadataTypeId);
-    }
-
-    let meta_type_id = old_reward_smt_data.metadata_type_id();
+    debug!("get type ids, {:?}", meta_type_id);
     let metadata_type_id = meta_type_id.as_slice().try_into().unwrap();
     let type_ids = get_type_ids(&metadata_type_id, Source::CellDep)?;
 
-    let miner_h256 = addr_to_h256(&miner.as_slice().try_into().unwrap());
-    let proof = CompiledMerkleProof(no_claim_proof.proof());
-    let result = verify_top_smt(miner_h256, u64_to_h256(epoch), old_claim_root, proof)?;
-    debug!("verify old claim smt result: {}", result);
-
-    let stake_smt_type_id = type_ids.stake_smt_type_id();
+    let stake_smt_type_id = get_script_hash(
+        &type_ids.stake_smt_code_hash(),
+        &type_ids.stake_smt_type_id(),
+    );
+    debug!("stake_smt_type_id = {:?}", stake_smt_type_id);
     let stake_smt_root = get_stake_smt_root(
         stake_smt_type_id.as_slice().try_into().unwrap(),
         Source::CellDep,
     )?;
-    let delegate_smt_type_id = type_ids
-        .delegate_smt_type_id()
-        .as_slice()
-        .try_into()
-        .unwrap();
+    let delegate_smt_type_id = get_script_hash(
+        &type_ids.delegate_smt_code_hash(),
+        &type_ids.delegate_smt_type_id(),
+    );
     let delegate_smt_data = get_delegate_smt_data(&delegate_smt_type_id, Source::CellDep)?;
-    let metadata = get_metada_data_by_type_id(&metadata_type_id, Source::Output)?;
+    let metadata = get_metada_data_by_type_id(&metadata_type_id, Source::CellDep)?;
     let propose_count_smt_root: [u8; 32] = metadata
         .propose_count_smt_root()
         .as_slice()
@@ -133,7 +186,7 @@ pub fn main() -> Result<(), Error> {
 
     let mut reward_amount: u128 = 0;
     let reward_infos = reward_witness.reward_infos();
-    for i in 0..reward_infos.len() {
+    for current_epoch in old_claim_epoch + 1..=new_claim_epoch {
         // many epoch, 1st layer
         let mut epoch_reward_obj = EpochRewardObject::default(); // used to calculate reward
         epoch_reward_obj.miner = miner.as_slice().try_into().unwrap();
@@ -141,19 +194,20 @@ pub fn main() -> Result<(), Error> {
         let mut epoch_reward_stake_info_obj = EpochRewardStakeInfoObject::default();
         let mut stake_info_objs = Vec::new();
 
-        let epoch_reward_info = reward_infos.get(i);
+        let epoch_reward_info =
+            reward_infos.get((current_epoch - old_claim_epoch - 1).try_into().unwrap());
         let staker_infos = epoch_reward_info.reward_stake_infos();
         // get one staker's propose count, stake amount, verify its delegate info
-        for i in 0..staker_infos.len() {
+        for j in 0..staker_infos.len() {
             // many staker, 2nd layer
             let mut reward_obj = RewardObject::default();
-            let stake_info = staker_infos.get(i);
+            let stake_info = staker_infos.get(j);
             let staker = stake_info.validator();
             let delegate_infos = stake_info.delegate_infos();
             let mut delegate_infos_set = BTreeSet::new();
             let mut total_delegate_amount = 0u128;
-            for i in 0..delegate_infos.len() {
-                let delegate_info = delegate_infos.get(i);
+            for k in 0..delegate_infos.len() {
+                let delegate_info = delegate_infos.get(k);
                 let delegate_info_obj = LockInfo {
                     addr: delegate_info
                         .delegator_addr()
@@ -177,7 +231,7 @@ pub fn main() -> Result<(), Error> {
             let delegate_epoch_root: H256 = delegate_epoch_root.into();
             verify_2layer_smt(
                 &delegate_infos_set,
-                u64_to_h256(epoch),
+                u64_to_h256(current_epoch),
                 delegate_epoch_root,
                 delegate_epoch_proof,
             )?;
@@ -190,6 +244,10 @@ pub fn main() -> Result<(), Error> {
                 propose_count: propose_count,
                 stake_amount: stake_amount,
             };
+            debug!(
+                "stake_info_obj: {:?}, total_delegate_amount: {}",
+                stake_info_obj, total_delegate_amount
+            );
             stake_info_objs.push(stake_info_obj);
 
             reward_obj.staker = staker.as_slice().try_into().unwrap();
@@ -216,7 +274,7 @@ pub fn main() -> Result<(), Error> {
         epoch_reward_stake_info_obj.count_proof = epoch_reward_info.count_proof();
         epoch_reward_stake_info_obj.count_epoch_proof = epoch_reward_info.count_epoch_proof();
         verify_stake_propse(
-            epoch + i as u64 + 1,
+            current_epoch,
             &epoch_reward_stake_info_obj,
             &stake_smt_root,
             &propose_count_smt_root,
@@ -230,6 +288,10 @@ pub fn main() -> Result<(), Error> {
     let xudt_type_hash = type_ids.xudt_type_hash();
     let input_total_amount = get_xudt_by_type_hash(&xudt_type_hash, Source::Input)?;
     let output_total_amount = get_xudt_by_type_hash(&xudt_type_hash, Source::Output)?;
+    debug!(
+        "reward_amount: {}, input_total_amoutn: {}, output_total_amount: {}",
+        reward_amount, input_total_amount, output_total_amount
+    );
     if input_total_amount + reward_amount != output_total_amount {
         return Err(Error::RewardWrongAmount);
     }
@@ -250,6 +312,7 @@ fn calculate_reward(miner: &Vec<u8>, epoch_reward_obj: &EpochRewardObject) -> u1
         let total_lock_amount = obj.stake_amount + obj.total_delegate_amount;
         let staker_reward = reward * obj.stake_amount / total_lock_amount;
         let delegate_reward = reward - staker_reward;
+        debug!("miner: {:?},staker: {:?}", miner, obj.staker);
         if *miner == obj.staker.to_vec() {
             epoch_reward = staker_reward;
             let commission_fee = delegate_reward * commission_rate / 100;
