@@ -37,14 +37,13 @@ impl ::core::fmt::Display for Validator {
 impl ::core::default::Default for Validator {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            226, 0, 0, 0, 28, 0, 0, 0, 125, 0, 0, 0, 190, 0, 0, 0, 210, 0, 0, 0, 214, 0, 0, 0, 218,
+            177, 0, 0, 0, 28, 0, 0, 0, 76, 0, 0, 0, 141, 0, 0, 0, 161, 0, 0, 0, 165, 0, 0, 0, 169,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
         ];
         Validator::new_unchecked(v.into())
     }
@@ -67,11 +66,11 @@ impl Validator {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn bls_pub_key(&self) -> Byte97 {
+    pub fn bls_pub_key(&self) -> Byte48 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
-        Byte97::new_unchecked(self.0.slice(start..end))
+        Byte48::new_unchecked(self.0.slice(start..end))
     }
     pub fn pub_key(&self) -> Byte65 {
         let slice = self.as_slice();
@@ -192,11 +191,11 @@ impl<'r> ValidatorReader<'r> {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn bls_pub_key(&self) -> Byte97Reader<'r> {
+    pub fn bls_pub_key(&self) -> Byte48Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
-        Byte97Reader::new_unchecked(&self.as_slice()[start..end])
+        Byte48Reader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn pub_key(&self) -> Byte65Reader<'r> {
         let slice = self.as_slice();
@@ -282,7 +281,7 @@ impl<'r> molecule::prelude::Reader<'r> for ValidatorReader<'r> {
         if offsets.windows(2).any(|i| i[0] > i[1]) {
             return ve!(Self, OffsetsNotMatch);
         }
-        Byte97Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        Byte48Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
         Byte65Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         IdentityReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         Uint32Reader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
@@ -293,7 +292,7 @@ impl<'r> molecule::prelude::Reader<'r> for ValidatorReader<'r> {
 }
 #[derive(Debug, Default)]
 pub struct ValidatorBuilder {
-    pub(crate) bls_pub_key: Byte97,
+    pub(crate) bls_pub_key: Byte48,
     pub(crate) pub_key: Byte65,
     pub(crate) address: Identity,
     pub(crate) propose_weight: Uint32,
@@ -302,7 +301,7 @@ pub struct ValidatorBuilder {
 }
 impl ValidatorBuilder {
     pub const FIELD_COUNT: usize = 6;
-    pub fn bls_pub_key(mut self, v: Byte97) -> Self {
+    pub fn bls_pub_key(mut self, v: Byte48) -> Self {
         self.bls_pub_key = v;
         self
     }
