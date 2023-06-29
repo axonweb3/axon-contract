@@ -91,6 +91,7 @@ pub enum Error {
     StakerNonExist,
     StakerNotFound,
     MetadataNotFound,
+    MetadataProposeCountVerifyFail,
 
     // withdraw
     WrongOutWithdrawArraySize = 110,

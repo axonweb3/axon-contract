@@ -918,7 +918,7 @@ name = "metadata"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.12.1",
+ "ckb-std 0.13.0",
  "sparse-merkle-tree",
  "util",
 ]
