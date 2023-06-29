@@ -7,17 +7,13 @@ use std::iter::FromIterator;
 // construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
 // };
 
-use crate::smt::{
-    u64_to_h256,
-    Blake2bHasher, };
+use crate::smt::{u64_to_h256, Blake2bHasher};
 
 use super::*;
-use axon_types::checkpoint::{CheckpointCellData};
-use axon_types::delegate::{DelegateInfoDeltas};
+use axon_types::checkpoint::CheckpointCellData;
+use axon_types::delegate::DelegateInfoDeltas;
 // use axon_types::delegate::{DelegateInfos, StakerSmtRoot, StakerSmtRoots};
-use axon_types::metadata::{
-     MetadataList,
-};
+use axon_types::metadata::MetadataList;
 use axon_types::reward::{
     EpochRewardStakeInfo, EpochRewardStakeInfos, NotClaimInfo, RewardDelegateInfos,
     RewardSmtCellData, RewardStakeInfo, RewardStakeInfos, RewardWitness,

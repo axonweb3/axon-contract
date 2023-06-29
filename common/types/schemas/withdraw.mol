@@ -23,7 +23,7 @@ table WithdrawAtCellData {
 
 table WithdrawArgs {
     metadata_type_id: Byte32,
-    addr: Identity,
+    addr:             Identity,
 }
 
 table WithdrawWitness {

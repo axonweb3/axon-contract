@@ -15,6 +15,7 @@ mod reward;
 mod selection;
 mod smt;
 mod stake;
+mod withdraw;
 
 const TEST_ENV_VAR: &str = "CAPSULE_TEST_ENV";
 

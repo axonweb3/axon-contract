@@ -8,7 +8,7 @@ use core::result::Result;
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, prelude::*},
-    high_level::{load_cell_lock_hash, load_script, load_witness_args},
+    high_level::{load_cell_lock_hash, load_script, load_witness_args}, debug,
 };
 
 use axon_types::{withdraw_reader, Cursor};
@@ -65,7 +65,9 @@ pub fn main() -> Result<(), Error> {
         &metadata_type_id.as_slice().try_into().unwrap(),
         Source::CellDep,
     )?;
-    if metadata_type_id != type_ids.metadata_type_id() {
+    if metadata_type_id
+        != get_script_hash(&type_ids.metadata_code_hash(), &type_ids.metadata_type_id())
+    {
         return Err(Error::MisMatchMetadataTypeId);
     }
     // let owner = withdraw_args.addr();
@@ -89,7 +91,13 @@ pub fn main() -> Result<(), Error> {
         get_withdraw_at_data_by_lock_hash(&withdraw_at_lock_hash, Source::Input)?;
     let (out_amount, out_data) =
         get_withdraw_at_data_by_lock_hash(&withdraw_at_lock_hash, Source::Output)?;
-    let epoch = get_current_epoch(&type_ids.checkpoint_type_id())?;
+    let checkpoint_type_id = get_script_hash(
+        &type_ids.checkpoint_code_hash(),
+        &type_ids.checkpoint_type_id(),
+    );
+
+    let epoch = get_current_epoch(&checkpoint_type_id.to_vec())?;
+    debug!("epoch: {:?}, in_amount: {}, out_amount: {}", epoch, in_amount, out_amount);
 
     if withdraw_witness.is_none() {
         // ACP mode, someone unstake or undelgate
