@@ -21,9 +21,9 @@ use ckb_testtool::{
 };
 use molecule::prelude::*;
 use sparse_merkle_tree::CompiledMerkleProof;
-use util::smt::LockInfo;
+use util::smt::{u64_to_h256, LockInfo, TOP_SMT};
 
-use crate::smt::{construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo};
+use crate::smt::{construct_epoch_smt, construct_lock_info_smt, TopSmtInfo};
 
 pub const MAX_CYCLES: u64 = 100_000_000;
 
@@ -436,12 +436,20 @@ pub fn axon_stake_smt_cell_data(
 ) -> axon_types::stake::StakeSmtCellData {
     // call build_smt_tree_and_get_root and print error message
     let (root, _proof) = crate::smt::construct_lock_info_smt(stake_infos);
-    // println!("root: {:?}", root);
+    println!("axon_stake_smt_cell_data bottom root: {:?}", root);
+
+    let current_epoch = 0;
+    let mut stake_smt_top_tree = TOP_SMT::default();
+    let _ = stake_smt_top_tree.update(u64_to_h256(current_epoch), root);
+    println!(
+        "axon_stake_smt_cell_data top root: {:?}",
+        stake_smt_top_tree.root()
+    );
 
     axon_types::stake::StakeSmtCellData::new_builder()
         .version(0.into())
         .smt_root(basic::Byte32::new_unchecked(
-            root.as_slice().to_vec().into(),
+            stake_smt_top_tree.root().as_slice().to_vec().into(),
         ))
         .metadata_type_id(axon_byte32(metadata_type_id))
         .build()

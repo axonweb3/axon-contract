@@ -8,8 +8,7 @@ use std::iter::FromIterator;
 // };
 
 use crate::smt::{
-    construct_epoch_smt, construct_lock_info_smt, construct_propose_count_smt, u64_to_h256,
-    TopSmtInfo,
+    construct_epoch_smt, construct_lock_info_smt, construct_propose_count_smt, TopSmtInfo,
 };
 
 use super::*;
@@ -31,7 +30,7 @@ use helper::*;
 use molecule::prelude::*;
 // use sparse_merkle_tree::CompiledMerkleProof;
 use util::helper::ProposeCountObject;
-use util::smt::LockInfo;
+use util::smt::{u64_to_h256, LockInfo};
 
 #[test]
 fn test_metadata_creation_success() {
@@ -113,7 +112,7 @@ fn test_metadata_creation_success() {
 
     let propose_count = ProposeCountObject {
         addr: staker_addr,
-        count: 100 as u32,
+        count: 100 as u64,
     };
     let propose_infos = vec![propose_count];
     let (propose_count_root, _) = construct_propose_count_smt(&propose_infos);
@@ -188,7 +187,7 @@ fn test_metadata_success() {
     let staker_addr = pubkey_to_addr(&keypair.1.serialize());
     let propose_count = ProposeCount::new_builder()
         .address(axon_byte20(&staker_addr))
-        .count(axon_u32(100))
+        .count(axon_u64(100))
         .build();
     let propose_counts = vec![propose_count];
     let propose_counts = ProposeCounts::new_builder().set(propose_counts).build();
@@ -349,7 +348,7 @@ fn test_metadata_success() {
     );
     let propose_count = ProposeCountObject {
         addr: staker_addr,
-        count: 100 as u32,
+        count: 100 as u64,
     };
     let propose_infos = vec![propose_count];
     let (propose_count_root, _) = construct_propose_count_smt(&propose_infos);

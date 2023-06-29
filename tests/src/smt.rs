@@ -10,8 +10,8 @@ use sparse_merkle_tree::{
 use util::{
     helper::ProposeCountObject,
     smt::{
-        addr_to_h256, verify_2layer_smt, BottomValue, LockInfo, ProposeBottomValue, BOTTOM_SMT,
-        PROPOSE_BOTTOM_SMT, TOP_SMT,
+        addr_to_h256, u64_to_h256, verify_2layer_smt, BottomValue, LockInfo, ProposeBottomValue,
+        BOTTOM_SMT, PROPOSE_BOTTOM_SMT, TOP_SMT,
     },
 };
 
@@ -207,13 +207,13 @@ pub fn construct_propose_count_smt(
     }
 }
 
-pub fn u64_to_h256(epoch: u64) -> H256 {
-    let mut buf = [0u8; 32];
-    let mut hasher = new_blake2b();
-    hasher.update(&epoch.to_le_bytes());
-    hasher.finalize(&mut buf);
-    buf.into()
-}
+// pub fn u64_to_h256(epoch: u64) -> H256 {
+//     let mut buf = [0u8; 32];
+//     let mut hasher = new_blake2b();
+//     hasher.update(&epoch.to_le_bytes());
+//     hasher.finalize(&mut buf);
+//     buf.into()
+// }
 
 // top smt tree
 pub fn construct_epoch_smt(top_smt_infos: &Vec<TopSmtInfo>) -> (H256, MerkleProof) {

@@ -2,7 +2,7 @@ import basic;
 
 table ProposeCount {
     address: Byte20,
-    count:   Uint32,
+    count:   Uint64,
 }
 
 vector ProposeCounts <ProposeCount>;

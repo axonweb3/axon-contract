@@ -14,7 +14,7 @@
       "fields": [
         {
           "name": "bls_pub_key",
-          "type": "Byte97"
+          "type": "Byte48"
         },
         {
           "name": "pub_key",
@@ -356,6 +356,13 @@
       "name": "Byte32",
       "item": "byte",
       "item_count": 32,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte48",
+      "item": "byte",
+      "item_count": 48,
       "imported_depth": 1
     },
     {

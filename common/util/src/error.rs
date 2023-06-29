@@ -106,6 +106,10 @@ pub enum Error {
 
     // reward
     RewardWrongAmount,
+    RewardProposeCountBottomFail,
+    RewardProposeCountTopFail,
+    RewardStakeAmountBottomFail,
+    RewardStakeAmountTopFail,
 
     // requirement
     CommissionRateTooLarge,

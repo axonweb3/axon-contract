@@ -33,8 +33,8 @@ impl ::core::fmt::Display for ProposeCount {
 impl ::core::default::Default for ProposeCount {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            36, 0, 0, 0, 12, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0,
+            40, 0, 0, 0, 12, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         ProposeCount::new_unchecked(v.into())
     }
@@ -63,14 +63,14 @@ impl ProposeCount {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Byte20::new_unchecked(self.0.slice(start..end))
     }
-    pub fn count(&self) -> Uint32 {
+    pub fn count(&self) -> Uint64 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         if self.has_extra_fields() {
             let end = molecule::unpack_number(&slice[12..]) as usize;
-            Uint32::new_unchecked(self.0.slice(start..end))
+            Uint64::new_unchecked(self.0.slice(start..end))
         } else {
-            Uint32::new_unchecked(self.0.slice(start..))
+            Uint64::new_unchecked(self.0.slice(start..))
         }
     }
     pub fn as_reader<'r>(&'r self) -> ProposeCountReader<'r> {
@@ -156,14 +156,14 @@ impl<'r> ProposeCountReader<'r> {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Byte20Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn count(&self) -> Uint32Reader<'r> {
+    pub fn count(&self) -> Uint64Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         if self.has_extra_fields() {
             let end = molecule::unpack_number(&slice[12..]) as usize;
-            Uint32Reader::new_unchecked(&self.as_slice()[start..end])
+            Uint64Reader::new_unchecked(&self.as_slice()[start..end])
         } else {
-            Uint32Reader::new_unchecked(&self.as_slice()[start..])
+            Uint64Reader::new_unchecked(&self.as_slice()[start..])
         }
     }
 }
@@ -217,14 +217,14 @@ impl<'r> molecule::prelude::Reader<'r> for ProposeCountReader<'r> {
             return ve!(Self, OffsetsNotMatch);
         }
         Byte20Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        Uint32Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        Uint64Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct ProposeCountBuilder {
     pub(crate) address: Byte20,
-    pub(crate) count: Uint32,
+    pub(crate) count: Uint64,
 }
 impl ProposeCountBuilder {
     pub const FIELD_COUNT: usize = 2;
@@ -232,7 +232,7 @@ impl ProposeCountBuilder {
         self.address = v;
         self
     }
-    pub fn count(mut self, v: Uint32) -> Self {
+    pub fn count(mut self, v: Uint64) -> Self {
         self.count = v;
         self
     }
