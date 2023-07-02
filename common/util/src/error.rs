@@ -39,6 +39,8 @@ pub enum Error {
     // stake smt
     StakeSmtTypeIdMismatch,
     StakeSmtUpdateDataError,
+    StakeSmtVerifyOldError,
+    StakeSmtVerifySelectionError,
 
     // selection contract
     OmniRewardCountError,

@@ -122,9 +122,7 @@ fn verify_withdraw_amount(
         if input_amount + unstake_amount != output_amount {
             return Err(Error::BadUnstake);
         }
-        if input_info.version() != output_info.version()
-            || input_info.metadata_type_id() != output_info.metadata_type_id()
-        {
+        if input_info.lock().version() != output_info.lock().version() {
             return Err(Error::WithdrawUpdateDataError);
         }
     }
@@ -197,12 +195,16 @@ fn verify_old_stake_infos(
     let epoch_root: H256 = epoch_root.into();
     let epoch_proof = CompiledMerkleProof(stake_smt_update_infos.old_epoch_proof());
     debug!("epoch_proof:{:?}", epoch_proof);
-    verify_2layer_smt(
+    let result = verify_2layer_smt(
         &stake_infos_set,
         u64_to_h256(epoch),
         epoch_root,
         epoch_proof,
     )?;
+    if !result {
+        return Err(Error::StakeSmtVerifyOldError);
+    }
+    debug!("verify_old_stake_infos verify_2layer_smt result:{}", result);
     Ok(())
 }
 
@@ -229,12 +231,16 @@ fn verify_staker_seletion(
     let new_epoch_root: H256 = new_epoch_root.into();
     let new_epoch_proof = stake_smt_update_infos.new_epoch_proof();
     let new_epoch_proof = CompiledMerkleProof(new_epoch_proof);
-    verify_2layer_smt(
+    let result = verify_2layer_smt(
         &new_stake_infos_set,
         u64_to_h256(epoch),
         new_epoch_root,
         new_epoch_proof,
     )?;
+    debug!("verify_staker_seletion verify_2layer_smt result:{}", result);
+    if !result {
+        return Err(Error::StakeSmtVerifySelectionError);
+    }
 
     Ok(())
 }
