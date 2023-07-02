@@ -329,9 +329,13 @@ pub fn axon_delegate_smt_cell_data(
     let (delegate_epoch_root, delegate_epoch_proof) = construct_epoch_smt(&delegate_top_smt_infos);
     let delegate_epoch_proof = CompiledMerkleProof(
         delegate_epoch_proof
-            .compile(vec![u64_to_h256(3)])
+            .compile(vec![u64_to_h256(epoch)])
             .unwrap()
             .0,
+    );
+    println!(
+        "axon_delegate_smt_cell_data delegate_epoch_root: {:?}, delegate_epoch_proof: {:?}, delegate_root: {:?}",
+        delegate_epoch_root, delegate_epoch_proof.0, delegate_root
     );
 
     let stake_smt_root = StakerSmtRoot::new_builder()

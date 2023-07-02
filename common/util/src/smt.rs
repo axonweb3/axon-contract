@@ -257,7 +257,10 @@ pub fn verify_2layer_smt(
 ) -> Result<bool, Error> {
     // construct old stake smt root & verify
     let bottom_root = get_bottom_smt_root(lock_infos);
-    debug!("bottom_root: {:?}", bottom_root);
+    debug!(
+        "verify_2layer_smt calculated bottom_root: {:?}, top_root: {:?}, top_proof: {:?}",
+        bottom_root, top_root, top_proof
+    );
     verify_top_smt(epoch, bottom_root, top_root, top_proof)
 }
 

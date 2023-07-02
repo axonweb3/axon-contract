@@ -158,6 +158,7 @@ fn update_delegate_info(
         amount: old_delegate,
     };
     delegate_infos_set.insert(delegate_info_obj);
+    debug!("delegate_info_obj: {:?}", delegate_info_obj);
 
     // get input & output withdraw AT cell, we need to update this after withdraw script's finish
     if redeem_amount > 0 {
@@ -192,7 +193,7 @@ fn verify_delegator_seletion(
     let new_epoch_proof = CompiledMerkleProof(new_epoch_proof);
     let result = verify_2layer_smt(
         &new_delegate_infos_set,
-        u64_to_h256(epoch),
+        u64_to_h256(epoch + 2),
         new_epoch_root,
         new_epoch_proof,
     )?;
@@ -200,6 +201,9 @@ fn verify_delegator_seletion(
         "verify_2layer_smt new delegate_infos_set result: {}",
         result
     );
+    if !result {
+        return Err(Error::DelegateSmtVerifySelectionError);
+    }
 
     Ok(())
 }
@@ -258,7 +262,7 @@ fn update_delegate_smt(
         let old_epoch_root: H256 = old_epoch_root.into();
         let result = verify_2layer_smt(
             &delegate_infos_set,
-            u64_to_h256(epoch),
+            u64_to_h256(epoch + 2),
             old_epoch_root,
             old_epoch_proof,
         )?;
@@ -268,10 +272,10 @@ fn update_delegate_smt(
         );
 
         // update old delegate info to new delegate info based on input delegate at cells
-        let delegate_at_type_id: [u8; 32] = xudt_type_hash.as_slice().try_into().unwrap();
+        let xudt_type_hash: [u8; 32] = xudt_type_hash.as_slice().try_into().unwrap();
+        // debug!("xudt_type_hash: {:?}", xudt_type_hash);
         // get this staker's delegate update infos
-        let update_infos =
-            get_delegate_update_infos(&staker, &delegate_at_type_id, Source::GroupInput)?;
+        let update_infos = get_delegate_update_infos(&staker, &xudt_type_hash, Source::Input)?;
         // update old delegate infos to new delegate infos
         for (delegator_addr, delegate_at_lock_hash, delegate_info_delta) in update_infos {
             let inauguration_epoch = delegate_info_delta.inauguration_epoch();
@@ -281,7 +285,7 @@ fn update_delegate_smt(
 
             // after updated to smt cell, the output delegate should be reset
             let output_delegate_info_delta =
-                get_delegate_delta(&staker, &delegate_at_lock_hash, Source::GroupOutput)?;
+                get_delegate_delta(&staker, &delegate_at_lock_hash, Source::Output)?;
             let output_delegate = bytes_to_u128(&output_delegate_info_delta.amount());
             let output_increase: bool = output_delegate_info_delta.is_increase() == 1;
             let output_inaugutation_epoch = output_delegate_info_delta.inauguration_epoch();

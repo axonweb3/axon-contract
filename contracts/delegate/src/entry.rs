@@ -47,12 +47,12 @@ pub fn main() -> Result<(), Error> {
                     return Err(Error::WitnessLockError);
                 }
                 debug!(
-                    "witness_lock:{:?}",
+                    "witness_lock data len:{:?}",
                     witness_lock.clone().unwrap().raw_data().len()
                 );
                 let value: delegate_reader::DelegateAtWitness =
                     Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
-                debug!("witness mode: {}", value.mode());
+                // debug!("witness mode: {}", value.mode());
                 value.mode()
             };
             debug!("delegate at mode: {}", mode);

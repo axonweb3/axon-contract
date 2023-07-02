@@ -412,6 +412,10 @@ pub fn get_delegate_update_infos(
     source: Source,
 ) -> Result<Vec<([u8; 20], [u8; 32], DelegateInfoDelta)>, Error> {
     let mut delegate_update_infos = Vec::<([u8; 20], [u8; 32], DelegateInfoDelta)>::default();
+    debug!(
+        "get_delegate_update_infos staker: {:?}, cell_type_hash: {:?}",
+        staker, cell_type_hash
+    );
     QueryIter::new(load_cell_type_hash, source)
         .enumerate()
         .for_each(|(i, type_hash)| {
@@ -429,6 +433,7 @@ pub fn get_delegate_update_infos(
                     if delegate_info.staker() == *staker {
                         let address: [u8; 20] =
                             delegate_at_data.l1_address().as_slice().try_into().unwrap();
+                        // debug!("delegate_info.staker: {:?}, amount: {}", delegate_info.staker(), delegate_info.amount());
                         delegate_update_infos.push((address, lock_hash, delegate_info));
                         break;
                     }
@@ -436,6 +441,7 @@ pub fn get_delegate_update_infos(
             }
         });
 
+    debug!("delegate_update_infos len: {}", delegate_update_infos.len());
     Ok(delegate_update_infos)
 }
 
