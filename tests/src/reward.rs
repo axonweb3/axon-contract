@@ -1,18 +1,11 @@
+use crate::smt::Blake2bHasher;
 use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::iter::FromIterator;
-// use std::convert::TryInto;
-
-// use crate::smt::{
-// construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
-// };
-
-use crate::smt::{u64_to_h256, Blake2bHasher};
 
 use super::*;
 use axon_types::checkpoint::CheckpointCellData;
 use axon_types::delegate::DelegateInfoDeltas;
-// use axon_types::delegate::{DelegateInfos, StakerSmtRoot, StakerSmtRoots};
 use axon_types::metadata::MetadataList;
 use axon_types::reward::{
     EpochRewardStakeInfo, EpochRewardStakeInfos, NotClaimInfo, RewardDelegateInfos,
@@ -20,20 +13,14 @@ use axon_types::reward::{
 };
 use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::core::ScriptHashType;
-// use ckb_testtool::ckb_types::H256;
-// use axon_types::stake::*;
-// use bit_vec::BitVec;
-// use ckb_system_scripts::BUNDLED_CELL;
-// use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
 use sparse_merkle_tree::{CompiledMerkleProof, H256};
-// use sparse_merkle_tree::CompiledMerkleProof;
 use util::smt::{
-    addr_to_h256, u128_to_h256, BottomValue, EpochValue, LockInfo, ProposeBottomValue, BOTTOM_SMT,
-    CLAIM_SMT, PROPOSE_BOTTOM_SMT, TOP_SMT,
+    addr_to_h256, u128_to_h256, u64_to_h256, BottomValue, EpochValue, LockInfo, ProposeBottomValue,
+    BOTTOM_SMT, CLAIM_SMT, PROPOSE_BOTTOM_SMT, TOP_SMT,
 };
 
 #[test]
@@ -161,8 +148,11 @@ fn test_reward_success() {
             Bytes::from(vec![3]),
         )
         .expect("checkpoint script");
-    // epoch must be 3, so that the reward of epoch 1 can be claimed
-    let checkpoint_data = CheckpointCellData::new_builder().epoch(axon_u64(3)).build();
+    // epoch must be 3(no small than 2), so that the reward of epoch 0 can be claimed
+    let current_epoch = 3 as u64;
+    let checkpoint_data = CheckpointCellData::new_builder()
+        .epoch(axon_u64(current_epoch))
+        .build();
     let checkpoint_script_dep = CellDep::new_builder()
         .out_point(
             context.create_cell(
@@ -237,6 +227,7 @@ fn test_reward_success() {
     // prepare metadata
     let metadata_list = MetadataList::new_builder().build();
 
+    let claim_epoch = 0;
     let propose_count = 1000;
     let mut propose_count_smt_bottom_tree = PROPOSE_BOTTOM_SMT::default();
     propose_count_smt_bottom_tree
@@ -252,17 +243,27 @@ fn test_reward_success() {
         .compile(vec![addr_to_h256(&staker_addr)])
         .unwrap()
         .0;
+    // println!(
+    //     "verify propose count smt bottom proof: {:?}, bottom root: {:?}, count: {:?}, epoch: {}",
+    //     propose_count_smt_bottom_proof,
+    //     propose_count_smt_bottom_tree.root(),
+    //     propose_count,
+    //     claim_epoch
+    // );
 
     let mut propose_count_smt_top_tree = TOP_SMT::default();
     let propose_count_smt_bottom_tree_root = propose_count_smt_bottom_tree.root();
     propose_count_smt_top_tree
-        .update(u64_to_h256(1), *propose_count_smt_bottom_tree_root)
+        .update(
+            u64_to_h256(claim_epoch),
+            *propose_count_smt_bottom_tree_root,
+        )
         .expect("update propose count smt top tree");
     let propose_count_smt_top_proof = propose_count_smt_top_tree
-        .merkle_proof(vec![u64_to_h256(1)])
+        .merkle_proof(vec![u64_to_h256(claim_epoch)])
         .unwrap();
     let propose_count_smt_top_proof = propose_count_smt_top_proof
-        .compile(vec![u64_to_h256(1)])
+        .compile(vec![u64_to_h256(claim_epoch)])
         .unwrap()
         .0;
     let propose_count_smt_top_tree_root = propose_count_smt_top_tree.root();
@@ -274,7 +275,7 @@ fn test_reward_success() {
         &stake_smt_type_script,
         &delegate_smt_type_script,
         metadata_list.clone(),
-        3,
+        current_epoch,
         propose_count_smt_top_tree_root
             .as_slice()
             .try_into()
@@ -360,7 +361,7 @@ fn test_reward_success() {
     );
 
     let mut new_claim_tree = CLAIM_SMT::default();
-    // only claim the reward of epoch 1, current epoch is 3
+    // only claim the reward of epoch 0, current epoch is 3
     new_claim_tree
         .update(addr_to_h256(&staker_addr), EpochValue(1))
         .expect("update");
@@ -393,7 +394,7 @@ fn test_reward_success() {
     let reward_stake_info = RewardStakeInfo::new_builder()
         .validator(axon_identity(&keypair.1.serialize()))
         .staker_amount(axon_u128(stake_amount))
-        .propose_count(axon_u64(100))
+        .propose_count(axon_u64(propose_count))
         .delegate_infos(delegate_infos)
         .delegate_epoch_proof(axon_bytes(&delegate_epoch_proof.0.to_vec()))
         .build();
@@ -412,16 +413,35 @@ fn test_reward_success() {
         .compile(vec![addr_to_h256(&staker_addr)])
         .unwrap()
         .0;
+
     let mut stake_smt_top_tree = TOP_SMT::default();
     let stake_smt_bottom_tree_root = stake_smt_bottom_tree.root();
     stake_smt_top_tree
-        .update(u64_to_h256(1), *stake_smt_bottom_tree_root)
+        .update(u64_to_h256(claim_epoch), *stake_smt_bottom_tree_root)
         .expect("update stake smt top tree");
     let stake_smt_top_proof = stake_smt_top_tree
-        .merkle_proof(vec![addr_to_h256(&staker_addr)])
+        .merkle_proof(vec![u64_to_h256(claim_epoch)])
         .unwrap();
-    let stake_smt_top_proof = stake_smt_top_proof.compile(vec![u64_to_h256(1)]).unwrap().0;
+    let stake_smt_top_proof = stake_smt_top_proof
+        .compile(vec![u64_to_h256(claim_epoch)])
+        .unwrap()
+        .0;
 
+    {
+        let stake_smt_top_proof = CompiledMerkleProof(stake_smt_top_proof.clone());
+        let leaves = vec![(u64_to_h256(claim_epoch), *stake_smt_bottom_tree_root)];
+        let result = stake_smt_top_proof
+            .verify::<Blake2bHasher>(stake_smt_top_tree.root(), leaves)
+            .unwrap();
+        println!("stake_smt_top_proof result: {}", result);
+    }
+    // println!(
+    //     "stake_smt_top_proof: {:?}, root: {:?}, bottom root: {:?}, current epoch: {}",
+    //     stake_smt_top_proof.clone(),
+    //     stake_smt_top_tree.root(),
+    //     stake_smt_bottom_tree_root,
+    //     claim_epoch
+    // );
     let epoch_reward_stake_info = EpochRewardStakeInfo::new_builder()
         .amount_epoch_proof(axon_bytes(&stake_smt_top_proof))
         .amount_proof(axon_bytes(&stake_smt_bottom_proof))
@@ -443,7 +463,7 @@ fn test_reward_success() {
         .new_not_claim_info(new_not_claim_info)
         .build();
     let reward_witness = WitnessArgs::new_builder()
-        .lock(Some(Bytes::from(reward_witness.as_bytes())).pack())
+        .input_type(Some(Bytes::from(reward_witness.as_bytes())).pack())
         .build();
 
     // prepare signed tx

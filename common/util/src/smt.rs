@@ -60,7 +60,7 @@ impl Value for BottomValue {
 
 // define SMT value
 #[derive(Default, Clone, Copy)]
-pub struct ProposeBottomValue(pub u32);
+pub struct ProposeBottomValue(pub u64);
 impl Value for ProposeBottomValue {
     fn to_h256(&self) -> H256 {
         let mut buf = [0u8; 32];
@@ -170,6 +170,14 @@ pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
     buf.into()
 }
 
+// pub fn u32_to_h256(propose_count: u32) -> H256 {
+//     let mut buf = [0u8; 32];
+//     let mut hasher = new_blake2b();
+//     hasher.update(&propose_count.to_le_bytes());
+//     hasher.finalize(&mut buf);
+//     buf.into()
+// }
+
 pub fn u64_to_h256(epoch: u64) -> H256 {
     let mut buf = [0u8; 32];
     let mut hasher = new_blake2b();
@@ -249,7 +257,10 @@ pub fn verify_2layer_smt(
 ) -> Result<bool, Error> {
     // construct old stake smt root & verify
     let bottom_root = get_bottom_smt_root(lock_infos);
-    debug!("bottom_root: {:?}", bottom_root);
+    debug!(
+        "verify_2layer_smt calculated bottom_root: {:?}, top_root: {:?}, top_proof: {:?}",
+        bottom_root, top_root, top_proof
+    );
     verify_top_smt(epoch, bottom_root, top_root, top_proof)
 }
 

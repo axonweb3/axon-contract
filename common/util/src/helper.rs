@@ -115,7 +115,7 @@ impl PartialEq for MinerGroupInfoObject {
 #[derive(Clone, Default, Debug)]
 pub struct ProposeCountObject {
     pub addr: [u8; 20],
-    pub count: u32,
+    pub count: u64,
 }
 
 pub fn find_script_input(script: &Script) -> bool {
@@ -256,7 +256,7 @@ pub fn get_xudt_by_type_hash(type_hash: &Vec<u8>, source: Source) -> Result<u128
         .map(|(i, cell_type_hash)| {
             if cell_type_hash.unwrap_or([0u8; 32]) == type_hash[..] {
                 let data = load_cell_data(i, source).unwrap();
-                debug!("sudt cell data len: {}", data.len());
+                // debug!("sudt cell data len: {}", data.len());
                 if data.len() < 16 {
                     return Err(Error::BadSudtDataFormat);
                 }
@@ -412,6 +412,10 @@ pub fn get_delegate_update_infos(
     source: Source,
 ) -> Result<Vec<([u8; 20], [u8; 32], DelegateInfoDelta)>, Error> {
     let mut delegate_update_infos = Vec::<([u8; 20], [u8; 32], DelegateInfoDelta)>::default();
+    debug!(
+        "get_delegate_update_infos staker: {:?}, cell_type_hash: {:?}",
+        staker, cell_type_hash
+    );
     QueryIter::new(load_cell_type_hash, source)
         .enumerate()
         .for_each(|(i, type_hash)| {
@@ -429,6 +433,7 @@ pub fn get_delegate_update_infos(
                     if delegate_info.staker() == *staker {
                         let address: [u8; 20] =
                             delegate_at_data.l1_address().as_slice().try_into().unwrap();
+                        // debug!("delegate_info.staker: {:?}, amount: {}", delegate_info.staker(), delegate_info.amount());
                         delegate_update_infos.push((address, lock_hash, delegate_info));
                         break;
                     }
@@ -436,6 +441,7 @@ pub fn get_delegate_update_infos(
             }
         });
 
+    debug!("delegate_update_infos len: {}", delegate_update_infos.len());
     Ok(delegate_update_infos)
 }
 
@@ -524,7 +530,7 @@ pub fn get_metada_data_by_type_id(
             if &lock_hash.unwrap_or([0u8; 32]) == cell_type_id {
                 // debug!("get_metada_data_by_type_id index: {}", i);
                 let data = load_cell_data(i, source).unwrap();
-                debug!("get_metada_data_by_type_id index: {}", i);
+                // debug!("get_metada_data_by_type_id index: {}", i);
                 metadata = Some(Cursor::from(data[..].to_vec()).into());
             }
         });
@@ -667,16 +673,16 @@ pub fn get_reward_smt_data(type_id: &[u8; 32], source: Source) -> Result<RewardS
         .enumerate()
         .for_each(|(i, type_hash)| {
             if &type_hash.unwrap_or([0u8; 32]) == type_id {
-                debug!(
-                    "get_reward_smt_data index: {}, type_hash: {:?}",
-                    i, type_hash
-                );
+                // debug!(
+                //     "get_reward_smt_data index: {}, type_hash: {:?}",
+                //     i, type_hash
+                // );
                 let data = load_cell_data(i, source).unwrap();
-                debug!("get_reward_smt_data data len: {}", data.len());
+                // debug!("get_reward_smt_data data len: {}", data.len());
                 reward_smt_data = Some(Cursor::from(data[..].to_vec()).into());
             }
         });
-    debug!("get_reward_smt_data ok");
+    // debug!("get_reward_smt_data ok");
     Ok(reward_smt_data.unwrap())
 }
 

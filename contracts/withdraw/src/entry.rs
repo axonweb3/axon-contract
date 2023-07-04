@@ -8,7 +8,8 @@ use core::result::Result;
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, prelude::*},
-    high_level::{load_cell_lock_hash, load_script, load_witness_args}, debug,
+    debug,
+    high_level::{load_cell_lock_hash, load_script, load_witness_args},
 };
 
 use axon_types::{withdraw_reader, Cursor};
@@ -97,7 +98,10 @@ pub fn main() -> Result<(), Error> {
     );
 
     let epoch = get_current_epoch(&checkpoint_type_id.to_vec())?;
-    debug!("epoch: {:?}, in_amount: {}, out_amount: {}", epoch, in_amount, out_amount);
+    debug!(
+        "epoch: {:?}, in_amount: {}, out_amount: {}",
+        epoch, in_amount, out_amount
+    );
 
     if withdraw_witness.is_none() {
         // ACP mode, someone unstake or undelgate

@@ -23,7 +23,7 @@ impl ProposeCount {
 }
 
 impl ProposeCount {
-    pub fn count(&self) -> u32 {
+    pub fn count(&self) -> u64 {
         let cur = self.cursor.table_slice_by_index(1).unwrap();
         cur.into()
     }

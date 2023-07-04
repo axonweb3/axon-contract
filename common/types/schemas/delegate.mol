@@ -59,7 +59,7 @@ table DelegateAtWitness {
 // delegate smt cell
 table StakerSmtRoot {
     staker: Identity,
-    root:   Byte32,
+    root:   Byte32, // 2-layer smt tree root
 }
 
 vector StakerSmtRoots <StakerSmtRoot>;

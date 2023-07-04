@@ -1,37 +1,24 @@
+use crate::smt::{
+    construct_epoch_smt, construct_lock_info_smt, construct_propose_count_smt, TopSmtInfo,
+};
 use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::iter::FromIterator;
-// use std::convert::TryInto;
-
-// use crate::smt::{
-// construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo, BOTTOM_SMT,
-// };
-
-use crate::smt::{
-    construct_epoch_smt, construct_lock_info_smt, construct_propose_count_smt, u64_to_h256,
-    TopSmtInfo,
-};
 
 use super::*;
 use axon_types::checkpoint::{CheckpointCellData, ProposeCount, ProposeCounts};
-// use axon_types::delegate::{DelegateInfos, StakerSmtRoot, StakerSmtRoots};
 use axon_types::metadata::{
     DelegateProof, DelegateProofs, ElectionSmtProof, Metadata, MetadataArgs, MetadataList,
     MetadataWitness, MinerGroupInfo, MinerGroupInfos, StakeSmtElectionInfo,
 };
 use ckb_testtool::ckb_crypto::secp::Generator;
-// use ckb_testtool::ckb_types::H256;
-// use axon_types::stake::*;
-// use bit_vec::BitVec;
-// use ckb_system_scripts::BUNDLED_CELL;
-// use ckb_testtool::ckb_crypto::secp::Generator;
+use ckb_testtool::ckb_types::core::ScriptHashType;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-// use sparse_merkle_tree::CompiledMerkleProof;
 use util::helper::ProposeCountObject;
-use util::smt::LockInfo;
+use util::smt::{u64_to_h256, LockInfo};
 
 #[test]
 fn test_metadata_creation_success() {
@@ -52,7 +39,11 @@ fn test_metadata_creation_success() {
         .metadata_type_id(axon_byte32(&[1u8; 32].pack()))
         .build();
     let metadata_type_script = context
-        .build_script(&contract_out_point, Bytes::from(metadata_args.as_bytes()))
+        .build_script_with_hash_type(
+            &contract_out_point,
+            ScriptHashType::Type,
+            Bytes::from(metadata_args.as_bytes()),
+        )
         .expect("metadata type script");
     println!(
         "metadata type script: {:?}",
@@ -66,7 +57,11 @@ fn test_metadata_creation_success() {
     let staker_addr = pubkey_to_addr(&keypair.1.serialize());
     // prepare checkpoint lock_script
     let checkpoint_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![2]))
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![2]),
+        )
         .expect("checkpoint script");
     let checkpoint_data = CheckpointCellData::new_builder().build();
     // prepare checkpoint cell_dep
@@ -113,7 +108,7 @@ fn test_metadata_creation_success() {
 
     let propose_count = ProposeCountObject {
         addr: staker_addr,
-        count: 100 as u32,
+        count: 100 as u64,
     };
     let propose_infos = vec![propose_count];
     let (propose_count_root, _) = construct_propose_count_smt(&propose_infos);
@@ -174,7 +169,11 @@ fn test_metadata_success() {
         .metadata_type_id(axon_byte32(&[1u8; 32].pack()))
         .build();
     let metadata_type_script = context
-        .build_script(&contract_out_point, Bytes::from(metadata_args.as_bytes()))
+        .build_script_with_hash_type(
+            &contract_out_point,
+            ScriptHashType::Type,
+            Bytes::from(metadata_args.as_bytes()),
+        )
         .expect("metadata type script");
     println!(
         "metadata type script: {:?}",
@@ -188,14 +187,22 @@ fn test_metadata_success() {
     let staker_addr = pubkey_to_addr(&keypair.1.serialize());
     let propose_count = ProposeCount::new_builder()
         .address(axon_byte20(&staker_addr))
-        .count(axon_u32(100))
+        .count(axon_u64(100))
         .build();
     let propose_counts = vec![propose_count];
     let propose_counts = ProposeCounts::new_builder().set(propose_counts).build();
     // prepare checkpoint lock_script
     let checkpoint_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![2]))
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![2]),
+        )
         .expect("checkpoint script");
+    println!(
+        "checkpoint script: {:?}",
+        checkpoint_type_script.calc_script_hash()
+    );
     let checkpoint_data = CheckpointCellData::new_builder()
         .version(0.into())
         .epoch(axon_u64(1))
@@ -203,12 +210,10 @@ fn test_metadata_success() {
         // .latest_block_hash(v)
         .latest_block_height(axon_u64(10))
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-        // .propose_count(v)
         .state_root(axon_byte32(&[0u8; 32].pack()))
         .timestamp(axon_u64(11111))
         .propose_count(propose_counts)
         .build();
-    // prepare checkpoint cell_dep
     // println!("checkpoint data: {:?}", checkpoint_data.as_bytes().len());
     let checkpoint_script_dep = CellDep::new_builder()
         .out_point(
@@ -229,11 +234,19 @@ fn test_metadata_success() {
         // .stake_addr(axon_identity_none())
         .build();
     let stake_smt_type_script = context
-        .build_script(&always_success_out_point, stake_smt_args.as_bytes())
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            stake_smt_args.as_bytes(),
+        )
         .expect("stake smt type script");
 
     let delegate_smt_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![1]))
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![1]),
+        )
         .expect("delegate smt type script");
 
     // prepare tx inputs and outputs
@@ -349,7 +362,7 @@ fn test_metadata_success() {
     );
     let propose_count = ProposeCountObject {
         addr: staker_addr,
-        count: 100 as u32,
+        count: 100 as u64,
     };
     let propose_infos = vec![propose_count];
     let (propose_count_root, _) = construct_propose_count_smt(&propose_infos);
@@ -423,7 +436,7 @@ fn test_metadata_success() {
         .smt_election_info(stake_smt_election_info)
         .build();
     let metadata_witness = WitnessArgs::new_builder()
-        .lock(Some(Bytes::from(metadata_witness.as_bytes())).pack())
+        .input_type(Some(Bytes::from(metadata_witness.as_bytes())).pack())
         .build();
 
     // prepare signed tx
@@ -432,8 +445,10 @@ fn test_metadata_success() {
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
         .witnesses(vec![
-            metadata_witness.as_bytes().pack(),
             stake_smt_witness.as_bytes().pack(),
+            Bytes::default().pack(),
+            // metadata_witness.as_bytes().pack(),
+            metadata_witness.as_bytes().pack(),
         ])
         .cell_dep(contract_dep)
         .cell_dep(checkpoint_script_dep)

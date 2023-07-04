@@ -39,6 +39,8 @@ pub enum Error {
     // stake smt
     StakeSmtTypeIdMismatch,
     StakeSmtUpdateDataError,
+    StakeSmtVerifyOldError,
+    StakeSmtVerifySelectionError,
 
     // selection contract
     OmniRewardCountError,
@@ -73,6 +75,7 @@ pub enum Error {
     StaleDelegateInfo,
     IllegalDefaultDelegateInfo,
     DelegateSmtTypeIdMismatch,
+    DelegateSmtVerifySelectionError,
 
     // checkpoint
     CheckpointDataEmpty = 90,
@@ -91,6 +94,7 @@ pub enum Error {
     StakerNonExist,
     StakerNotFound,
     MetadataNotFound,
+    MetadataProposeCountVerifyFail,
 
     // withdraw
     WrongOutWithdrawArraySize = 110,
@@ -106,6 +110,10 @@ pub enum Error {
 
     // reward
     RewardWrongAmount,
+    RewardProposeCountBottomFail,
+    RewardProposeCountTopFail,
+    RewardStakeAmountBottomFail,
+    RewardStakeAmountTopFail,
 
     // requirement
     CommissionRateTooLarge,

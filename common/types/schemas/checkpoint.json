@@ -18,7 +18,7 @@
         },
         {
           "name": "count",
-          "type": "Uint32"
+          "type": "Uint64"
         }
       ]
     },
@@ -126,6 +126,13 @@
       "name": "Byte32",
       "item": "byte",
       "item_count": 32,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte48",
+      "item": "byte",
+      "item_count": 48,
       "imported_depth": 1
     },
     {

@@ -19,7 +19,6 @@ use axon_types::{
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
     ckb_constants::Source,
-    ckb_types::{bytes::Bytes, prelude::*},
     debug,
     high_level::{load_script, load_witness_args},
 };
@@ -43,23 +42,32 @@ pub fn main() -> Result<(), Error> {
     // debug!("begin metadata verification");
     let script = load_script()?;
     // debug!("script: {:?}", script);
-    let metadata_type_id = util::helper::calc_script_hash(&script).to_vec();
-    debug!("metadata_type_id = {:?}", metadata_type_id);
-    let input_metadata_count = get_cell_count_by_type_hash(&metadata_type_id, Source::Input);
+    let metadata_type_id = calc_script_hash(&script);
+    // debug!("metadata_type_id = {:?}", metadata_type_id);
+    let input_metadata_count =
+        get_cell_count_by_type_hash(&metadata_type_id.to_vec(), Source::Input);
     if input_metadata_count == 0 {
         debug!("metadata cell creation");
         return Ok(());
     }
 
-    let args: Bytes = script.args().unpack();
-    let metadata_args: metadata_reader::MetadataArgs = Cursor::from(args.to_vec()).into();
-    debug!(
-        "metadata_args script args {:?}",
-        metadata_args.metadata_type_id()
-    );
-    // let metadata_type_id = metadata_args.metadata_type_id();
-    let metadata_type_id = calc_script_hash(&script);
-    debug!("metadata_type_id: {:?}", metadata_type_id);
+    let witness_args = load_witness_args(0, Source::GroupInput);
+    let metadata_witness = match witness_args {
+        Ok(witness) => {
+            let witness_input_type = witness.input_type().to_opt();
+            // debug!("witness_input_type: {:?}", witness_input_type);
+            if witness_input_type.is_none() {
+                return Err(Error::WitnessLockError);
+            }
+            let value: metadata_reader::MetadataWitness =
+                Cursor::from(witness_input_type.unwrap().raw_data().to_vec()).into();
+            value
+        }
+        Err(_) => {
+            return Err(Error::UnknownMode);
+        }
+    };
+
     let type_ids = get_type_ids(&metadata_type_id, Source::Input)?;
     let input_metadata = get_metada_data_by_type_id(&metadata_type_id, Source::Input)?;
     let output_metadata = get_metada_data_by_type_id(&metadata_type_id, Source::Output)?;
@@ -75,7 +83,7 @@ pub fn main() -> Result<(), Error> {
         &type_ids.checkpoint_code_hash(),
         &type_ids.checkpoint_type_id(),
     );
-    debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
+    // debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
     let (_, checkpoint_data) =
         get_checkpoint_by_type_id(&checkpoint_script_hash.to_vec(), Source::CellDep)?;
 
@@ -83,18 +91,12 @@ pub fn main() -> Result<(), Error> {
     verify_last_checkpoint_of_epoch(&metadata_type_id.to_vec(), &checkpoint_data)?;
 
     debug!("verify_propose_counts");
-    verify_propose_counts(&checkpoint_data, &output_metadata)?;
+    verify_propose_counts(&checkpoint_data, &output_metadata, &metadata_witness)?;
 
     debug!("verify_election");
-    verify_election(&type_ids)?;
+    verify_election(&type_ids, &metadata_witness.smt_election_info())?;
 
     // verify lock_info smt root of stake in epoch n + 1 is equal to n
-
-    // just to pass compile
-    // let staker_identity = vec![0u8; 20];
-    // if !secp256k1::verify_signature(&staker_identity) {
-    //     return Err(Error::SignatureMismatch);
-    // }
 
     Ok(())
 }
@@ -167,6 +169,7 @@ fn verify_last_checkpoint_of_epoch(
 fn verify_propose_counts(
     checkpoint_data: &CheckpointCellData,
     output_metadata: &MetadataCellData,
+    metadata_witness: &MetadataWitness,
 ) -> Result<(), Error> {
     let propose_counts = checkpoint_data.propose_count();
     let mut propose_count_objs: Vec<ProposeCountObject> = vec![];
@@ -182,33 +185,7 @@ fn verify_propose_counts(
         propose_count_objs.push(propose_count_obj);
     }
     // verify new data by propose_smt_root from output
-    let epoch_proof: Vec<u8>;
-    let witness_args = load_witness_args(0, Source::Input);
-    match witness_args {
-        Ok(witness) => {
-            // epoch_proof = witness.lock().as_slice().to_vec();
-            // let input_type = witness.input_type().to_opt();
-            // if input_type.is_none() {
-            //     return Err(Error::BadWitnessInputType);
-            // }
-            // let input_type: u8 = input_type.unwrap().raw_data().to_vec().first().unwarp();
-            // let input_type = *input_type.unwrap().raw_data().to_vec().first().unwrap();
-            // debug!("input_type: {:?}", input_type);
-            epoch_proof = {
-                let witness_lock = witness.lock().to_opt();
-                debug!("witness_lock: {:?}", witness_lock);
-                if witness_lock.is_none() {
-                    return Err(Error::WitnessLockError);
-                }
-                let value: metadata_reader::MetadataWitness =
-                    Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
-                value.new_propose_proof()
-            };
-        }
-        Err(_) => {
-            return Err(Error::UnknownMode);
-        }
-    };
+    let epoch_proof: Vec<u8> = metadata_witness.new_propose_proof();
     let epoch_root: [u8; 32] = output_metadata.propose_count_smt_root().try_into().unwrap();
     let epoch_root: H256 = epoch_root.into();
     let epoch_proof = CompiledMerkleProof(epoch_proof);
@@ -218,12 +195,15 @@ fn verify_propose_counts(
         epoch_root,
         epoch_proof,
     )?;
+    if result == false {
+        return Err(Error::MetadataProposeCountVerifyFail);
+    }
     debug!("verify_2layer_smt_propose result: {:?}", result);
 
     Ok(())
 }
 
-fn verify_election(type_ids: &TypeIds) -> Result<(), Error> {
+fn verify_election(type_ids: &TypeIds, election_infos: &StakeSmtElectionInfo) -> Result<(), Error> {
     /*
         let stake_smt_type_id = type_ids.stake_smt_type_id();
         // check stake smt cell in input and output
@@ -247,12 +227,11 @@ fn verify_election(type_ids: &TypeIds) -> Result<(), Error> {
             return Err(Error::MetadataNoStakeSmt);
         }
     */
-    let quorum = get_quorum_size(
-        type_ids.metadata_type_id().as_slice().try_into().unwrap(),
-        Source::Input,
-    )?;
+    let metadata_type_id =
+        get_script_hash(&type_ids.metadata_code_hash(), &type_ids.metadata_type_id());
+    let quorum = get_quorum_size(&metadata_type_id, Source::Input)?;
     debug!("quorum: {:?}", quorum);
-    verify_election_metadata(&type_ids, quorum)?;
+    verify_election_metadata(&type_ids, quorum, election_infos)?;
 
     Ok(())
 }
@@ -341,18 +320,12 @@ pub fn is_validators_equal(left: &ValidatorList, right: &ValidatorList) -> bool 
 // }
 
 // should be checked in metadata script
-fn verify_election_metadata(type_ids: &TypeIds, quorum_size: u16) -> Result<(), Error> {
+fn verify_election_metadata(
+    type_ids: &TypeIds,
+    quorum_size: u16,
+    election_infos: &StakeSmtElectionInfo,
+) -> Result<(), Error> {
     // get stake & delegate data of epoch n + 1 & n + 2,  from witness of stake smt cell
-    let election_infos = {
-        let witness_args = load_witness_args(0, Source::Input);
-        let witness_lock = witness_args.unwrap().lock().to_opt();
-        if witness_lock.is_none() {
-            return Err(Error::WitnessLockError);
-        }
-        let value: MetadataWitness = Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
-        value.smt_election_info()
-    };
-
     // staker info of n + 2
     let election_info_n2 = election_infos.n2();
     let mut miners_n2 = BTreeSet::new();
@@ -383,7 +356,7 @@ fn verify_election_metadata(type_ids: &TypeIds, quorum_size: u16) -> Result<(), 
     verify_new_validators(&validators, epoch, type_ids, &election_infos)?;
 
     // verify validators' stake amount, verify delete_stakers & delete_delegators all zero & withdraw At cell amount is equal.
-
+    // todo
     Ok(())
 }
 
@@ -412,10 +385,11 @@ pub fn verify_stake_delegate(
 
     // verify stake info of epoch n
     let epoch_proof = CompiledMerkleProof(election_info.staker_epoch_proof());
-    let epoch_root = get_stake_smt_root(
-        type_ids.stake_smt_type_id().as_slice().try_into().unwrap(),
-        source,
-    )?;
+    let stake_smt_type_id = get_script_hash(
+        &type_ids.stake_smt_code_hash(),
+        &type_ids.stake_smt_type_id(),
+    );
+    let epoch_root = get_stake_smt_root(&stake_smt_type_id, source)?;
     let epoch_root: H256 = epoch_root.into();
     let result =
         util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
@@ -472,10 +446,11 @@ fn verify_new_validators(
     // verify stake info of epoch n
     let epoch_proof = CompiledMerkleProof(election_infos.new_stake_proof());
     debug!("verify_new_validators get_stake_smt_root");
-    let epoch_root = get_stake_smt_root(
-        type_ids.stake_smt_type_id().as_slice().try_into().unwrap(),
-        Source::Output,
-    )?;
+    let stake_smt_type_id = get_script_hash(
+        &type_ids.stake_smt_code_hash(),
+        &type_ids.stake_smt_type_id(),
+    );
+    let epoch_root = get_stake_smt_root(&stake_smt_type_id, Source::Output)?;
     let epoch_root: H256 = epoch_root.into();
     let result =
         util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;

@@ -289,10 +289,11 @@ fn test_delegate_smt_success() {
         "staker pubkey: {:?}",
         blake160(&staker_keypair.1.serialize())
     );
+    let delegate_amount = 1000 as u128;
     let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
         .is_increase(1.into())
-        .amount(axon_u128(100 as u128))
-        .total_amount(axon_u128(100 as u128))
+        .amount(axon_u128(delegate_amount))
+        .total_amount(axon_u128(delegate_amount))
         .inauguration_epoch(axon_u64(3 as u64))
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();
@@ -306,7 +307,7 @@ fn test_delegate_smt_success() {
         input_delegate_info_deltas,
     );
 
-    // prepare stake lock_script
+    // prepare delegate at lock_script
     let delegate_at_args = delegate::DelegateArgs::new_builder()
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
         .delegator_addr(axon_identity(&delegator_keypair.1.serialize()))
@@ -467,7 +468,8 @@ fn test_delegate_smt_success() {
         .amount(axon_u128(1000))
         .delegator_addr(axon_identity(&delegator_keypair.1.serialize()))
         .build();
-    let delegate_infos = DelegateInfos::new_builder().push(delegate_info).build();
+    // let delegate_infos = DelegateInfos::new_builder().push(delegate_info).build();
+    let delegate_infos = DelegateInfos::new_builder().build();
     let stake_group_info = StakeGroupInfo::new_builder()
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .delegate_infos(delegate_infos)

@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 // use std::convert::TryInto;
 
-use crate::smt::{construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo};
+use crate::smt::{construct_epoch_smt, construct_lock_info_smt, TopSmtInfo};
 
 use super::*;
 use axon_types::metadata::{Metadata, MetadataList};
@@ -14,6 +14,7 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
+use util::smt::u64_to_h256;
 use util::smt::{new_blake2b, LockInfo, BOTTOM_SMT};
 
 #[test]
