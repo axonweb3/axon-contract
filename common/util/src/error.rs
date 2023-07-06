@@ -84,6 +84,8 @@ pub enum Error {
     CheckpointDataMismatch,
     CheckpointDataError,
     ProofRlpError, // mock multisig verify
+    CheckpointLackOfQuorum,
+    CheckpointProposalHashMismatch,
 
     // metadata
     MetadataNoStakeSmt = 100,

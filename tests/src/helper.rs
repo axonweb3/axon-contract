@@ -42,6 +42,10 @@ pub fn pubkey_to_addr(pubkey: &Vec<u8>) -> [u8; 20] {
 //     axon::Byte48::new_unchecked(bytes.to_vec().into())
 // }
 
+pub fn axon_array48_byte48(bytes: [u8; 48]) -> basic::Byte48 {
+    basic::Byte48::new_unchecked(bytes.to_vec().into())
+}
+
 pub fn axon_byte32(bytes: &Byte32) -> basic::Byte32 {
     let bytes: [u8; 32] = bytes.unpack().into();
     basic::Byte32::new_unchecked(bytes.to_vec().into())
