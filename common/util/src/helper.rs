@@ -136,9 +136,9 @@ pub fn calc_script_hash(script: &Script) -> [u8; 32] {
 }
 
 pub fn check_xudt_type_hash(xudt_type_hash: &Vec<u8>) -> Result<(), Error> {
-    // extract AT type_id from type_script
-    let type_id = {
-        let type_hash = load_cell_type_hash(0, Source::Input)?;
+    // extract AT type_hash from type_script
+    let type_hash = {
+        let type_hash = load_cell_type_hash(0, Source::GroupInput)?;
         if type_hash.is_none() {
             return Err(Error::TypeScriptEmpty);
         }
@@ -146,10 +146,10 @@ pub fn check_xudt_type_hash(xudt_type_hash: &Vec<u8>) -> Result<(), Error> {
     };
 
     debug!(
-        "type_id: {:?}, xudt_type_hash: {:?}",
-        type_id, xudt_type_hash
+        "type_hash: {:?}, xudt_type_hash: {:?}",
+        type_hash, xudt_type_hash
     );
-    if type_id.to_vec() != *xudt_type_hash {
+    if type_hash.to_vec() != *xudt_type_hash {
         return Err(Error::MismatchXudtTypeId);
     }
 
