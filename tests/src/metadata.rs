@@ -203,10 +203,12 @@ fn test_metadata_success() {
         "checkpoint script: {:?}",
         checkpoint_type_script.calc_script_hash()
     );
+    let current_epoch = 0;
+    let epoch_len = 100;
     let checkpoint_data = CheckpointCellData::new_builder()
         .version(0.into())
-        .epoch(axon_u64(1))
-        .period(axon_u32(100))
+        .epoch(axon_u64(current_epoch))
+        .period(axon_u32(epoch_len))
         // .latest_block_hash(v)
         .latest_block_height(axon_u64(10))
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
@@ -254,12 +256,15 @@ fn test_metadata_success() {
         addr: staker_addr,
         amount: 1000,
     }]);
-    let input_stake_smt_data =
-        axon_stake_smt_cell_data(&input_stake_infos, &metadata_type_script.calc_script_hash());
+    let input_stake_smt_data = axon_stake_smt_cell_data(
+        &input_stake_infos,
+        &metadata_type_script.calc_script_hash(),
+        current_epoch + 2,
+    );
 
     // prepare metadata
     let metadata0 = Metadata::new_builder()
-        .epoch_len(axon_u32(100))
+        .epoch_len(axon_u32(epoch_len))
         .quorum(axon_u16(2))
         .build();
     let metadata1 = metadata0.clone();
@@ -281,7 +286,7 @@ fn test_metadata_success() {
         &stake_smt_type_script,
         &delegate_smt_type_script,
         metadata_list.clone(),
-        1,
+        current_epoch + 2,
         propose_count_smt_root,
     );
 
@@ -290,7 +295,7 @@ fn test_metadata_success() {
         &delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &keypair.1,
-        3,
+        current_epoch + 2,
     );
 
     let inputs = vec![
@@ -359,6 +364,7 @@ fn test_metadata_success() {
     let output_stake_smt_data = axon_stake_smt_cell_data(
         &output_stake_infos,
         &metadata_type_script.calc_script_hash(),
+        current_epoch + 3,
     );
     let propose_count = ProposeCountObject {
         addr: staker_addr,
@@ -368,7 +374,7 @@ fn test_metadata_success() {
     let (propose_count_root, _) = construct_propose_count_smt(&propose_infos);
     println!("propose_count_root: {:?}", propose_count_root);
     let top_smt_info = TopSmtInfo {
-        epoch: 1,
+        epoch: current_epoch,
         smt_root: propose_count_root,
     };
     let (top_smt_root, proof) = construct_epoch_smt(&vec![top_smt_info]);
@@ -381,7 +387,7 @@ fn test_metadata_success() {
         &stake_smt_type_script,
         &delegate_smt_type_script,
         metadata_list,
-        2,
+        current_epoch + 2 + 1,
         top_smt_root.as_slice().try_into().unwrap(),
     );
 
@@ -397,7 +403,7 @@ fn test_metadata_success() {
 
     let (stake_root, _stake_proof) = construct_lock_info_smt(&input_stake_infos);
     let stake_top_smt_infos = vec![TopSmtInfo {
-        epoch: 3,
+        epoch: current_epoch + 2 + 1,
         smt_root: stake_root,
     }];
     let (_stake_root, staker_epoch_proof) = construct_epoch_smt(&stake_top_smt_infos);

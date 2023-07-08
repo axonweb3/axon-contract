@@ -441,14 +441,21 @@ pub fn sign_stake_tx(tx: TransactionView, key: &Privkey, witness: WitnessArgs) -
 pub fn axon_stake_smt_cell_data(
     stake_infos: &BTreeSet<LockInfo>,
     metadata_type_id: &packed::Byte32,
+    epoch: u64,
 ) -> axon_types::stake::StakeSmtCellData {
     // call build_smt_tree_and_get_root and print error message
     let (root, _proof) = crate::smt::construct_lock_info_smt(stake_infos);
-    println!("axon_stake_smt_cell_data bottom root: {:?}", root);
+    println!(
+        "axon_stake_smt_cell_data bottom root: {:?}, top tree epoch: {}",
+        root, epoch
+    );
 
-    let current_epoch = 0;
     let mut stake_smt_top_tree = TOP_SMT::default();
-    let _ = stake_smt_top_tree.update(u64_to_h256(current_epoch), root);
+    let result = stake_smt_top_tree.update(u64_to_h256(epoch), root);
+    println!(
+        "axon_stake_smt_cell_data update top tree result: {:?}",
+        result
+    );
     println!(
         "axon_stake_smt_cell_data top root: {:?}",
         stake_smt_top_tree.root()

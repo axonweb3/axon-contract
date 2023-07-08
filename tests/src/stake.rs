@@ -335,9 +335,13 @@ fn test_stake_smt_success() {
 
     // prepare tx inputs and outputs
     println!("empty input stake infos of stake smt cell");
+    let inauguration_epoch = 3;
     let input_stake_infos = BTreeSet::new();
-    let input_stake_smt_data =
-        axon_stake_smt_cell_data(&input_stake_infos, &metadata_type_script.calc_script_hash());
+    let input_stake_smt_data = axon_stake_smt_cell_data(
+        &input_stake_infos,
+        &metadata_type_script.calc_script_hash(),
+        inauguration_epoch,
+    );
 
     let input_stake_smt_out_point = context.create_cell(
         CellOutput::new_builder()
@@ -426,6 +430,7 @@ fn test_stake_smt_success() {
     let output_stake_smt_data = axon_stake_smt_cell_data(
         &output_stake_infos,
         &metadata_type_script.calc_script_hash(),
+        inauguration_epoch,
     );
     println!(
         "output stake smt data: {:?}",
@@ -481,11 +486,14 @@ fn test_stake_smt_success() {
     let bottom_tree = BOTTOM_SMT::default();
     let old_bottom_root = bottom_tree.root();
     let top_smt_infos = vec![TopSmtInfo {
-        epoch: 3,
+        epoch: inauguration_epoch,
         smt_root: *old_bottom_root,
     }];
     let (_, old_proof) = construct_epoch_smt(&top_smt_infos);
-    let old_proof = old_proof.compile(vec![u64_to_h256(3)]).unwrap().0;
+    let old_proof = old_proof
+        .compile(vec![u64_to_h256(inauguration_epoch)])
+        .unwrap()
+        .0;
     println!("old proof: {:?}", old_proof);
 
     let lock_info = LockInfo {
@@ -495,7 +503,7 @@ fn test_stake_smt_success() {
     let lock_infos = vec![lock_info].into_iter().collect::<BTreeSet<LockInfo>>();
     let (new_bottom_root, _) = construct_lock_info_smt(&lock_infos);
     let new_top_smt_infos = vec![TopSmtInfo {
-        epoch: 3,
+        epoch: inauguration_epoch,
         smt_root: new_bottom_root,
     }];
     let (_, new_proof) = construct_epoch_smt(&new_top_smt_infos);
@@ -611,10 +619,12 @@ fn test_stake_smt_create_success() {
             .build(),
     ];
 
+    let inauguration_epoch = 3;
     let output_stake_infos = BTreeSet::new();
     let output_stake_smt_data = axon_stake_smt_cell_data(
         &output_stake_infos,
         &always_success_lock_script.calc_script_hash(),
+        inauguration_epoch,
     );
     println!(
         "output stake smt data: {:?}",
@@ -692,9 +702,13 @@ fn test_stake_election_success() {
         .expect("stake smt type script");
 
     // prepare tx inputs and outputs
+    let inauguration_epoch = 3;
     let input_stake_infos = BTreeSet::new();
-    let input_stake_smt_data =
-        axon_stake_smt_cell_data(&input_stake_infos, &metadata_type_script.calc_script_hash());
+    let input_stake_smt_data = axon_stake_smt_cell_data(
+        &input_stake_infos,
+        &metadata_type_script.calc_script_hash(),
+        inauguration_epoch,
+    );
 
     // prepare metadata cell_dep
     let metadata = Metadata::new_builder().epoch_len(axon_u32(100)).build();
@@ -752,6 +766,7 @@ fn test_stake_election_success() {
     let output_stake_smt_data = axon_stake_smt_cell_data(
         &output_stake_infos,
         &metadata_type_script.calc_script_hash(),
+        inauguration_epoch,
     );
     let outputs_data = vec![
         output_stake_smt_data.as_bytes(), // stake smt cell
