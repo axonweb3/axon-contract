@@ -456,10 +456,10 @@ pub fn axon_stake_smt_cell_data(
         "axon_stake_smt_cell_data update top tree result: {:?}",
         result
     );
-    println!(
-        "axon_stake_smt_cell_data top root: {:?}",
-        stake_smt_top_tree.root()
-    );
+    // println!(
+    //     "axon_stake_smt_cell_data top root: {:?}",
+    //     stake_smt_top_tree.root()
+    // );
 
     axon_types::stake::StakeSmtCellData::new_builder()
         .version(0.into())

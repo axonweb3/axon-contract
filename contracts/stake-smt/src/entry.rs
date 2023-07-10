@@ -223,6 +223,13 @@ fn verify_staker_seletion(
     while let Some(elem) = top_3quorum.next() {
         new_stake_infos_set.insert((*elem).clone());
     }
+    debug!(
+        "epoch: {}, stake_infos_set len: {}, new_stake_infos_set.len():{}, quorum: {}",
+        epoch,
+        stake_infos_set.len(),
+        new_stake_infos_set.len(),
+        quorum_size
+    );
 
     // get proof of new_stakes from Stake AT cells' witness of input,
     // verify delete_stakes is default
@@ -303,11 +310,16 @@ fn update_stake_smt(
     }
 
     // construct old stake smt root & verify
-    let epoch = get_current_epoch(&checkpoint_script_hash.to_vec())?;
-    debug!("current epoch:{}", epoch);
+    let current_epoch = get_current_epoch(&checkpoint_script_hash.to_vec())?;
+    let min_inguaration_epoch = current_epoch + 2;
     let mut stake_infos_set = transform_to_set(&stake_smt_update_infos.all_stake_infos());
+    debug!(
+        "current epoch:{}, old stake_infos_set len: {}",
+        current_epoch,
+        stake_infos_set.len()
+    );
     verify_old_stake_infos(
-        epoch,
+        min_inguaration_epoch,
         &stake_smt_update_infos,
         old_stake_smt_data,
         &stake_infos_set,
@@ -318,11 +330,16 @@ fn update_stake_smt(
         &xudt_type_hash.as_slice().try_into().unwrap(),
         Source::Input,
     )?;
+    debug!("update_infos.len():{}", update_infos.len());
     for (staker_addr, stake_at_lock_hash, stake_info_delta) in update_infos {
         let inauguration_epoch = stake_info_delta.inauguration_epoch();
-        if inauguration_epoch < epoch + 2 {
+        if inauguration_epoch < min_inguaration_epoch {
             return Err(Error::StaleStakeInfo); // kicker shouldn't update stale stake info
         }
+        debug!(
+            "staker_addr:{:?}, inauguration_epoch: {:?}",
+            staker_addr, inauguration_epoch
+        );
 
         // after updated to smt cell, the output stake should be reset
         let (_, output_stake_at_data) =
@@ -342,7 +359,7 @@ fn update_stake_smt(
         &stake_infos_set,
         &new_stake_smt_data,
         &stake_smt_update_infos,
-        epoch,
+        min_inguaration_epoch,
         &metadata_type_id,
     )?;
 

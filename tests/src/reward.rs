@@ -173,8 +173,11 @@ fn test_reward_success() {
         amount: stake_amount,
     }]);
     let claim_epoch = current_epoch - 3; // claim epoch must be at least 2 epoch before current epoch, here is 0
-    let stake_smt_data =
-        axon_stake_smt_cell_data(&stake_infos, &metadata_type_script.calc_script_hash(), claim_epoch);
+    let stake_smt_data = axon_stake_smt_cell_data(
+        &stake_infos,
+        &metadata_type_script.calc_script_hash(),
+        claim_epoch,
+    );
     let stake_smt_type_script = context
         .build_script_with_hash_type(
             &always_success_out_point,
