@@ -60,6 +60,54 @@ impl StakeInfoDelta {
     }
 }
 
+pub struct DelegateRequirementArgs {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for DelegateRequirementArgs {
+    fn from(cursor: Cursor) -> Self {
+        DelegateRequirementArgs { cursor }
+    }
+}
+
+impl DelegateRequirementArgs {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
+        let cur = self.cursor.slice_by_offset(0, 32).unwrap();
+        cur.into()
+    }
+}
+
+impl DelegateRequirementArgs {
+    pub fn requirement_type_id(&self) -> Vec<u8> {
+        let cur = self.cursor.slice_by_offset(32, 32).unwrap();
+        cur.into()
+    }
+}
+
+pub struct DelegateRequirementInfo {
+    pub cursor: Cursor,
+}
+
+impl From<Cursor> for DelegateRequirementInfo {
+    fn from(cursor: Cursor) -> Self {
+        DelegateRequirementInfo { cursor }
+    }
+}
+
+impl DelegateRequirementInfo {
+    pub fn code_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(0).unwrap();
+        cur.into()
+    }
+}
+
+impl DelegateRequirementInfo {
+    pub fn requirement(&self) -> DelegateRequirementArgs {
+        let cur = self.cursor.table_slice_by_index(1).unwrap();
+        cur.into()
+    }
+}
+
 pub struct StakeAtCellLockData {
     pub cursor: Cursor,
 }
@@ -113,8 +161,15 @@ impl StakeAtCellLockData {
 }
 
 impl StakeAtCellLockData {
-    pub fn delta(&self) -> StakeInfoDelta {
+    pub fn requirement_info(&self) -> DelegateRequirementInfo {
         let cur = self.cursor.table_slice_by_index(6).unwrap();
+        cur.into()
+    }
+}
+
+impl StakeAtCellLockData {
+    pub fn delta(&self) -> StakeInfoDelta {
+        let cur = self.cursor.table_slice_by_index(7).unwrap();
         cur.into()
     }
 }

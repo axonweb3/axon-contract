@@ -98,7 +98,10 @@ fn check_l2_addr(l2_addr_args: &Vec<u8>, stake_at_lock_hash: &[u8; 32]) -> Resul
         get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Output)?;
 
     let l2_addr_cell = output_stake_at_data.l2_address();
-    debug!("l2_addr:{:?}, staker_identity:{:?}", l2_addr_cell, l2_addr_args);
+    debug!(
+        "l2_addr:{:?}, staker_identity:{:?}",
+        l2_addr_cell, l2_addr_args
+    );
     if l2_addr_cell != l2_addr_args.as_slice() {
         return Err(Error::StakeL2AddrMismatch);
     }

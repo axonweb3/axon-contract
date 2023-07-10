@@ -41,6 +41,34 @@
       ]
     },
     {
+      "type": "struct",
+      "name": "DelegateRequirementArgs",
+      "fields": [
+        {
+          "name": "metadata_type_id",
+          "type": "Byte32"
+        },
+        {
+          "name": "requirement_type_id",
+          "type": "Byte32"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "DelegateRequirementInfo",
+      "fields": [
+        {
+          "name": "code_hash",
+          "type": "Byte32"
+        },
+        {
+          "name": "requirement",
+          "type": "DelegateRequirementArgs"
+        }
+      ]
+    },
+    {
       "type": "table",
       "name": "StakeAtCellLockData",
       "fields": [
@@ -67,6 +95,10 @@
         {
           "name": "metadata_type_id",
           "type": "Byte32"
+        },
+        {
+          "name": "requirement_info",
+          "type": "DelegateRequirementInfo"
         },
         {
           "name": "delta",
