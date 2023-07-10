@@ -268,10 +268,10 @@ pub fn transform_to_set(stake_infos: &StakeInfos) -> BTreeSet<LockInfo> {
 fn is_output_lock_info_reset(output_stake_at_data: &StakeAtCellLockData) -> Result<(), Error> {
     let output_stake_info = output_stake_at_data.delta();
     let output_stake = bytes_to_u128(&output_stake_info.amount());
-    let output_increase: bool = output_stake_info.is_increase() == 1;
+    let output_decrease: bool = output_stake_info.is_increase() == 0;
     let output_inaugutation_epoch = output_stake_info.inauguration_epoch();
 
-    if output_stake != 0 || !output_increase || output_inaugutation_epoch != 0 {
+    if output_stake != 0 || !output_decrease || output_inaugutation_epoch != 0 {
         return Err(Error::IllegalDefaultStakeInfo);
     }
 

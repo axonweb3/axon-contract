@@ -415,9 +415,9 @@ fn test_stake_smt_success() {
 
     // prepare outputs_data
     let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
-        .is_increase(1.into())
-        .amount(axon_u128(0 as u128))
-        .inauguration_epoch(axon_u64(0 as u64))
+        // .is_increase(0.into())
+        // .amount(axon_u128(0 as u128))
+        // .inauguration_epoch(axon_u64(0 as u64))
         .build();
     let output_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
