@@ -398,7 +398,7 @@ pub fn get_stake_update_infos(
                 };
                 let stake_info_delta = stake_xudt_lock.delta();
                 // get address from lock script args
-                let address: [u8; 20] = stake_xudt_lock.l1_address().as_slice().try_into().unwrap();
+                let address: [u8; 20] = stake_xudt_lock.l2_address().as_slice().try_into().unwrap();
                 stake_update_infos.push((address, lock_hash, stake_info_delta));
             }
         });

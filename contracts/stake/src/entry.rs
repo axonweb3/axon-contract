@@ -11,7 +11,7 @@ use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, prelude::*},
     debug,
-    high_level::{load_cell_lock_hash, load_script, load_witness_args},
+    high_level::{load_script, load_witness_args},
 };
 
 use axon_types::{stake_reader, Cursor};
@@ -20,12 +20,16 @@ use util::{error::Error, helper::*};
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
     let args: Bytes = script.args().unpack();
+    // extract stake at cell lock hash
+    let stake_at_lock_hash = calc_script_hash(&script);
+    // debug!("stake_at_lock_hash:{:?}", stake_at_lock_hash);
 
     // extract stake_args
     let stake_args: stake_reader::StakeArgs = Cursor::from(args.to_vec()).into();
     let metadata_type_id = stake_args.metadata_type_id();
     let staker_identity = stake_args.stake_addr();
     debug!("metadata_type_id:{:?}", metadata_type_id);
+    check_l2_addr(&staker_identity, &stake_at_lock_hash)?;
 
     // identify contract mode by witness
     let witness_args = load_witness_args(0, Source::GroupInput);
@@ -60,9 +64,6 @@ pub fn main() -> Result<(), Error> {
             match mode {
                 0 => {
                     // update stake at cell
-                    // extract stake at cell lock hash
-                    let stake_at_lock_hash = { load_cell_lock_hash(0, Source::Input)? };
-                    // debug!("stake_at_lock_hash:{:?}", stake_at_lock_hash);
                     let checkpoint_type_hash = get_script_hash(
                         &type_ids.checkpoint_code_hash(),
                         &type_ids.checkpoint_type_id(),
@@ -89,6 +90,19 @@ pub fn main() -> Result<(), Error> {
     };
 
     debug!("stake at cell lock script ok");
+    Ok(())
+}
+
+fn check_l2_addr(l2_addr_args: &Vec<u8>, stake_at_lock_hash: &[u8; 32]) -> Result<(), Error> {
+    let (_, output_stake_at_data) =
+        get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Output)?;
+
+    let l2_addr_cell = output_stake_at_data.l2_address();
+    debug!("l2_addr:{:?}, staker_identity:{:?}", l2_addr_cell, l2_addr_args);
+    if l2_addr_cell != l2_addr_args.as_slice() {
+        return Err(Error::StakeL2AddrMismatch);
+    }
+
     Ok(())
 }
 

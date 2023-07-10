@@ -2,7 +2,7 @@ import basic;
 
 struct StakeArgs {
     metadata_type_id: Byte32,
-    stake_addr:       Identity,
+    stake_addr:       Identity,  // l2 eth addr
 }
 
 table StakeInfoDelta {
