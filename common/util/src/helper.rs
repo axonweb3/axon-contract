@@ -398,7 +398,7 @@ pub fn get_stake_update_infos(
                 };
                 let stake_info_delta = stake_xudt_lock.delta();
                 // get address from lock script args
-                let address: [u8; 20] = stake_xudt_lock.l1_address().as_slice().try_into().unwrap();
+                let address: [u8; 20] = stake_xudt_lock.l2_address().as_slice().try_into().unwrap();
                 stake_update_infos.push((address, lock_hash, stake_info_delta));
             }
         });
@@ -553,8 +553,8 @@ pub fn get_current_validators(
     let mut metadata: Option<MetadataCellData> = None;
     QueryIter::new(load_cell_type_hash, source)
         .enumerate()
-        .for_each(|(i, lock_hash)| {
-            if &lock_hash.unwrap_or([0u8; 32]) == cell_type_id {
+        .for_each(|(i, type_hash)| {
+            if &type_hash.unwrap_or([0u8; 32]) == cell_type_id {
                 let data = load_cell_data(i, source).unwrap();
                 metadata = Some(Cursor::from(data[..].to_vec()).into());
             }

@@ -1,7 +1,7 @@
 import basic;
 
 struct DelegateRequirementArgs {
-    metadata_type_id: Byte32,
+    metadata_type_id:    Byte32,
     requirement_type_id: Byte32,
 }
 

@@ -47,6 +47,7 @@ pub enum Error {
 
     // stake AT type script
     StakeDataEmpty = 50,
+    StakeL2AddrMismatch,
     MisMatchMetadataTypeId,
     UpdateModeError,
     BadSudtDataFormat,
@@ -84,6 +85,8 @@ pub enum Error {
     CheckpointDataMismatch,
     CheckpointDataError,
     ProofRlpError, // mock multisig verify
+    CheckpointLackOfQuorum,
+    CheckpointProposalHashMismatch,
 
     // metadata
     MetadataNoStakeSmt = 100,

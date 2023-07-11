@@ -2,7 +2,7 @@ import basic;
 
 struct StakeArgs {
     metadata_type_id: Byte32,
-    stake_addr:       Identity,
+    stake_addr:       Identity,  // l2 eth addr
 }
 
 table StakeInfoDelta {
@@ -11,14 +11,26 @@ table StakeInfoDelta {
     inauguration_epoch: Uint64,
 }
 
+
+struct DelegateRequirementArgs {
+    metadata_type_id:    Byte32,
+    requirement_type_id: Byte32,
+}
+
+table DelegateRequirementInfo {
+    code_hash: Byte32,
+    requirement: DelegateRequirementArgs,
+}
+
 table StakeAtCellLockData {
-    version:          byte,
-    l1_pub_key:       Byte65,
-    bls_pub_key:      Byte48,
-    l1_address:       Identity,
-    l2_address:       Identity,
-    metadata_type_id: Byte32,
-    delta:            StakeInfoDelta,  
+    version:             byte,
+    l1_pub_key:          Byte65,
+    bls_pub_key:         Byte48,
+    l1_address:          Identity,
+    l2_address:          Identity,
+    metadata_type_id:    Byte32,
+    requirement_info:    DelegateRequirementInfo,   // staker's delegate requirement type id
+    delta:               StakeInfoDelta,  
 }
 
 vector BytesVec <Bytes>;

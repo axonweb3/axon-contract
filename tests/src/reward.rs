@@ -172,8 +172,12 @@ fn test_reward_success() {
         addr: staker_addr,
         amount: stake_amount,
     }]);
-    let stake_smt_data =
-        axon_stake_smt_cell_data(&stake_infos, &metadata_type_script.calc_script_hash());
+    let claim_epoch = current_epoch - 3; // claim epoch must be at least 2 epoch before current epoch, here is 0
+    let stake_smt_data = axon_stake_smt_cell_data(
+        &stake_infos,
+        &metadata_type_script.calc_script_hash(),
+        claim_epoch,
+    );
     let stake_smt_type_script = context
         .build_script_with_hash_type(
             &always_success_out_point,
@@ -199,7 +203,7 @@ fn test_reward_success() {
         &delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &keypair.1,
-        1,
+        claim_epoch,
     );
     let delegate_smt_type_script = context
         .build_script_with_hash_type(
@@ -227,7 +231,6 @@ fn test_reward_success() {
     // prepare metadata
     let metadata_list = MetadataList::new_builder().build();
 
-    let claim_epoch = 0;
     let propose_count = 1000;
     let mut propose_count_smt_bottom_tree = PROPOSE_BOTTOM_SMT::default();
     propose_count_smt_bottom_tree

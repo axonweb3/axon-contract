@@ -464,7 +464,7 @@ fn test_delegate_smt_success() {
         )
         .build();
 
-    let delegate_info = DelegateInfo::new_builder()
+    let _delegate_info = DelegateInfo::new_builder()
         .amount(axon_u128(1000))
         .delegator_addr(axon_identity(&delegator_keypair.1.serialize()))
         .build();

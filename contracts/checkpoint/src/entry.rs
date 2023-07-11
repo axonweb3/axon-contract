@@ -42,14 +42,28 @@ pub fn main() -> Result<(), Error> {
         return Err(Error::CheckpointCapacityMismatch);
     }
 
-    // verify_multsig(&output_checkpoint_data)?;
+    debug!("input_checkpoint_data metadata_type_id");
+    let metadata_type_id: [u8; 32] = input_checkpoint_data
+        .metadata_type_id()
+        .as_slice()
+        .try_into()
+        .unwrap();
 
-    verify_checkpoint_data(&input_checkpoint_data, &output_checkpoint_data)?;
+    debug!("verify_multsig");
+    verify_multsig(&metadata_type_id, &output_checkpoint_data)?;
+
+    debug!("verify_checkpoint_data");
+    verify_checkpoint_data(
+        &metadata_type_id,
+        &input_checkpoint_data,
+        &output_checkpoint_data,
+    )?;
 
     Ok(())
 }
 
 fn verify_checkpoint_data(
+    metadata_type_id: &[u8; 32],
     input_checkpoint_data: &CheckpointCellData,
     output_checkpoint_data: &CheckpointCellData,
 ) -> Result<(), Error> {
@@ -69,12 +83,6 @@ fn verify_checkpoint_data(
     let output_period = output_checkpoint_data.period();
     let output_epoch = output_checkpoint_data.epoch();
 
-    debug!("input_checkpoint_data metadata_type_id");
-    let metadata_type_id: [u8; 32] = input_checkpoint_data
-        .metadata_type_id()
-        .as_slice()
-        .try_into()
-        .unwrap();
     // let metadata_type_id = *metadata_type_id;
     let epoch_len = get_epoch_len(&metadata_type_id, Source::CellDep)?;
     if input_period == epoch_len - 1 {
@@ -98,7 +106,10 @@ fn verify_checkpoint_data(
     Ok(())
 }
 
-fn verify_multsig(output_checkpoint_data: &CheckpointCellData) -> Result<(), Error> {
+fn verify_multsig(
+    metadata_type_id: &[u8; 32],
+    output_checkpoint_data: &CheckpointCellData,
+) -> Result<(), Error> {
     let witness_args = load_witness_args(0, Source::GroupInput)?;
     // extract proposal and proof data from witness lock
     let (proposal, proof) = {
@@ -115,18 +126,18 @@ fn verify_multsig(output_checkpoint_data: &CheckpointCellData) -> Result<(), Err
     let proof_rlp = Rlp::new(&proof);
     let block_hash: Vec<u8> = proof_rlp.val_at(2).map_err(|_| Error::ProofRlpError)?;
     let proposal_hash = keccak(proposal.clone()).as_bytes().to_vec();
+    debug!(
+        "block_hash: {:?}, proposal_hash: {:?}",
+        block_hash, proposal_hash
+    );
     if proposal_hash != block_hash {
-        return Err(Error::ProofRlpError);
+        return Err(Error::CheckpointProposalHashMismatch);
     }
 
     // the following mulsig check of l2 validators is mock！！
     // get validate stake_infos from stake cell in cell_dep and check pBFT consensus validation
     let epoch = output_checkpoint_data.epoch();
-    let metadata_type_id = Vec::<u8>::new();
-    let bls_pub_keys = get_current_validators(
-        &metadata_type_id.as_slice().try_into().unwrap(),
-        Source::CellDep,
-    )?;
+    let bls_pub_keys = get_current_validators(metadata_type_id, Source::CellDep)?;
     let nodes_bitmap = {
         let bitmap: Vec<u8> = proof_rlp.val_at(4).map_err(|_| Error::ProofRlpError)?;
         BitVec::from_bytes(bitmap.as_slice())
@@ -139,7 +150,7 @@ fn verify_multsig(output_checkpoint_data: &CheckpointCellData) -> Result<(), Err
         bls_pub_keys.len()
     );
     if active_num <= bls_pub_keys.len() * 2 / 3 {
-        return Err(Error::ProofRlpError);
+        return Err(Error::CheckpointLackOfQuorum);
     }
 
     // prepare signing message and check blst signature validation
@@ -171,9 +182,10 @@ fn verify_multsig(output_checkpoint_data: &CheckpointCellData) -> Result<(), Err
             None
         })
         .collect::<Result<Vec<_>, _>>()?;
-    // if !blst::verify_blst_signature(&active_pubkeys, &signature, &message.as_raw().to_vec()) {
-    //     return Err(Error::SignatureMismatch);
-    // }
+    debug!("verify_blst_signature");
+    if !blst::verify_blst_signature(&active_pubkeys, &signature, &message.as_raw().to_vec()) {
+        return Err(Error::SignatureMismatch);
+    }
 
     Ok(())
 }

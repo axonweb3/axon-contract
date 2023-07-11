@@ -469,6 +469,450 @@ impl molecule::prelude::Builder for StakeInfoDeltaBuilder {
     }
 }
 #[derive(Clone)]
+pub struct DelegateRequirementArgs(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for DelegateRequirementArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl ::core::fmt::Debug for DelegateRequirementArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl ::core::fmt::Display for DelegateRequirementArgs {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "requirement_type_id",
+            self.requirement_type_id()
+        )?;
+        write!(f, " }}")
+    }
+}
+impl ::core::default::Default for DelegateRequirementArgs {
+    fn default() -> Self {
+        let v: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        DelegateRequirementArgs::new_unchecked(v.into())
+    }
+}
+impl DelegateRequirementArgs {
+    pub const TOTAL_SIZE: usize = 64;
+    pub const FIELD_SIZES: [usize; 2] = [32, 32];
+    pub const FIELD_COUNT: usize = 2;
+    pub fn metadata_type_id(&self) -> Byte32 {
+        Byte32::new_unchecked(self.0.slice(0..32))
+    }
+    pub fn requirement_type_id(&self) -> Byte32 {
+        Byte32::new_unchecked(self.0.slice(32..64))
+    }
+    pub fn as_reader<'r>(&'r self) -> DelegateRequirementArgsReader<'r> {
+        DelegateRequirementArgsReader::new_unchecked(self.as_slice())
+    }
+}
+impl molecule::prelude::Entity for DelegateRequirementArgs {
+    type Builder = DelegateRequirementArgsBuilder;
+    const NAME: &'static str = "DelegateRequirementArgs";
+    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
+        DelegateRequirementArgs(data)
+    }
+    fn as_bytes(&self) -> molecule::bytes::Bytes {
+        self.0.clone()
+    }
+    fn as_slice(&self) -> &[u8] {
+        &self.0[..]
+    }
+    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        DelegateRequirementArgsReader::from_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        DelegateRequirementArgsReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn new_builder() -> Self::Builder {
+        ::core::default::Default::default()
+    }
+    fn as_builder(self) -> Self::Builder {
+        Self::new_builder()
+            .metadata_type_id(self.metadata_type_id())
+            .requirement_type_id(self.requirement_type_id())
+    }
+}
+#[derive(Clone, Copy)]
+pub struct DelegateRequirementArgsReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for DelegateRequirementArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl<'r> ::core::fmt::Debug for DelegateRequirementArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl<'r> ::core::fmt::Display for DelegateRequirementArgsReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(
+            f,
+            ", {}: {}",
+            "requirement_type_id",
+            self.requirement_type_id()
+        )?;
+        write!(f, " }}")
+    }
+}
+impl<'r> DelegateRequirementArgsReader<'r> {
+    pub const TOTAL_SIZE: usize = 64;
+    pub const FIELD_SIZES: [usize; 2] = [32, 32];
+    pub const FIELD_COUNT: usize = 2;
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+        Byte32Reader::new_unchecked(&self.as_slice()[0..32])
+    }
+    pub fn requirement_type_id(&self) -> Byte32Reader<'r> {
+        Byte32Reader::new_unchecked(&self.as_slice()[32..64])
+    }
+}
+impl<'r> molecule::prelude::Reader<'r> for DelegateRequirementArgsReader<'r> {
+    type Entity = DelegateRequirementArgs;
+    const NAME: &'static str = "DelegateRequirementArgsReader";
+    fn to_entity(&self) -> Self::Entity {
+        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
+    }
+    fn new_unchecked(slice: &'r [u8]) -> Self {
+        DelegateRequirementArgsReader(slice)
+    }
+    fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+    fn verify(slice: &[u8], _compatible: bool) -> molecule::error::VerificationResult<()> {
+        use molecule::verification_error as ve;
+        let slice_len = slice.len();
+        if slice_len != Self::TOTAL_SIZE {
+            return ve!(Self, TotalSizeNotMatch, Self::TOTAL_SIZE, slice_len);
+        }
+        Ok(())
+    }
+}
+#[derive(Debug, Default)]
+pub struct DelegateRequirementArgsBuilder {
+    pub(crate) metadata_type_id: Byte32,
+    pub(crate) requirement_type_id: Byte32,
+}
+impl DelegateRequirementArgsBuilder {
+    pub const TOTAL_SIZE: usize = 64;
+    pub const FIELD_SIZES: [usize; 2] = [32, 32];
+    pub const FIELD_COUNT: usize = 2;
+    pub fn metadata_type_id(mut self, v: Byte32) -> Self {
+        self.metadata_type_id = v;
+        self
+    }
+    pub fn requirement_type_id(mut self, v: Byte32) -> Self {
+        self.requirement_type_id = v;
+        self
+    }
+}
+impl molecule::prelude::Builder for DelegateRequirementArgsBuilder {
+    type Entity = DelegateRequirementArgs;
+    const NAME: &'static str = "DelegateRequirementArgsBuilder";
+    fn expected_length(&self) -> usize {
+        Self::TOTAL_SIZE
+    }
+    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        writer.write_all(self.metadata_type_id.as_slice())?;
+        writer.write_all(self.requirement_type_id.as_slice())?;
+        Ok(())
+    }
+    fn build(&self) -> Self::Entity {
+        let mut inner = Vec::with_capacity(self.expected_length());
+        self.write(&mut inner)
+            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
+        DelegateRequirementArgs::new_unchecked(inner.into())
+    }
+}
+#[derive(Clone)]
+pub struct DelegateRequirementInfo(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for DelegateRequirementInfo {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl ::core::fmt::Debug for DelegateRequirementInfo {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl ::core::fmt::Display for DelegateRequirementInfo {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "code_hash", self.code_hash())?;
+        write!(f, ", {}: {}", "requirement", self.requirement())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl ::core::default::Default for DelegateRequirementInfo {
+    fn default() -> Self {
+        let v: Vec<u8> = vec![
+            108, 0, 0, 0, 12, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        DelegateRequirementInfo::new_unchecked(v.into())
+    }
+}
+impl DelegateRequirementInfo {
+    pub const FIELD_COUNT: usize = 2;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn code_hash(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Byte32::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn requirement(&self) -> DelegateRequirementArgs {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[12..]) as usize;
+            DelegateRequirementArgs::new_unchecked(self.0.slice(start..end))
+        } else {
+            DelegateRequirementArgs::new_unchecked(self.0.slice(start..))
+        }
+    }
+    pub fn as_reader<'r>(&'r self) -> DelegateRequirementInfoReader<'r> {
+        DelegateRequirementInfoReader::new_unchecked(self.as_slice())
+    }
+}
+impl molecule::prelude::Entity for DelegateRequirementInfo {
+    type Builder = DelegateRequirementInfoBuilder;
+    const NAME: &'static str = "DelegateRequirementInfo";
+    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
+        DelegateRequirementInfo(data)
+    }
+    fn as_bytes(&self) -> molecule::bytes::Bytes {
+        self.0.clone()
+    }
+    fn as_slice(&self) -> &[u8] {
+        &self.0[..]
+    }
+    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        DelegateRequirementInfoReader::from_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        DelegateRequirementInfoReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn new_builder() -> Self::Builder {
+        ::core::default::Default::default()
+    }
+    fn as_builder(self) -> Self::Builder {
+        Self::new_builder()
+            .code_hash(self.code_hash())
+            .requirement(self.requirement())
+    }
+}
+#[derive(Clone, Copy)]
+pub struct DelegateRequirementInfoReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for DelegateRequirementInfoReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl<'r> ::core::fmt::Debug for DelegateRequirementInfoReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl<'r> ::core::fmt::Display for DelegateRequirementInfoReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "code_hash", self.code_hash())?;
+        write!(f, ", {}: {}", "requirement", self.requirement())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl<'r> DelegateRequirementInfoReader<'r> {
+    pub const FIELD_COUNT: usize = 2;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn code_hash(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn requirement(&self) -> DelegateRequirementArgsReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[12..]) as usize;
+            DelegateRequirementArgsReader::new_unchecked(&self.as_slice()[start..end])
+        } else {
+            DelegateRequirementArgsReader::new_unchecked(&self.as_slice()[start..])
+        }
+    }
+}
+impl<'r> molecule::prelude::Reader<'r> for DelegateRequirementInfoReader<'r> {
+    type Entity = DelegateRequirementInfo;
+    const NAME: &'static str = "DelegateRequirementInfoReader";
+    fn to_entity(&self) -> Self::Entity {
+        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
+    }
+    fn new_unchecked(slice: &'r [u8]) -> Self {
+        DelegateRequirementInfoReader(slice)
+    }
+    fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+        use molecule::verification_error as ve;
+        let slice_len = slice.len();
+        if slice_len < molecule::NUMBER_SIZE {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
+        }
+        let total_size = molecule::unpack_number(slice) as usize;
+        if slice_len != total_size {
+            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
+        }
+        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
+            return Ok(());
+        }
+        if slice_len < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
+        }
+        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
+        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        if slice_len < offset_first {
+            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
+        }
+        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
+        if field_count < Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        } else if !compatible && field_count > Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        };
+        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
+            .chunks_exact(molecule::NUMBER_SIZE)
+            .map(|x| molecule::unpack_number(x) as usize)
+            .collect();
+        offsets.push(total_size);
+        if offsets.windows(2).any(|i| i[0] > i[1]) {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        Byte32Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        DelegateRequirementArgsReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        Ok(())
+    }
+}
+#[derive(Debug, Default)]
+pub struct DelegateRequirementInfoBuilder {
+    pub(crate) code_hash: Byte32,
+    pub(crate) requirement: DelegateRequirementArgs,
+}
+impl DelegateRequirementInfoBuilder {
+    pub const FIELD_COUNT: usize = 2;
+    pub fn code_hash(mut self, v: Byte32) -> Self {
+        self.code_hash = v;
+        self
+    }
+    pub fn requirement(mut self, v: DelegateRequirementArgs) -> Self {
+        self.requirement = v;
+        self
+    }
+}
+impl molecule::prelude::Builder for DelegateRequirementInfoBuilder {
+    type Entity = DelegateRequirementInfo;
+    const NAME: &'static str = "DelegateRequirementInfoBuilder";
+    fn expected_length(&self) -> usize {
+        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
+            + self.code_hash.as_slice().len()
+            + self.requirement.as_slice().len()
+    }
+    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
+        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
+        offsets.push(total_size);
+        total_size += self.code_hash.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.requirement.as_slice().len();
+        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
+        for offset in offsets.into_iter() {
+            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
+        }
+        writer.write_all(self.code_hash.as_slice())?;
+        writer.write_all(self.requirement.as_slice())?;
+        Ok(())
+    }
+    fn build(&self) -> Self::Entity {
+        let mut inner = Vec::with_capacity(self.expected_length());
+        self.write(&mut inner)
+            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
+        DelegateRequirementInfo::new_unchecked(inner.into())
+    }
+}
+#[derive(Clone)]
 pub struct StakeAtCellLockData(molecule::bytes::Bytes);
 impl ::core::fmt::LowerHex for StakeAtCellLockData {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -493,6 +937,7 @@ impl ::core::fmt::Display for StakeAtCellLockData {
         write!(f, ", {}: {}", "l1_address", self.l1_address())?;
         write!(f, ", {}: {}", "l2_address", self.l2_address())?;
         write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, ", {}: {}", "requirement_info", self.requirement_info())?;
         write!(f, ", {}: {}", "delta", self.delta())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
@@ -504,22 +949,26 @@ impl ::core::fmt::Display for StakeAtCellLockData {
 impl ::core::default::Default for StakeAtCellLockData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            3, 1, 0, 0, 32, 0, 0, 0, 33, 0, 0, 0, 98, 0, 0, 0, 146, 0, 0, 0, 166, 0, 0, 0, 186, 0,
-            0, 0, 218, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            115, 1, 0, 0, 36, 0, 0, 0, 37, 0, 0, 0, 102, 0, 0, 0, 150, 0, 0, 0, 170, 0, 0, 0, 190,
+            0, 0, 0, 222, 0, 0, 0, 74, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17,
-            0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 108, 0, 0, 0,
+            12, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0,
+            0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0,
         ];
         StakeAtCellLockData::new_unchecked(v.into())
     }
 }
 impl StakeAtCellLockData {
-    pub const FIELD_COUNT: usize = 7;
+    pub const FIELD_COUNT: usize = 8;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -572,11 +1021,17 @@ impl StakeAtCellLockData {
         let end = molecule::unpack_number(&slice[28..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
-    pub fn delta(&self) -> StakeInfoDelta {
+    pub fn requirement_info(&self) -> DelegateRequirementInfo {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[28..]) as usize;
+        let end = molecule::unpack_number(&slice[32..]) as usize;
+        DelegateRequirementInfo::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn delta(&self) -> StakeInfoDelta {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[32..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[32..]) as usize;
+            let end = molecule::unpack_number(&slice[36..]) as usize;
             StakeInfoDelta::new_unchecked(self.0.slice(start..end))
         } else {
             StakeInfoDelta::new_unchecked(self.0.slice(start..))
@@ -615,6 +1070,7 @@ impl molecule::prelude::Entity for StakeAtCellLockData {
             .l1_address(self.l1_address())
             .l2_address(self.l2_address())
             .metadata_type_id(self.metadata_type_id())
+            .requirement_info(self.requirement_info())
             .delta(self.delta())
     }
 }
@@ -643,6 +1099,7 @@ impl<'r> ::core::fmt::Display for StakeAtCellLockDataReader<'r> {
         write!(f, ", {}: {}", "l1_address", self.l1_address())?;
         write!(f, ", {}: {}", "l2_address", self.l2_address())?;
         write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, ", {}: {}", "requirement_info", self.requirement_info())?;
         write!(f, ", {}: {}", "delta", self.delta())?;
         let extra_count = self.count_extra_fields();
         if extra_count != 0 {
@@ -652,7 +1109,7 @@ impl<'r> ::core::fmt::Display for StakeAtCellLockDataReader<'r> {
     }
 }
 impl<'r> StakeAtCellLockDataReader<'r> {
-    pub const FIELD_COUNT: usize = 7;
+    pub const FIELD_COUNT: usize = 8;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -705,11 +1162,17 @@ impl<'r> StakeAtCellLockDataReader<'r> {
         let end = molecule::unpack_number(&slice[28..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn delta(&self) -> StakeInfoDeltaReader<'r> {
+    pub fn requirement_info(&self) -> DelegateRequirementInfoReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[28..]) as usize;
+        let end = molecule::unpack_number(&slice[32..]) as usize;
+        DelegateRequirementInfoReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn delta(&self) -> StakeInfoDeltaReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[32..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[32..]) as usize;
+            let end = molecule::unpack_number(&slice[36..]) as usize;
             StakeInfoDeltaReader::new_unchecked(&self.as_slice()[start..end])
         } else {
             StakeInfoDeltaReader::new_unchecked(&self.as_slice()[start..])
@@ -771,7 +1234,8 @@ impl<'r> molecule::prelude::Reader<'r> for StakeAtCellLockDataReader<'r> {
         IdentityReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
         IdentityReader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
         Byte32Reader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
-        StakeInfoDeltaReader::verify(&slice[offsets[6]..offsets[7]], compatible)?;
+        DelegateRequirementInfoReader::verify(&slice[offsets[6]..offsets[7]], compatible)?;
+        StakeInfoDeltaReader::verify(&slice[offsets[7]..offsets[8]], compatible)?;
         Ok(())
     }
 }
@@ -783,10 +1247,11 @@ pub struct StakeAtCellLockDataBuilder {
     pub(crate) l1_address: Identity,
     pub(crate) l2_address: Identity,
     pub(crate) metadata_type_id: Byte32,
+    pub(crate) requirement_info: DelegateRequirementInfo,
     pub(crate) delta: StakeInfoDelta,
 }
 impl StakeAtCellLockDataBuilder {
-    pub const FIELD_COUNT: usize = 7;
+    pub const FIELD_COUNT: usize = 8;
     pub fn version(mut self, v: Byte) -> Self {
         self.version = v;
         self
@@ -811,6 +1276,10 @@ impl StakeAtCellLockDataBuilder {
         self.metadata_type_id = v;
         self
     }
+    pub fn requirement_info(mut self, v: DelegateRequirementInfo) -> Self {
+        self.requirement_info = v;
+        self
+    }
     pub fn delta(mut self, v: StakeInfoDelta) -> Self {
         self.delta = v;
         self
@@ -827,6 +1296,7 @@ impl molecule::prelude::Builder for StakeAtCellLockDataBuilder {
             + self.l1_address.as_slice().len()
             + self.l2_address.as_slice().len()
             + self.metadata_type_id.as_slice().len()
+            + self.requirement_info.as_slice().len()
             + self.delta.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
@@ -845,6 +1315,8 @@ impl molecule::prelude::Builder for StakeAtCellLockDataBuilder {
         offsets.push(total_size);
         total_size += self.metadata_type_id.as_slice().len();
         offsets.push(total_size);
+        total_size += self.requirement_info.as_slice().len();
+        offsets.push(total_size);
         total_size += self.delta.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
@@ -856,6 +1328,7 @@ impl molecule::prelude::Builder for StakeAtCellLockDataBuilder {
         writer.write_all(self.l1_address.as_slice())?;
         writer.write_all(self.l2_address.as_slice())?;
         writer.write_all(self.metadata_type_id.as_slice())?;
+        writer.write_all(self.requirement_info.as_slice())?;
         writer.write_all(self.delta.as_slice())?;
         Ok(())
     }
@@ -1236,16 +1709,20 @@ impl ::core::fmt::Display for StakeAtCellData {
 impl ::core::default::Default for StakeAtCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            19, 1, 0, 0, 12, 0, 0, 0, 15, 1, 0, 0, 3, 1, 0, 0, 32, 0, 0, 0, 33, 0, 0, 0, 98, 0, 0,
-            0, 146, 0, 0, 0, 166, 0, 0, 0, 186, 0, 0, 0, 218, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            131, 1, 0, 0, 12, 0, 0, 0, 127, 1, 0, 0, 115, 1, 0, 0, 36, 0, 0, 0, 37, 0, 0, 0, 102,
+            0, 0, 0, 150, 0, 0, 0, 170, 0, 0, 0, 190, 0, 0, 0, 222, 0, 0, 0, 74, 1, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 108, 0, 0, 0, 12, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
         StakeAtCellData::new_unchecked(v.into())
     }

@@ -12,5 +12,6 @@ common/blst/ckb-lib-secp256k1-blst/build/*
 build/*
 !.gitkeep
 .tmp/
+*.json
 
 .vscode
