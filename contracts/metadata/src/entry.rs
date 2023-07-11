@@ -195,7 +195,7 @@ fn verify_propose_counts(
         epoch_root,
         epoch_proof,
     )?;
-    if result == false {
+    if !result {
         return Err(Error::MetadataProposeCountVerifyFail);
     }
     debug!("verify_2layer_smt_propose result: {:?}", result);
@@ -333,12 +333,13 @@ fn verify_election_metadata(
         &type_ids.checkpoint_code_hash(),
         &type_ids.checkpoint_type_id(),
     );
-    let epoch = get_current_epoch(&checkpoint_script_hash.to_vec())?;
-    debug!("get_current_epoch: {:?}", epoch);
+    let input_epoch = get_current_epoch(&checkpoint_script_hash.to_vec())?;
+    debug!("get_current_epoch: {:?}", input_epoch);
+    let input_waiting_epoch = input_epoch + 2;
     // verify stake and delegate infos in witness is correct, construct miners to get updated data
     verify_stake_delegate(
         &election_info_n2,
-        epoch + 2,
+        input_waiting_epoch,
         &mut miners_n2,
         type_ids,
         Source::Input,
@@ -353,7 +354,8 @@ fn verify_election_metadata(
     }
     // get output metadata, verify the validators data.
     debug!("verify_new_validators, {:?}", validators);
-    verify_new_validators(&validators, epoch, type_ids, &election_infos)?;
+    let output_waiting_epoch = input_waiting_epoch + 1;
+    verify_new_validators(&validators, output_waiting_epoch, type_ids, &election_infos)?;
 
     // verify validators' stake amount, verify delete_stakers & delete_delegators all zero & withdraw At cell amount is equal.
     // todo
@@ -393,6 +395,9 @@ pub fn verify_stake_delegate(
     let epoch_root: H256 = epoch_root.into();
     let result =
         util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+    if !result {
+        return Err(Error::MetadataSmtVerifyError);
+    }
     debug!("staker verify_2layer_smt result: {:?}", result);
 
     let new_miners = miners.clone();
@@ -422,6 +427,9 @@ pub fn verify_stake_delegate(
             "miner: {:?}, verify_2layer_smt result: {:?}",
             miner.staker, result
         );
+        if !result {
+            return Err(Error::MetadataSmtVerifyError);
+        }
     }
 
     Ok(())
@@ -442,10 +450,10 @@ fn verify_new_validators(
         });
     }
 
-    debug!("verify_new_validators new_stake_proof");
+    // debug!("verify_new_validators new_stake_proof");
     // verify stake info of epoch n
     let epoch_proof = CompiledMerkleProof(election_infos.new_stake_proof());
-    debug!("verify_new_validators get_stake_smt_root");
+    // debug!("verify_new_validators get_stake_smt_root");
     let stake_smt_type_id = get_script_hash(
         &type_ids.stake_smt_code_hash(),
         &type_ids.stake_smt_type_id(),
@@ -455,9 +463,12 @@ fn verify_new_validators(
     let result =
         util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
     debug!(
-        "verify_new_validators verify_2layer_smt result: {:?}",
+        "verify_new_validators stake verify_2layer_smt result: {:?}",
         result
     );
+    if !result {
+        return Err(Error::MetadataSmtVerifyError);
+    }
 
     let new_miners = validators.clone();
     let epoch_proofs = election_infos.new_delegate_proofs();
@@ -490,9 +501,12 @@ fn verify_new_validators(
             epoch_proof,
         )?;
         debug!(
-            "verify_new_validators verify_2layer_smt result: {:?}",
+            "verify_new_validators delegate verify_2layer_smt result: {:?}",
             result
         );
+        if !result {
+            return Err(Error::MetadataSmtVerifyError);
+        }
     }
 
     Ok(())
