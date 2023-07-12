@@ -8,10 +8,7 @@ use blake2b_ref::{Blake2b, Blake2bBuilder};
 use ckb_std::debug;
 use sparse_merkle_tree::CompiledMerkleProof;
 use sparse_merkle_tree::{
-    default_store::DefaultStore,
-    traits::Value,
-    SparseMerkleTree, H256,
-    blake2b::Blake2bHasher,
+    blake2b::Blake2bHasher, default_store::DefaultStore, traits::Value, SparseMerkleTree, H256,
 };
 
 use crate::error::Error;

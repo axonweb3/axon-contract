@@ -145,7 +145,7 @@ dependencies = [
  "axon-types",
  "bit-vec",
  "blst 0.1.0",
- "ckb-std 0.13.0",
+ "ckb-std",
  "keccak-hash 0.8.0",
  "rlp",
  "util",
@@ -424,17 +424,6 @@ dependencies = [
 
 [[package]]
 name = "ckb-std"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8dbb4cafeca131457738f8428ef31a7729f7914b99b5c210554433f03eb2f936"
-dependencies = [
- "buddy-alloc",
- "cc",
- "ckb-standalone-types",
-]
-
-[[package]]
-name = "ckb-std"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f54eab6dca547f2123a6d84c64da2414e5532263568e81899b9806ba21d7c8f"
@@ -500,7 +489,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccdd735ee657a4da48992fcea2fed5c5f91cda6df3a79dd1a6a30750f62e53b9"
 dependencies = [
  "blake2b-rs",
- "ckb-std 0.13.0",
+ "ckb-std",
  "molecule",
 ]
 
@@ -644,7 +633,7 @@ name = "delegate"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.13.0",
+ "ckb-std",
  "sparse-merkle-tree",
  "util",
 ]
@@ -654,7 +643,7 @@ name = "delegate-smt"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.13.0",
+ "ckb-std",
  "ckb-type-id",
  "sparse-merkle-tree",
  "util",
@@ -918,7 +907,7 @@ name = "metadata"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.13.0",
+ "ckb-std",
  "sparse-merkle-tree",
  "util",
 ]
@@ -1278,7 +1267,7 @@ name = "requirement"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.13.0",
+ "ckb-std",
  "ckb-type-id",
  "util",
 ]
@@ -1288,7 +1277,7 @@ name = "reward"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.13.0",
+ "ckb-std",
  "ckb-type-id",
  "secp256k1 0.1.0",
  "sparse-merkle-tree",
@@ -1406,7 +1395,7 @@ name = "selection"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.12.1",
+ "ckb-std",
  "util",
 ]
 
@@ -1475,7 +1464,7 @@ name = "stake"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.13.0",
+ "ckb-std",
  "secp256k1 0.1.0",
  "sparse-merkle-tree",
  "util",
@@ -1486,7 +1475,7 @@ name = "stake-smt"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.13.0",
+ "ckb-std",
  "ckb-type-id",
  "secp256k1 0.1.0",
  "sparse-merkle-tree",
@@ -1615,7 +1604,7 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "blake2b-ref 0.3.1",
- "ckb-std 0.13.0",
+ "ckb-std",
  "ckb-type-id",
  "hex",
  "molecule",
@@ -1764,7 +1753,7 @@ name = "withdraw"
 version = "0.1.0"
 dependencies = [
  "axon-types",
- "ckb-std 0.13.0",
+ "ckb-std",
  "util",
 ]
 
