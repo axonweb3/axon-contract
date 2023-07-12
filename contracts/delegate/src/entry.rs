@@ -38,7 +38,7 @@ pub fn main() -> Result<(), Error> {
     }
 
     // identify contract mode by witness
-    let witness_args = load_witness_args(0, Source::Input);
+    let witness_args = load_witness_args(0, Source::GroupInput);
     match witness_args {
         Ok(witness) => {
             let mode = {
