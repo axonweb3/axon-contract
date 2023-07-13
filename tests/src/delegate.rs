@@ -1,16 +1,9 @@
-// use std::collections::BTreeSet;
-// use std::convert::TryInto;
-
-// use crate::smt::{construct_epoch_smt, construct_lock_info_smt, u64_to_h256, TopSmtInfo};
-
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 
 use super::*;
 use axon_types::delegate::*;
 use axon_types::metadata::{Metadata, MetadataList};
-// use bit_vec::BitVec;
-// use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::core::ScriptHashType;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
@@ -67,10 +60,6 @@ fn test_delegate_at_increase_success() {
 
     let staker_keypair = Generator::random_keypair();
     let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
-        .is_increase(1.into())
-        .amount(axon_u128(0 as u128))
-        .total_amount(axon_u128(0 as u128))
-        .inauguration_epoch(axon_u64(0 as u64))
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();
     let input_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
@@ -381,10 +370,6 @@ fn test_delegate_smt_success() {
 
     // prepare outputs_data
     let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
-        .is_increase(1.into())
-        .amount(axon_u128(0 as u128))
-        .total_amount(axon_u128(0 as u128))
-        .inauguration_epoch(axon_u64(0 as u64))
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();
     let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
