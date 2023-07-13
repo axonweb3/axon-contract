@@ -5,52 +5,26 @@ use core::cmp::Ordering;
 use alloc::vec;
 use alloc::{collections::BTreeSet, vec::Vec};
 use blake2b_ref::{Blake2b, Blake2bBuilder};
-// use ckb_smt::smt::{Pair, Tree};
 use ckb_std::debug;
 use sparse_merkle_tree::CompiledMerkleProof;
 use sparse_merkle_tree::{
     default_store::DefaultStore,
-    traits::{Hasher, Value},
+    traits::Value,
     SparseMerkleTree, H256,
+    blake2b::Blake2bHasher,
 };
 
 use crate::error::Error;
 use crate::helper::ProposeCountObject;
-pub struct Blake2bHasher(Blake2b);
-
-impl Default for Blake2bHasher {
-    fn default() -> Self {
-        let blake2b = Blake2bBuilder::new(32)
-            .personal(b"ckb-default-hash")
-            .build();
-        Blake2bHasher(blake2b)
-    }
-}
-
-impl Hasher for Blake2bHasher {
-    fn write_h256(&mut self, h: &H256) {
-        self.0.update(h.as_slice());
-    }
-    fn write_byte(&mut self, b: u8) {
-        self.0.update(&[b][..]);
-    }
-    fn finish(self) -> H256 {
-        let mut hash = [0u8; 32];
-        self.0.finalize(&mut hash);
-        hash.into()
-    }
-}
 
 // define SMT value
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct BottomValue(pub u128);
 impl Value for BottomValue {
     fn to_h256(&self) -> H256 {
         let mut buf = [0u8; 32];
-        let mut hasher = new_blake2b();
-        // println!("amount: {}", self.0);
-        hasher.update(&self.0.to_le_bytes());
-        hasher.finalize(&mut buf);
+        let amount_bytes = self.0.to_le_bytes();
+        buf[..16].copy_from_slice(&amount_bytes);
         buf.into()
     }
     fn zero() -> Self {
@@ -164,9 +138,7 @@ impl PartialEq for LockInfo {
 
 pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
     let mut buf = [0u8; 32];
-    let mut hasher = new_blake2b();
-    hasher.update(addr);
-    hasher.finalize(&mut buf);
+    buf[..20].copy_from_slice(addr);
     buf.into()
 }
 
@@ -180,17 +152,14 @@ pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
 
 pub fn u64_to_h256(epoch: u64) -> H256 {
     let mut buf = [0u8; 32];
-    let mut hasher = new_blake2b();
-    hasher.update(&epoch.to_le_bytes());
-    hasher.finalize(&mut buf);
+    buf[..8].copy_from_slice(&epoch.to_le_bytes());
     buf.into()
 }
 
 pub fn u128_to_h256(amount: u128) -> H256 {
+    let amount_bytes = amount.to_le_bytes();
     let mut buf = [0u8; 32];
-    let mut hasher = new_blake2b();
-    hasher.update(&amount.to_le_bytes());
-    hasher.finalize(&mut buf);
+    buf[..16].copy_from_slice(&amount_bytes);
     buf.into()
 }
 
