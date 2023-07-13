@@ -252,14 +252,16 @@ fn test_metadata_success() {
         .expect("delegate smt type script");
 
     // prepare tx inputs and outputs
+    let stake_amount = 1000;
     let input_stake_infos = BTreeSet::from_iter(vec![LockInfo {
         addr: staker_addr,
-        amount: 1000,
+        amount: stake_amount,
     }]);
+    let input_waiting_epoch = current_epoch + 2;
     let input_stake_smt_data = axon_stake_smt_cell_data(
         &input_stake_infos,
         &metadata_type_script.calc_script_hash(),
-        current_epoch + 2,
+        input_waiting_epoch,
     );
 
     // prepare metadata
@@ -274,10 +276,7 @@ fn test_metadata_success() {
         .push(metadata1)
         .push(metadata2)
         .build();
-    println!(
-        "checkpoint script: {:?}",
-        checkpoint_type_script.calc_script_hash()
-    );
+
     let propose_count_smt_root = [0u8; 32];
     let input_meta_data = axon_metadata_data_by_script(
         &metadata_type_script.clone(),
@@ -286,7 +285,7 @@ fn test_metadata_success() {
         &stake_smt_type_script,
         &delegate_smt_type_script,
         metadata_list.clone(),
-        current_epoch + 2,
+        input_waiting_epoch,
         propose_count_smt_root,
     );
 
@@ -295,7 +294,7 @@ fn test_metadata_success() {
         &delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &keypair.1,
-        current_epoch + 2,
+        input_waiting_epoch,
     );
 
     let inputs = vec![
@@ -360,11 +359,12 @@ fn test_metadata_success() {
             .build(),
     ];
 
-    let output_stake_infos = BTreeSet::new();
+    let output_stake_infos = input_stake_infos.clone();
+    let output_waiting_epoch = input_waiting_epoch + 1;
     let output_stake_smt_data = axon_stake_smt_cell_data(
         &output_stake_infos,
         &metadata_type_script.calc_script_hash(),
-        current_epoch + 3,
+        output_waiting_epoch,
     );
     let propose_count = ProposeCountObject {
         addr: staker_addr,
@@ -387,7 +387,7 @@ fn test_metadata_success() {
         &stake_smt_type_script,
         &delegate_smt_type_script,
         metadata_list,
-        current_epoch + 2 + 1,
+        output_waiting_epoch,
         top_smt_root.as_slice().try_into().unwrap(),
     );
 
@@ -403,17 +403,20 @@ fn test_metadata_success() {
 
     let (stake_root, _stake_proof) = construct_lock_info_smt(&input_stake_infos);
     let stake_top_smt_infos = vec![TopSmtInfo {
-        epoch: current_epoch + 2 + 1,
+        epoch: output_waiting_epoch,
         smt_root: stake_root,
     }];
     let (_stake_root, staker_epoch_proof) = construct_epoch_smt(&stake_top_smt_infos);
-    let staker_epoch_proof = staker_epoch_proof.compile(vec![u64_to_h256(3)]).unwrap().0;
+    let staker_epoch_proof = staker_epoch_proof
+        .compile(vec![u64_to_h256(output_waiting_epoch)])
+        .unwrap()
+        .0;
 
     let delegate_infos = axon_types::metadata::DelegateInfos::new_builder().build();
     let delegate_epoch_proof = delegate_epoch_proof.0;
     let miner_group_info = MinerGroupInfo::new_builder()
         .staker(axon_identity(&keypair.1.serialize()))
-        .amount(axon_u128(1000))
+        .amount(axon_u128(stake_amount))
         .delegate_epoch_proof(axon_bytes(&delegate_epoch_proof))
         .delegate_infos(delegate_infos)
         .build();
