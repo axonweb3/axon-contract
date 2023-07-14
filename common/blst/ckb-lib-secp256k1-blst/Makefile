@@ -25,7 +25,7 @@ build/bls12_381_sighash_all.o: bls12_381_sighash_all.c build/secp256k1_data_info
 	$(CC) $(CFLAGS_BLST) -I ${CKB_SCRIPT_SECP256K1} -I ${CKB_SCRIPT_SECP256K1}/src -D __SHARED_LIBRARY__ -c -o $@ $<
 
 build/blake2b_ref.o: c/blake2b_ref.c
-	gcc -I blake2b.h -c -o $@ $<
+	gcc -c -o $@ $<
 
 build/secp256k1_data_info.h: build/dump_secp256k1_data
 	$<

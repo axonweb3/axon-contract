@@ -5,10 +5,10 @@ use axon_types::reward_reader::NotClaimInfo;
 use axon_types::reward_reader::RewardSmtCellData;
 use ckb_type_id::{load_type_id_from_script_args, validate_type_id};
 use core::result::Result;
-use sparse_merkle_tree::{CompiledMerkleProof, H256};
+use sparse_merkle_tree::{blake2b::Blake2bHasher, CompiledMerkleProof, H256};
 use util::smt::{
     addr_to_h256, smt_verify_leaves, u128_to_h256, u64_to_h256, verify_2layer_smt, verify_top_smt,
-    Blake2bHasher, LockInfo,
+    LockInfo,
 };
 
 // Import CKB syscalls and structures

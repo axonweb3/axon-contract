@@ -4,16 +4,16 @@ use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-// mod axon;
+mod helper;
+mod smt;
+
 mod checkpoint;
 mod delegate;
 mod eth;
-mod helper;
+mod eth_signature;
 mod metadata;
 mod reward;
-#[cfg(test)]
 mod selection;
-mod smt;
 mod stake;
 mod withdraw;
 

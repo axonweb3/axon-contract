@@ -3,7 +3,7 @@
 use std::{collections::BTreeSet, convert::TryInto};
 
 use axon_types::{
-    basic,
+    basic::{self, Identity},
     delegate::{StakerSmtRoot, StakerSmtRoots},
     metadata::MetadataList,
     withdraw::{WithdrawInfo, WithdrawInfos},
@@ -20,7 +20,9 @@ use ckb_testtool::{
     },
 };
 use molecule::prelude::*;
+use sha3::{Digest, Keccak256};
 use sparse_merkle_tree::CompiledMerkleProof;
+use tiny_keccak::{Hasher, Keccak};
 use util::smt::{u64_to_h256, LockInfo, TOP_SMT};
 
 use crate::smt::{construct_epoch_smt, construct_lock_info_smt, TopSmtInfo};
@@ -53,6 +55,14 @@ pub fn axon_byte32(bytes: &Byte32) -> basic::Byte32 {
 
 pub fn axon_array32_byte32(bytes: [u8; 32]) -> basic::Byte32 {
     basic::Byte32::new_unchecked(bytes.to_vec().into())
+}
+
+pub fn axon_byte65(bytes: Vec<u8>) -> basic::Byte65 {
+    basic::Byte65::new_unchecked(bytes.into())
+}
+
+pub fn axon_array65_byte65(bytes: [u8; 65]) -> basic::Byte65 {
+    basic::Byte65::new_unchecked(bytes.to_vec().into())
 }
 
 pub fn axon_byte20(bytes: &[u8; 20]) -> basic::Byte20 {
@@ -132,18 +142,50 @@ pub fn axon_identity_none() -> basic::IdentityOpt {
     basic::IdentityOpt::new_builder().set(None).build()
 }
 
+pub fn eth_addr(pubkey: Vec<u8>) -> basic::Identity {
+    // {
+    //     let mut keccak = Keccak::v256();
+    //     let input = pubkey.as_slice();
+    //     println!("eth_addr input:{:?}", input);
+    //     keccak.update(input);
+    //     let mut output = [0; 32];
+    //     keccak.finalize(&mut output);
+    //     let pubkey_hash = output[12..].to_vec();
+    //     println!("eth_addr my pubkey_hash:{:?}", pubkey_hash);
+    // }
+
+    let pubkey_hash = {
+        let mut hasher = Keccak256::new();
+        hasher.update(&pubkey[1..]);
+        let buf = hasher.finalize();
+        let mut pubkey_hash = [0u8; 20];
+        pubkey_hash.copy_from_slice(&buf[12..]);
+        pubkey_hash
+    };
+    println!("eth_addr godwoken pubkey_hash:{:?}", pubkey_hash);
+
+    let pubkey_hash = pubkey_hash
+        .iter()
+        .map(|value| (*value).into())
+        .collect::<Vec<Byte>>();
+
+    basic::Identity::new_builder()
+        .set(pubkey_hash.as_slice().try_into().unwrap())
+        .build()
+}
+
 // construct stake_at cell data based on version, l1_address, l2_address, metadata_type_id, delta
 pub fn axon_stake_at_cell_data_without_amount(
     version: u8,
     l1_address: &Vec<u8>,
-    l2_address: &Vec<u8>,
+    l2_address: Identity,
     metadata_type_id: &packed::Byte32,
     delta: axon_types::stake::StakeInfoDelta,
 ) -> axon_types::stake::StakeAtCellData {
     let xudt_data_lock = axon_types::stake::StakeAtCellLockData::new_builder()
         .version(version.into())
         .l1_address(axon_identity(l1_address))
-        .l2_address(axon_identity(l2_address))
+        .l2_address(l2_address)
         .metadata_type_id(axon_byte32(metadata_type_id))
         .delta(delta)
         .build();
@@ -432,6 +474,16 @@ pub fn sign_stake_tx(tx: TransactionView, key: &Privkey, witness: WitnessArgs) -
             .as_bytes()
             .pack(),
     );
+    println!("signed_witnesses: {:?}", signed_witnesses.len());
+    tx.as_advanced_builder()
+        .set_witnesses(signed_witnesses)
+        .build()
+}
+
+pub fn sign_eth_tx(tx: TransactionView, witness: WitnessArgs) -> TransactionView {
+    let mut signed_witnesses: Vec<packed::Bytes> = Vec::new();
+
+    signed_witnesses.push(witness.as_bytes().pack());
     println!("signed_witnesses: {:?}", signed_witnesses.len());
     tx.as_advanced_builder()
         .set_witnesses(signed_witnesses)

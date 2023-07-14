@@ -1,4 +1,4 @@
-use crate::smt::Blake2bHasher;
+// use crate::smt::Blake2bHasher;
 use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::iter::FromIterator;
@@ -17,7 +17,7 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use sparse_merkle_tree::{CompiledMerkleProof, H256};
+use sparse_merkle_tree::{blake2b::Blake2bHasher, CompiledMerkleProof, H256};
 use util::smt::{
     addr_to_h256, u128_to_h256, u64_to_h256, BottomValue, EpochValue, LockInfo, ProposeBottomValue,
     BOTTOM_SMT, CLAIM_SMT, PROPOSE_BOTTOM_SMT, TOP_SMT,
