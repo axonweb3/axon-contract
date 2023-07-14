@@ -28,7 +28,8 @@ make all-via-docker
 ```
 
 build contracts:
-
+You can use ```capsule build``` to build all contracts at once.
+or build sepecific contract using following commands.
 ``` sh
 capsule build -n selection
 capsule build -n checkpoint
@@ -44,3 +45,4 @@ cargo test test_selection_success -- --nocapture
 cargo test test_checkpoint_success -- --nocapture
 cargo test test_stake_success -- --nocapture
 ```
+Also, you can run `cargo test` to run all tests.

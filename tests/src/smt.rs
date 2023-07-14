@@ -1,11 +1,9 @@
 use std::collections::BTreeSet;
 
 use blake2b_rs::{Blake2b, Blake2bBuilder};
-// use ckb_smt::smt::{Pair, Tree};
 use sparse_merkle_tree::{
-    default_store::DefaultStore,
-    traits::{Hasher, Value},
-    CompiledMerkleProof, MerkleProof, SMTBuilder, SparseMerkleTree, H256,
+    blake2b::Blake2bHasher, default_store::DefaultStore, traits::Value, CompiledMerkleProof,
+    MerkleProof, SMTBuilder, SparseMerkleTree, H256,
 };
 use util::{
     helper::ProposeCountObject,
@@ -15,30 +13,30 @@ use util::{
     },
 };
 
-pub struct Blake2bHasher(Blake2b);
+// pub struct Blake2bHasher(Blake2b);
 
-impl Default for Blake2bHasher {
-    fn default() -> Self {
-        let blake2b = Blake2bBuilder::new(32)
-            .personal(b"ckb-default-hash")
-            .build();
-        Blake2bHasher(blake2b)
-    }
-}
+// impl Default for Blake2bHasher {
+//     fn default() -> Self {
+//         let blake2b = Blake2bBuilder::new(32)
+//             .personal(b"ckb-default-hash")
+//             .build();
+//         Blake2bHasher(blake2b)
+//     }
+// }
 
-impl Hasher for Blake2bHasher {
-    fn write_h256(&mut self, h: &H256) {
-        self.0.update(h.as_slice());
-    }
-    fn write_byte(&mut self, b: u8) {
-        self.0.update(&[b][..]);
-    }
-    fn finish(self) -> H256 {
-        let mut hash = [0u8; 32];
-        self.0.finalize(&mut hash);
-        hash.into()
-    }
-}
+// impl Hasher for Blake2bHasher {
+//     fn write_h256(&mut self, h: &H256) {
+//         self.0.update(h.as_slice());
+//     }
+//     fn write_byte(&mut self, b: u8) {
+//         self.0.update(&[b][..]);
+//     }
+//     fn finish(self) -> H256 {
+//         let mut hash = [0u8; 32];
+//         self.0.finalize(&mut hash);
+//         hash.into()
+//     }
+// }
 
 // define SMT
 pub type SMT = SparseMerkleTree<Blake2bHasher, Word, DefaultStore<Word>>;

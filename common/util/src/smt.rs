@@ -19,10 +19,7 @@ use crate::helper::ProposeCountObject;
 pub struct BottomValue(pub u128);
 impl Value for BottomValue {
     fn to_h256(&self) -> H256 {
-        let mut buf = [0u8; 32];
-        let amount_bytes = self.0.to_le_bytes();
-        buf[..16].copy_from_slice(&amount_bytes);
-        buf.into()
+        u128_to_h256(self.0)
     }
     fn zero() -> Self {
         Default::default()
@@ -34,11 +31,7 @@ impl Value for BottomValue {
 pub struct ProposeBottomValue(pub u64);
 impl Value for ProposeBottomValue {
     fn to_h256(&self) -> H256 {
-        let mut buf = [0u8; 32];
-        let mut hasher = new_blake2b();
-        hasher.update(&self.0.to_le_bytes());
-        hasher.finalize(&mut buf);
-        buf.into()
+        u64_to_h256(self.0)
     }
     fn zero() -> Self {
         Default::default()
@@ -49,12 +42,7 @@ impl Value for ProposeBottomValue {
 pub struct EpochValue(pub u64);
 impl Value for EpochValue {
     fn to_h256(&self) -> H256 {
-        let mut buf = [0u8; 32];
-        let mut hasher = new_blake2b();
-        // println!("epoch: {}", self.0);
-        hasher.update(&self.0.to_le_bytes());
-        hasher.finalize(&mut buf);
-        buf.into()
+        u64_to_h256(self.0)
     }
     fn zero() -> Self {
         Default::default()
@@ -147,9 +135,9 @@ pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
 //     buf.into()
 // }
 
-pub fn u64_to_h256(epoch: u64) -> H256 {
+pub fn u64_to_h256(num: u64) -> H256 {
     let mut buf = [0u8; 32];
-    buf[..8].copy_from_slice(&epoch.to_le_bytes());
+    buf[..8].copy_from_slice(&num.to_le_bytes());
     buf.into()
 }
 
