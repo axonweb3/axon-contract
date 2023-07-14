@@ -68,6 +68,7 @@ fn test_delegate_at_increase_success() {
     let input_delegate_at_data = axon_delegate_at_cell_data_without_amount(
         0,
         &delegator_keypair.1.serialize(),
+        &delegator_keypair.1.serialize(),
         &metadata_type_script.calc_script_hash(),
         input_delegate_info_deltas,
     );
@@ -134,6 +135,7 @@ fn test_delegate_at_increase_success() {
         .build();
     let output_delegate_at_data = axon_delegate_at_cell_data_without_amount(
         0,
+        &delegator_keypair.1.serialize(),
         &delegator_keypair.1.serialize(),
         &metadata_type_script.calc_script_hash(),
         output_delegate_info_deltas,
@@ -292,6 +294,7 @@ fn test_delegate_smt_success() {
     let input_delegate_at_data = axon_delegate_at_cell_data_without_amount(
         0,
         &delegator_keypair.1.serialize(),
+        &delegator_keypair.1.serialize(),
         &metadata_type_script.calc_script_hash(),
         input_delegate_info_deltas,
     );
@@ -377,6 +380,7 @@ fn test_delegate_smt_success() {
         .build();
     let output_delegate_at_data = axon_delegate_at_cell_data_without_amount(
         0,
+        &delegator_keypair.1.serialize(),
         &delegator_keypair.1.serialize(),
         &metadata_type_script.calc_script_hash(),
         output_delegate_info_deltas,

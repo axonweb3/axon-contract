@@ -166,12 +166,14 @@ pub fn axon_stake_at_cell_data(
 pub fn axon_delegate_at_cell_data_without_amount(
     version: u8,
     l1_address: &Vec<u8>,
+    l2_address: &Vec<u8>,
     metadata_type_id: &packed::Byte32,
     delta: axon_types::delegate::DelegateInfoDeltas,
 ) -> axon_types::delegate::DelegateAtCellData {
     let lock_data = axon_types::delegate::DelegateAtCellLockData::new_builder()
         .version(version.into())
         .l1_address(axon_identity(l1_address))
+        .l2_address(axon_identity(l2_address))
         .metadata_type_id(axon_byte32(metadata_type_id))
         .delegator_infos(delta)
         .build();

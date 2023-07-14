@@ -41,6 +41,7 @@ vector DelegateInfoDeltas <DelegateInfoDelta>;
 table DelegateAtCellLockData {
     version:            byte,
     l1_address:         Identity,
+    l2_address:         Identity,
     metadata_type_id:   Byte32,
     delegator_infos:    DelegateInfoDeltas,
 }

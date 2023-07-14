@@ -23,10 +23,6 @@ name = "metadata"
 template_type = "Rust"
 
 [[contracts]]
-name = "withdrawal"
-template_type = "Rust"
-
-[[contracts]]
 name = "stake"
 template_type = "Rust"
 

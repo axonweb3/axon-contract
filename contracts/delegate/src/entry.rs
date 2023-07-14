@@ -8,7 +8,7 @@ use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, prelude::*},
     debug,
-    high_level::{load_cell_lock_hash, load_script, load_witness_args},
+    high_level::{load_script, load_witness_args},
 };
 
 use axon_types::{
@@ -26,6 +26,9 @@ pub fn main() -> Result<(), Error> {
     let delegate_args: delegate_reader::DelegateArgs = Cursor::from(args.to_vec()).into();
     let metadata_type_id = delegate_args.metadata_type_id();
     let delegator_identity = delegate_args.delegator_addr();
+    // extract delegate at cell lock hash
+    let delegate_at_lock_hash = calc_script_hash(&script);
+    check_l2_addr(&delegator_identity, &delegate_at_lock_hash)?;
 
     let type_ids = get_type_ids(
         &metadata_type_id.as_slice().try_into().unwrap(),
@@ -60,8 +63,6 @@ pub fn main() -> Result<(), Error> {
             match mode {
                 0 => {
                     // update delegate at cell
-                    // extract delegate at cell lock hash
-                    let delegate_at_lock_hash = { load_cell_lock_hash(0, Source::Input)? };
                     let checkpoint_script_hash = get_script_hash(
                         &type_ids.checkpoint_code_hash(),
                         &type_ids.checkpoint_type_id(),
@@ -97,6 +98,22 @@ pub fn main() -> Result<(), Error> {
             return Err(Error::UnknownMode);
         }
     };
+
+    Ok(())
+}
+
+fn check_l2_addr(l2_addr_args: &Vec<u8>, delegate_at_lock_hash: &[u8; 32]) -> Result<(), Error> {
+    let (_, output_delegate_at_data) =
+        get_delegate_at_data_by_lock_hash(&delegate_at_lock_hash, Source::Output)?;
+
+    let l2_addr_cell = output_delegate_at_data.l2_address();
+    debug!(
+        "l2_addr:{:?}, l2_addr_args:{:?}",
+        l2_addr_cell, l2_addr_args
+    );
+    if l2_addr_cell != l2_addr_args.as_slice() {
+        return Err(Error::L1L2AddrMismatch);
+    }
 
     Ok(())
 }

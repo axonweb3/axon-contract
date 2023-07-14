@@ -222,15 +222,22 @@ impl DelegateAtCellLockData {
 }
 
 impl DelegateAtCellLockData {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
+    pub fn l2_address(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(2).unwrap();
         cur.into()
     }
 }
 
 impl DelegateAtCellLockData {
-    pub fn delegator_infos(&self) -> DelegateInfoDeltas {
+    pub fn metadata_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(3).unwrap();
+        cur.into()
+    }
+}
+
+impl DelegateAtCellLockData {
+    pub fn delegator_infos(&self) -> DelegateInfoDeltas {
+        let cur = self.cursor.table_slice_by_index(4).unwrap();
         cur.into()
     }
 }

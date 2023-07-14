@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 ckb-std = "0.13"
-secp256k1 = { path = "../../common/secp256k1" }
+# secp256k1 = { path = "../../common/secp256k1" }
 axon-types = { path = "../../common/types" }
 util = { path = "../../common/util" }
 # ckb-smt = { path = "../ckb-smt", default-features = false }

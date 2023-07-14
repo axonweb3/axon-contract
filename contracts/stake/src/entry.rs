@@ -103,7 +103,7 @@ fn check_l2_addr(l2_addr_args: &Vec<u8>, stake_at_lock_hash: &[u8; 32]) -> Resul
         l2_addr_cell, l2_addr_args
     );
     if l2_addr_cell != l2_addr_args.as_slice() {
-        return Err(Error::StakeL2AddrMismatch);
+        return Err(Error::L1L2AddrMismatch);
     }
 
     Ok(())

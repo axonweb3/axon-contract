@@ -1279,7 +1279,6 @@ dependencies = [
  "axon-types",
  "ckb-std",
  "ckb-type-id",
- "secp256k1 0.1.0",
  "sparse-merkle-tree",
  "util",
 ]
@@ -1465,7 +1464,6 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "ckb-std",
- "secp256k1 0.1.0",
  "sparse-merkle-tree",
  "util",
 ]
@@ -1477,7 +1475,6 @@ dependencies = [
  "axon-types",
  "ckb-std",
  "ckb-type-id",
- "secp256k1 0.1.0",
  "sparse-merkle-tree",
  "util",
 ]
