@@ -22,16 +22,16 @@ fn test_selection_success() {
     let always_success_script_dep = CellDep::new_builder()
         .out_point(always_success_out_point)
         .build();
-    let omni_lock_hash = always_success_lock_script.calc_script_hash();
+    let issue_lock_hash = always_success_lock_script.calc_script_hash();
     // prepare args for reward contract
     let reward_type_script = context
         .build_script(&reward_out_point, Bytes::new())
         .expect("reward script");
     let reward_script_dep = CellDep::new_builder().out_point(reward_out_point).build();
-    let reward_type_id = reward_type_script.calc_script_hash();
+    let reward_smt_type_id = reward_type_script.calc_script_hash();
     let selection_args = SelectionLockArgs::new_builder()
-        .omni_lock_hash(axon_byte32(&omni_lock_hash))
-        .reward_type_id(axon_byte32(&reward_type_id))
+        .issue_lock_hash(axon_byte32(&issue_lock_hash))
+        .reward_smt_type_id(axon_byte32(&reward_smt_type_id))
         .build();
 
     // prepare scripts
@@ -118,16 +118,16 @@ fn test_selection_fail() {
     let always_success_script_dep = CellDep::new_builder()
         .out_point(always_success_out_point)
         .build();
-    let omni_lock_hash = always_success_lock_script.calc_script_hash();
+    let issue_lock_hash = always_success_lock_script.calc_script_hash();
     // prepare args for reward contract
     let reward_type_script = context
         .build_script(&reward_out_point, Bytes::new())
         .expect("reward script");
     let reward_script_dep = CellDep::new_builder().out_point(reward_out_point).build();
-    let reward_type_id = reward_type_script.calc_script_hash();
+    let reward_smt_type_id = reward_type_script.calc_script_hash();
     let selection_args = SelectionLockArgs::new_builder()
-        .omni_lock_hash(axon_byte32(&omni_lock_hash))
-        .reward_type_id(axon_byte32(&reward_type_id))
+        .issue_lock_hash(axon_byte32(&issue_lock_hash))
+        .reward_smt_type_id(axon_byte32(&reward_smt_type_id))
         .build();
 
     // prepare scripts

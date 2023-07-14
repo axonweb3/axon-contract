@@ -1712,6 +1712,7 @@ impl ::core::fmt::Display for DelegateAtCellLockData {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "version", self.version())?;
         write!(f, ", {}: {}", "l1_address", self.l1_address())?;
+        write!(f, ", {}: {}", "l2_address", self.l2_address())?;
         write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
         write!(f, ", {}: {}", "delegator_infos", self.delegator_infos())?;
         let extra_count = self.count_extra_fields();
@@ -1724,15 +1725,16 @@ impl ::core::fmt::Display for DelegateAtCellLockData {
 impl ::core::default::Default for DelegateAtCellLockData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            77, 0, 0, 0, 20, 0, 0, 0, 21, 0, 0, 0, 41, 0, 0, 0, 73, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            101, 0, 0, 0, 24, 0, 0, 0, 25, 0, 0, 0, 45, 0, 0, 0, 65, 0, 0, 0, 97, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
         DelegateAtCellLockData::new_unchecked(v.into())
     }
 }
 impl DelegateAtCellLockData {
-    pub const FIELD_COUNT: usize = 4;
+    pub const FIELD_COUNT: usize = 5;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1761,17 +1763,23 @@ impl DelegateAtCellLockData {
         let end = molecule::unpack_number(&slice[12..]) as usize;
         Identity::new_unchecked(self.0.slice(start..end))
     }
-    pub fn metadata_type_id(&self) -> Byte32 {
+    pub fn l2_address(&self) -> Identity {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
+        Identity::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn metadata_type_id(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let end = molecule::unpack_number(&slice[20..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
     pub fn delegator_infos(&self) -> DelegateInfoDeltas {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let start = molecule::unpack_number(&slice[20..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[20..]) as usize;
+            let end = molecule::unpack_number(&slice[24..]) as usize;
             DelegateInfoDeltas::new_unchecked(self.0.slice(start..end))
         } else {
             DelegateInfoDeltas::new_unchecked(self.0.slice(start..))
@@ -1806,6 +1814,7 @@ impl molecule::prelude::Entity for DelegateAtCellLockData {
         Self::new_builder()
             .version(self.version())
             .l1_address(self.l1_address())
+            .l2_address(self.l2_address())
             .metadata_type_id(self.metadata_type_id())
             .delegator_infos(self.delegator_infos())
     }
@@ -1831,6 +1840,7 @@ impl<'r> ::core::fmt::Display for DelegateAtCellLockDataReader<'r> {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "version", self.version())?;
         write!(f, ", {}: {}", "l1_address", self.l1_address())?;
+        write!(f, ", {}: {}", "l2_address", self.l2_address())?;
         write!(f, ", {}: {}", "metadata_type_id", self.metadata_type_id())?;
         write!(f, ", {}: {}", "delegator_infos", self.delegator_infos())?;
         let extra_count = self.count_extra_fields();
@@ -1841,7 +1851,7 @@ impl<'r> ::core::fmt::Display for DelegateAtCellLockDataReader<'r> {
     }
 }
 impl<'r> DelegateAtCellLockDataReader<'r> {
-    pub const FIELD_COUNT: usize = 4;
+    pub const FIELD_COUNT: usize = 5;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1870,17 +1880,23 @@ impl<'r> DelegateAtCellLockDataReader<'r> {
         let end = molecule::unpack_number(&slice[12..]) as usize;
         IdentityReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+    pub fn l2_address(&self) -> IdentityReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
+        IdentityReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let end = molecule::unpack_number(&slice[20..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn delegator_infos(&self) -> DelegateInfoDeltasReader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let start = molecule::unpack_number(&slice[20..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[20..]) as usize;
+            let end = molecule::unpack_number(&slice[24..]) as usize;
             DelegateInfoDeltasReader::new_unchecked(&self.as_slice()[start..end])
         } else {
             DelegateInfoDeltasReader::new_unchecked(&self.as_slice()[start..])
@@ -1938,8 +1954,9 @@ impl<'r> molecule::prelude::Reader<'r> for DelegateAtCellLockDataReader<'r> {
         }
         ByteReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
         IdentityReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
-        DelegateInfoDeltasReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
+        IdentityReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
+        DelegateInfoDeltasReader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
         Ok(())
     }
 }
@@ -1947,17 +1964,22 @@ impl<'r> molecule::prelude::Reader<'r> for DelegateAtCellLockDataReader<'r> {
 pub struct DelegateAtCellLockDataBuilder {
     pub(crate) version: Byte,
     pub(crate) l1_address: Identity,
+    pub(crate) l2_address: Identity,
     pub(crate) metadata_type_id: Byte32,
     pub(crate) delegator_infos: DelegateInfoDeltas,
 }
 impl DelegateAtCellLockDataBuilder {
-    pub const FIELD_COUNT: usize = 4;
+    pub const FIELD_COUNT: usize = 5;
     pub fn version(mut self, v: Byte) -> Self {
         self.version = v;
         self
     }
     pub fn l1_address(mut self, v: Identity) -> Self {
         self.l1_address = v;
+        self
+    }
+    pub fn l2_address(mut self, v: Identity) -> Self {
+        self.l2_address = v;
         self
     }
     pub fn metadata_type_id(mut self, v: Byte32) -> Self {
@@ -1976,6 +1998,7 @@ impl molecule::prelude::Builder for DelegateAtCellLockDataBuilder {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
             + self.version.as_slice().len()
             + self.l1_address.as_slice().len()
+            + self.l2_address.as_slice().len()
             + self.metadata_type_id.as_slice().len()
             + self.delegator_infos.as_slice().len()
     }
@@ -1987,6 +2010,8 @@ impl molecule::prelude::Builder for DelegateAtCellLockDataBuilder {
         offsets.push(total_size);
         total_size += self.l1_address.as_slice().len();
         offsets.push(total_size);
+        total_size += self.l2_address.as_slice().len();
+        offsets.push(total_size);
         total_size += self.metadata_type_id.as_slice().len();
         offsets.push(total_size);
         total_size += self.delegator_infos.as_slice().len();
@@ -1996,6 +2021,7 @@ impl molecule::prelude::Builder for DelegateAtCellLockDataBuilder {
         }
         writer.write_all(self.version.as_slice())?;
         writer.write_all(self.l1_address.as_slice())?;
+        writer.write_all(self.l2_address.as_slice())?;
         writer.write_all(self.metadata_type_id.as_slice())?;
         writer.write_all(self.delegator_infos.as_slice())?;
         Ok(())
@@ -2377,10 +2403,11 @@ impl ::core::fmt::Display for DelegateAtCellData {
 impl ::core::default::Default for DelegateAtCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            93, 0, 0, 0, 12, 0, 0, 0, 89, 0, 0, 0, 77, 0, 0, 0, 20, 0, 0, 0, 21, 0, 0, 0, 41, 0, 0,
-            0, 73, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            117, 0, 0, 0, 12, 0, 0, 0, 113, 0, 0, 0, 101, 0, 0, 0, 24, 0, 0, 0, 25, 0, 0, 0, 45, 0,
+            0, 0, 65, 0, 0, 0, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            4, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0,
+            0, 4, 0, 0, 0,
         ];
         DelegateAtCellData::new_unchecked(v.into())
     }

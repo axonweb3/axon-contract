@@ -21,58 +21,30 @@ impl ::core::fmt::Debug for SelectionLockArgs {
 impl ::core::fmt::Display for SelectionLockArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "reward_type_id", self.reward_type_id())?;
-        write!(f, ", {}: {}", "omni_lock_hash", self.omni_lock_hash())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
-        }
+        write!(f, "{}: {}", "reward_smt_type_id", self.reward_smt_type_id())?;
+        write!(f, ", {}: {}", "issue_lock_hash", self.issue_lock_hash())?;
         write!(f, " }}")
     }
 }
 impl ::core::default::Default for SelectionLockArgs {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            76, 0, 0, 0, 12, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
         ];
         SelectionLockArgs::new_unchecked(v.into())
     }
 }
 impl SelectionLockArgs {
+    pub const TOTAL_SIZE: usize = 64;
+    pub const FIELD_SIZES: [usize; 2] = [32, 32];
     pub const FIELD_COUNT: usize = 2;
-    pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
+    pub fn reward_smt_type_id(&self) -> Byte32 {
+        Byte32::new_unchecked(self.0.slice(0..32))
     }
-    pub fn field_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
-    }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
-    }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
-    }
-    pub fn reward_type_id(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        let end = molecule::unpack_number(&slice[8..]) as usize;
-        Byte32::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn omni_lock_hash(&self) -> Byte32 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[8..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[12..]) as usize;
-            Byte32::new_unchecked(self.0.slice(start..end))
-        } else {
-            Byte32::new_unchecked(self.0.slice(start..))
-        }
+    pub fn issue_lock_hash(&self) -> Byte32 {
+        Byte32::new_unchecked(self.0.slice(32..64))
     }
     pub fn as_reader<'r>(&'r self) -> SelectionLockArgsReader<'r> {
         SelectionLockArgsReader::new_unchecked(self.as_slice())
@@ -101,8 +73,8 @@ impl molecule::prelude::Entity for SelectionLockArgs {
     }
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
-            .reward_type_id(self.reward_type_id())
-            .omni_lock_hash(self.omni_lock_hash())
+            .reward_smt_type_id(self.reward_smt_type_id())
+            .issue_lock_hash(self.issue_lock_hash())
     }
 }
 #[derive(Clone, Copy)]
@@ -124,48 +96,20 @@ impl<'r> ::core::fmt::Debug for SelectionLockArgsReader<'r> {
 impl<'r> ::core::fmt::Display for SelectionLockArgsReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "reward_type_id", self.reward_type_id())?;
-        write!(f, ", {}: {}", "omni_lock_hash", self.omni_lock_hash())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
-        }
+        write!(f, "{}: {}", "reward_smt_type_id", self.reward_smt_type_id())?;
+        write!(f, ", {}: {}", "issue_lock_hash", self.issue_lock_hash())?;
         write!(f, " }}")
     }
 }
 impl<'r> SelectionLockArgsReader<'r> {
+    pub const TOTAL_SIZE: usize = 64;
+    pub const FIELD_SIZES: [usize; 2] = [32, 32];
     pub const FIELD_COUNT: usize = 2;
-    pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
+    pub fn reward_smt_type_id(&self) -> Byte32Reader<'r> {
+        Byte32Reader::new_unchecked(&self.as_slice()[0..32])
     }
-    pub fn field_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
-    }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
-    }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
-    }
-    pub fn reward_type_id(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        let end = molecule::unpack_number(&slice[8..]) as usize;
-        Byte32Reader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn omni_lock_hash(&self) -> Byte32Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[8..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[12..]) as usize;
-            Byte32Reader::new_unchecked(&self.as_slice()[start..end])
-        } else {
-            Byte32Reader::new_unchecked(&self.as_slice()[start..])
-        }
+    pub fn issue_lock_hash(&self) -> Byte32Reader<'r> {
+        Byte32Reader::new_unchecked(&self.as_slice()[32..64])
     }
 }
 impl<'r> molecule::prelude::Reader<'r> for SelectionLockArgsReader<'r> {
@@ -180,61 +124,30 @@ impl<'r> molecule::prelude::Reader<'r> for SelectionLockArgsReader<'r> {
     fn as_slice(&self) -> &'r [u8] {
         self.0
     }
-    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+    fn verify(slice: &[u8], _compatible: bool) -> molecule::error::VerificationResult<()> {
         use molecule::verification_error as ve;
         let slice_len = slice.len();
-        if slice_len < molecule::NUMBER_SIZE {
-            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
+        if slice_len != Self::TOTAL_SIZE {
+            return ve!(Self, TotalSizeNotMatch, Self::TOTAL_SIZE, slice_len);
         }
-        let total_size = molecule::unpack_number(slice) as usize;
-        if slice_len != total_size {
-            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
-        }
-        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
-            return Ok(());
-        }
-        if slice_len < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
-        }
-        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
-        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        if slice_len < offset_first {
-            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
-        }
-        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
-        if field_count < Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        } else if !compatible && field_count > Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        };
-        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
-            .chunks_exact(molecule::NUMBER_SIZE)
-            .map(|x| molecule::unpack_number(x) as usize)
-            .collect();
-        offsets.push(total_size);
-        if offsets.windows(2).any(|i| i[0] > i[1]) {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        Byte32Reader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct SelectionLockArgsBuilder {
-    pub(crate) reward_type_id: Byte32,
-    pub(crate) omni_lock_hash: Byte32,
+    pub(crate) reward_smt_type_id: Byte32,
+    pub(crate) issue_lock_hash: Byte32,
 }
 impl SelectionLockArgsBuilder {
+    pub const TOTAL_SIZE: usize = 64;
+    pub const FIELD_SIZES: [usize; 2] = [32, 32];
     pub const FIELD_COUNT: usize = 2;
-    pub fn reward_type_id(mut self, v: Byte32) -> Self {
-        self.reward_type_id = v;
+    pub fn reward_smt_type_id(mut self, v: Byte32) -> Self {
+        self.reward_smt_type_id = v;
         self
     }
-    pub fn omni_lock_hash(mut self, v: Byte32) -> Self {
-        self.omni_lock_hash = v;
+    pub fn issue_lock_hash(mut self, v: Byte32) -> Self {
+        self.issue_lock_hash = v;
         self
     }
 }
@@ -242,23 +155,11 @@ impl molecule::prelude::Builder for SelectionLockArgsBuilder {
     type Entity = SelectionLockArgs;
     const NAME: &'static str = "SelectionLockArgsBuilder";
     fn expected_length(&self) -> usize {
-        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
-            + self.reward_type_id.as_slice().len()
-            + self.omni_lock_hash.as_slice().len()
+        Self::TOTAL_SIZE
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
-        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
-        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
-        offsets.push(total_size);
-        total_size += self.reward_type_id.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.omni_lock_hash.as_slice().len();
-        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
-        for offset in offsets.into_iter() {
-            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
-        }
-        writer.write_all(self.reward_type_id.as_slice())?;
-        writer.write_all(self.omni_lock_hash.as_slice())?;
+        writer.write_all(self.reward_smt_type_id.as_slice())?;
+        writer.write_all(self.issue_lock_hash.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {

@@ -432,7 +432,7 @@ pub fn get_delegate_update_infos(
                     let delegate_info = delegate_infos.get(i);
                     if delegate_info.staker() == *staker {
                         let address: [u8; 20] =
-                            delegate_at_data.l1_address().as_slice().try_into().unwrap();
+                            delegate_at_data.l2_address().as_slice().try_into().unwrap();
                         // debug!("delegate_info.staker: {:?}, amount: {}", delegate_info.staker(), delegate_info.amount());
                         delegate_update_infos.push((address, lock_hash, delegate_info));
                         break;

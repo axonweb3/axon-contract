@@ -124,6 +124,10 @@
           "type": "Identity"
         },
         {
+          "name": "l2_address",
+          "type": "Identity"
+        },
+        {
           "name": "metadata_type_id",
           "type": "Byte32"
         },

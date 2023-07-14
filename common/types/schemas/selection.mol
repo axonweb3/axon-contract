@@ -1,6 +1,6 @@
 import basic;
 
-table SelectionLockArgs {
-	reward_type_id: Byte32,
-	omni_lock_hash: Byte32,
+struct SelectionLockArgs {
+	reward_smt_type_id: Byte32,  // type id of reward smt cell
+	issue_lock_hash:    Byte32,  // lock hash of issue cell(type is omni cell)
 }

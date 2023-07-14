@@ -47,7 +47,7 @@ pub enum Error {
 
     // stake AT type script
     StakeDataEmpty = 50,
-    StakeL2AddrMismatch,
+    L1L2AddrMismatch,
     MisMatchMetadataTypeId,
     UpdateModeError,
     BadSudtDataFormat,

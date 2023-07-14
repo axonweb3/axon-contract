@@ -9,15 +9,15 @@
   ],
   "declarations": [
     {
-      "type": "table",
+      "type": "struct",
       "name": "SelectionLockArgs",
       "fields": [
         {
-          "name": "reward_type_id",
+          "name": "reward_smt_type_id",
           "type": "Byte32"
         },
         {
-          "name": "omni_lock_hash",
+          "name": "issue_lock_hash",
           "type": "Byte32"
         }
       ]
