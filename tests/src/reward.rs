@@ -1,4 +1,3 @@
-use crate::smt::Blake2bHasher;
 use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::iter::FromIterator;
@@ -17,7 +16,7 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use sparse_merkle_tree::{CompiledMerkleProof, H256};
+use sparse_merkle_tree::{blake2b::Blake2bHasher, CompiledMerkleProof, H256};
 use util::smt::{
     addr_to_h256, u128_to_h256, u64_to_h256, BottomValue, EpochValue, LockInfo, ProposeBottomValue,
     BOTTOM_SMT, CLAIM_SMT, PROPOSE_BOTTOM_SMT, TOP_SMT,
@@ -246,13 +245,14 @@ fn test_reward_success() {
         .compile(vec![addr_to_h256(&staker_addr)])
         .unwrap()
         .0;
-    // println!(
-    //     "verify propose count smt bottom proof: {:?}, bottom root: {:?}, count: {:?}, epoch: {}",
-    //     propose_count_smt_bottom_proof,
-    //     propose_count_smt_bottom_tree.root(),
-    //     propose_count,
-    //     claim_epoch
-    // );
+    println!(
+        "verify propose count smt bottom proof: {:?}, bottom root: {:?}, staker: {:?}, count: {:?}, epoch: {}",
+        propose_count_smt_bottom_proof,
+        propose_count_smt_bottom_tree.root(),
+        staker_addr,
+        propose_count,
+        claim_epoch
+    );
 
     let mut propose_count_smt_top_tree = TOP_SMT::default();
     let propose_count_smt_bottom_tree_root = propose_count_smt_bottom_tree.root();
@@ -358,6 +358,7 @@ fn test_reward_success() {
     let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder().build();
     let output_delegate_at_data = axon_delegate_at_cell_data_without_amount(
         0,
+        &keypair.1.serialize(),
         &keypair.1.serialize(),
         &metadata_type_script.calc_script_hash(),
         output_delegate_info_deltas,
