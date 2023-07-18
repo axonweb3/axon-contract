@@ -13,6 +13,7 @@ use helper::*;
 use molecule::prelude::*;
 use rand::prelude::*;
 use rlp::RlpStream;
+use util::helper::keccak256;
 
 #[test]
 fn test_checkpoint_success() {
@@ -278,6 +279,82 @@ fn test_checkpoint_create() {
     println!("consume cycles: {}", cycles);
 }
 
+#[test]
+fn test_checkpoint_axon_blst() {
+    let private_keys = [
+        [
+            55 as u8, 170, 15, 137, 61, 5, 145, 74, 77, 239, 4, 96, 192, 169, 132, 211, 97, 21, 70,
+            207, 178, 105, 36, 215, 167, 202, 110, 13, 185, 149, 10, 45,
+        ],
+        [
+            56, 63, 207, 248, 104, 59, 129, 21, 227, 22, 19, 148, 155, 226, 66, 84, 180, 32, 79,
+            251, 228, 60, 34, 116, 8, 167, 99, 52, 162, 227, 251, 50,
+        ],
+        [
+            81, 206, 33, 100, 59, 145, 19, 71, 197, 213, 200, 92, 50, 61, 157, 84, 33, 129, 13,
+            200, 159, 70, 182, 136, 114, 11, 39, 21, 245, 232, 233, 54,
+        ],
+        [
+            105, 255, 81, 244, 194, 47, 48, 97, 95, 104, 184, 142, 250, 116, 15, 143, 27, 145, 105,
+            232, 136, 66, 184, 61, 24, 151, 72, 208, 111, 26, 148, 142,
+        ],
+    ];
+    let sk0 = SecretKey::from_bytes(private_keys[0].as_slice()).unwrap();
+    let sk1 = SecretKey::from_bytes(private_keys[1].as_slice()).unwrap();
+    // let sk2 = SecretKey::from_bytes(private_keys[2].as_slice()).unwrap();
+    let sk3 = SecretKey::from_bytes(private_keys[3].as_slice()).unwrap();
+    println!("sk0 pubkey: {:?}", sk0.sk_to_pk().to_bytes());
+    println!("sk1 pubkey: {:?}", sk1.sk_to_pk().to_bytes());
+    // println!("sk2 pubkey: {:?}", sk2.sk_to_pk().to_bytes());
+    println!("sk3 pubkey: {:?}", sk3.sk_to_pk().to_bytes());
+
+    let message = [
+        228 as u8, 10, 128, 2, 160, 166, 132, 67, 59, 186, 214, 105, 136, 22, 3, 194, 228, 4, 233,
+        114, 201, 143, 214, 101, 177, 122, 165, 253, 118, 57, 55, 55, 237, 163, 135, 104, 225,
+    ];
+    let message = keccak256(&message.to_vec());
+
+    let bls_keypairs = [
+        (
+            sk0,
+            [
+                172 as u8, 133, 187, 180, 3, 71, 182, 224, 106, 194, 220, 45, 161, 247, 94, 236,
+                224, 41, 205, 192, 237, 45, 69, 108, 69, 125, 39, 226, 136, 191, 191, 188, 212,
+                197, 193, 151, 22, 233, 178, 80, 19, 74, 14, 118, 206, 80, 250, 34,
+            ]
+            .to_vec(),
+        ),
+        (
+            sk1,
+            [
+                145, 237, 159, 60, 81, 197, 128, 229, 105, 72, 177, 189, 169, 208, 12, 33, 89, 102,
+                95, 138, 110, 40, 65, 145, 171, 129, 110, 230, 78, 242, 72, 125, 120, 69, 58, 84,
+                122, 15, 20, 239, 191, 132, 43, 186, 91, 90, 59, 79,
+            ]
+            .to_vec(),
+        ),
+        (
+            sk3,
+            [
+                166, 148, 244, 228, 138, 90, 23, 59, 97, 115, 25, 152, 248, 241, 32, 67, 66, 220,
+                92, 142, 177, 227, 44, 218, 227, 116, 21, 194, 13, 17, 174, 3, 93, 218, 196, 163,
+                159, 16, 94, 156, 45, 77, 54, 145, 2, 77, 56, 93,
+            ]
+            .to_vec(),
+        ),
+    ];
+    let signature = generate_bls_signature(&message, &bls_keypairs[..]);
+    // println!("signature: {:?}, len: {},", signature, signature.len());
+    let axon_signature = [
+        172 as u8, 213, 108, 242, 233, 92, 3, 169, 148, 71, 184, 41, 255, 253, 253, 222, 214, 76,
+        99, 223, 165, 60, 157, 108, 45, 200, 126, 102, 103, 237, 219, 250, 121, 12, 219, 64, 204,
+        162, 10, 50, 180, 188, 154, 215, 247, 37, 1, 100, 13, 121, 53, 171, 22, 184, 88, 241, 19,
+        152, 172, 178, 147, 130, 111, 236, 4, 45, 151, 164, 137, 134, 105, 231, 62, 178, 112, 235,
+        72, 30, 42, 82, 22, 95, 208, 32, 9, 25, 54, 150, 77, 248, 43, 135, 222, 170, 229, 51,
+    ];
+    assert_eq!(signature, axon_signature);
+}
+
 fn mock_witness(bls_keypairs: &[(SecretKey, Vec<u8>)]) -> (Vec<u8>, Vec<u8>) {
     // prepare proposal rlp
     // refer to https://github.com/axonweb3/axon-tools/blob/main/axon-tools-riscv/src/types.rs#L76
@@ -303,6 +380,15 @@ fn mock_witness(bls_keypairs: &[(SecretKey, Vec<u8>)]) -> (Vec<u8>, Vec<u8>) {
         vote.append(&proposal_hash.as_bytes().to_vec());
         vote.as_raw().to_vec()
     };
+    // println!(
+    //     "generate_bls_signature raw message: {:?}, message len: {}",
+    //     message.to_vec(),
+    // );
+    let message = keccak256(&message);
+    // println!(
+    //     "generate_bls_signature hash message: {:?}, message len: {}",
+    //     message,
+    // );
     let signature = generate_bls_signature(&message, &bls_keypairs[1..]);
     let mut bitmap = BitVec::from_elem(8, true);
     bitmap.set(0, false);
@@ -322,11 +408,8 @@ pub fn generate_bls_signature(message: &[u8], bls_keypairs: &[(SecretKey, Vec<u8
     let mut ref_signatures = vec![];
     let mut ref_pubkeys = vec![];
     for (privkey, _) in bls_keypairs.to_vec() {
-        let signature = privkey.sign(
-            &message,
-            b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RONUL",
-            &[],
-        );
+        let signature = privkey.sign(&message, b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RONUL", &[]);
+        // println!("sig: {:?}", signature.to_bytes());
         let pubkey = privkey.sk_to_pk();
         ref_signatures.push(signature);
         ref_pubkeys.push(pubkey);

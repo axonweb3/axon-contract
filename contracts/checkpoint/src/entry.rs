@@ -182,8 +182,13 @@ fn verify_multsig(
             None
         })
         .collect::<Result<Vec<_>, _>>()?;
-    debug!("verify_blst_signature");
-    if !blst::verify_blst_signature(&active_pubkeys, &signature, &message.as_raw().to_vec()) {
+    debug!(
+        "verify_blst_signature, raw message: {:?}",
+        message.as_raw().to_vec()
+    );
+    let message = keccak256(&message.as_raw().to_vec());
+    debug!("verify_blst_signature, hash message: {:?}", message);
+    if !blst::verify_blst_signature(&active_pubkeys, &signature, &message.to_vec()) {
         return Err(Error::SignatureMismatch);
     }
 
