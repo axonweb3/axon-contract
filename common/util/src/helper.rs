@@ -20,7 +20,8 @@ use ckb_std::{
     },
     debug,
     high_level::{
-        load_cell_capacity, load_cell_data, load_cell_lock_hash, load_cell_type_hash, QueryIter,
+        load_cell_capacity, load_cell_data, load_cell_lock, load_cell_lock_hash,
+        load_cell_type_hash, QueryIter,
     },
 };
 use core::{cmp::Ordering, result::Result};
@@ -246,6 +247,11 @@ pub fn get_current_epoch(checkpoint_type_id: &Vec<u8>) -> Result<u64, Error> {
         checkpoint_type_id
     );
     let checkpoint_data = get_checkpoint_from_celldeps(checkpoint_type_id)?;
+    // debug!(
+    //     "checkpoint_data: period len{},, epoch:{}",
+    //     checkpoint_data.period(),
+    //     checkpoint_data.epoch()
+    // );
     Ok(checkpoint_data.epoch())
 }
 
@@ -283,6 +289,7 @@ pub fn get_stake_at_data_by_lock_hash(
                 debug!("get_stake_at_data_by_lock_hash data len:{}", data.len());
                 if data.len() >= 16 {
                     sudt = Some(bytes_to_u128(&data[..16].to_vec()));
+                    // debug!("get_stake_at_data_by_lock_hash data sudt:{:?}", sudt);
                     assert!(stake_at_data.is_none());
                     stake_at_data = {
                         let stake_data: stake_reader::StakeAtCellData =
@@ -355,7 +362,7 @@ pub fn get_withdraw_at_data_by_lock_hash(
             }
         });
     if sudt.is_none() {
-        return Err(Error::BadSudtDataFormat);
+        return Err(Error::WithdrawBadSudtDataFormat);
     }
     if withdraw_at_data.is_none() {
         return Err(Error::WithdrawDataEmpty);
@@ -382,6 +389,7 @@ pub fn get_delegate_delta(
 
 pub fn get_stake_update_infos(
     cell_type_hash: &[u8; 32],
+    stake_at_code_hash: &Vec<u8>,
     source: Source,
 ) -> Result<Vec<([u8; 20], [u8; 32], StakeInfoDelta)>, Error> {
     let mut stake_update_infos = Vec::<([u8; 20], [u8; 32], StakeInfoDelta)>::default();
@@ -389,17 +397,27 @@ pub fn get_stake_update_infos(
         .enumerate()
         .for_each(|(i, type_hash)| {
             if &type_hash.unwrap_or([0u8; 32]) == cell_type_hash {
-                let lock_hash = load_cell_lock_hash(i, source).unwrap();
-                let data = load_cell_data(i, source).unwrap();
-                let stake_xudt_lock = {
-                    let stake_data: stake_reader::StakeAtCellData =
-                        Cursor::from(data[16..].to_vec()).into();
-                    stake_data.lock()
-                };
-                let stake_info_delta = stake_xudt_lock.delta();
-                // get address from lock script args
-                let address: [u8; 20] = stake_xudt_lock.l2_address().as_slice().try_into().unwrap();
-                stake_update_infos.push((address, lock_hash, stake_info_delta));
+                let lock_script = load_cell_lock(i, source).unwrap();
+                let lock_script_code_hash = lock_script.code_hash();
+                // debug!(
+                //     "i:{}, lock_script_code_hash:{:?}, stake_at_code_hash:{:?}",
+                //     i,
+                //     lock_script_code_hash.as_slice(),
+                //     stake_at_code_hash
+                // );
+                if lock_script_code_hash.as_slice() == stake_at_code_hash {
+                    let lock_hash = load_cell_lock_hash(i, source).unwrap();
+                    let data = load_cell_data(i, source).unwrap();
+                    let stake_xudt_lock = {
+                        let stake_data: stake_reader::StakeAtCellData =
+                            Cursor::from(data[16..].to_vec()).into();
+                        stake_data.lock()
+                    };
+                    let stake_info_delta = stake_xudt_lock.delta();
+                    let address: [u8; 20] =
+                        stake_xudt_lock.l2_address().as_slice().try_into().unwrap();
+                    stake_update_infos.push((address, lock_hash, stake_info_delta));
+                }
             }
         });
 
@@ -714,7 +732,7 @@ pub fn calc_withdrawal_lock_hash(
         let code_hash: [u8; 32] = withdraw_code_hash.clone().try_into().unwrap();
         Script::new_builder()
             .code_hash(code_hash.pack())
-            .hash_type(ScriptHashType::Type.into())
+            .hash_type(ScriptHashType::Data1.into())
             .args(withdraw_lock_args.as_slice().pack())
             .build()
     };

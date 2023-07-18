@@ -160,6 +160,8 @@ fn test_delegate_at_increase_success() {
         metadata_list,
         1,
         propose_count_smt_root,
+        &metadata_type_script.code_hash(),
+        &metadata_type_script.code_hash(),
     );
     let metadata_script_dep = CellDep::new_builder()
         .out_point(
@@ -174,7 +176,7 @@ fn test_delegate_at_increase_success() {
         )
         .build();
     // prepare checkpoint cell_dep
-    let checkpoint_data = axon_checkpoint_data(&metadata_type_script.clone().calc_script_hash());
+    let checkpoint_data = axon_checkpoint_data(&metadata_type_script.clone().calc_script_hash(), 1);
     println!("checkpoint data: {:?}", checkpoint_data.as_bytes().len());
     let checkpoint_script_dep = CellDep::new_builder()
         .out_point(
@@ -424,6 +426,8 @@ fn test_delegate_smt_success() {
         metadata_list,
         1,
         propose_count_smt_root,
+        &metadata_type_script.code_hash(),
+        &metadata_type_script.code_hash(),
     );
     let metadata_script_dep = CellDep::new_builder()
         .out_point(
@@ -438,7 +442,7 @@ fn test_delegate_smt_success() {
         )
         .build();
     // prepare checkpoint cell_dep
-    let checkpoint_data = axon_checkpoint_data(&metadata_type_script.clone().calc_script_hash());
+    let checkpoint_data = axon_checkpoint_data(&metadata_type_script.clone().calc_script_hash(), 1);
     println!("checkpoint data: {:?}", checkpoint_data.as_bytes().len());
     let checkpoint_script_dep = CellDep::new_builder()
         .out_point(

@@ -44,6 +44,7 @@ table TypeIds {
     reward_code_hash:        Byte32,
     reward_type_id:          Byte32,  // reward cell type script args
     xudt_type_hash:          Byte32,  // xudt cell type script hash
+    stake_at_code_hash:      Byte32,  // 
     withdraw_code_hash:      Byte32,
 }
 

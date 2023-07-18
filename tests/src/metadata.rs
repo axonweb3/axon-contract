@@ -128,6 +128,8 @@ fn test_metadata_creation_success() {
         metadata_list,
         2,
         top_smt_root.as_slice().try_into().unwrap(),
+        &metadata_type_script.code_hash(),
+        &metadata_type_script.code_hash(),
     );
 
     let outputs_data = vec![output_meta_data.as_bytes()];
@@ -287,6 +289,8 @@ fn test_metadata_success() {
         metadata_list.clone(),
         input_waiting_epoch,
         propose_count_smt_root,
+        &metadata_type_script.code_hash(),
+        &metadata_type_script.code_hash(),
     );
 
     let delegate_infos = BTreeSet::new();
@@ -389,6 +393,8 @@ fn test_metadata_success() {
         metadata_list,
         output_waiting_epoch,
         top_smt_root.as_slice().try_into().unwrap(),
+        &metadata_type_script.code_hash(),
+        &metadata_type_script.code_hash(),
     );
 
     let outputs_data = vec![

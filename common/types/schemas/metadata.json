@@ -171,6 +171,10 @@
           "type": "Byte32"
         },
         {
+          "name": "stake_at_code_hash",
+          "type": "Byte32"
+        },
+        {
           "name": "withdraw_code_hash",
           "type": "Byte32"
         }

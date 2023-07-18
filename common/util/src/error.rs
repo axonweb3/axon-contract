@@ -111,6 +111,7 @@ pub enum Error {
     WithdrawUpdateDataError,
     BadUnstake,
     WithdrawDataEmpty,
+    WithdrawBadSudtDataFormat,
 
     // reward
     RewardWrongAmount,

@@ -129,6 +129,8 @@ fn test_withdraw_success() {
         metadata_list.clone(),
         3,
         [0u8; 32],
+        &metadata_type_script.code_hash(),
+        &metadata_type_script.code_hash(),
     );
 
     let metadata_script_dep = CellDep::new_builder()
@@ -280,6 +282,8 @@ fn test_increase_withdraw_success() {
         metadata_list.clone(),
         3,
         [0u8; 32],
+        &metadata_type_script.code_hash(),
+        &metadata_type_script.code_hash(),
     );
 
     let metadata_script_dep = CellDep::new_builder()
