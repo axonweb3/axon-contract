@@ -66,8 +66,8 @@ enum CkbIdentityErrorCode {
 };
 
 const static uint8_t g_dst_label[] =
-    "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
-const static size_t g_dst_label_len = 43;
+    "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RONUL";
+const static size_t g_dst_label_len = 41;
 
 int blst_verify_aggregate(const uint8_t *sig, const uint8_t *pks,
                           size_t pks_len, const uint8_t *msg, size_t msg_len) {

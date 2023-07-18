@@ -280,16 +280,16 @@ fn test_checkpoint_create() {
 
 fn mock_witness(bls_keypairs: &[(SecretKey, Vec<u8>)]) -> (Vec<u8>, Vec<u8>) {
     // prepare proposal rlp
+    // refer to https://github.com/axonweb3/axon-tools/blob/main/axon-tools-riscv/src/types.rs#L76
+    // only 10 fields are needed here
     let proposal = {
-        let mut proposal = RlpStream::new_list(14);
+        let proposal_field_count = 10;
+        let mut proposal = RlpStream::new_list(proposal_field_count);
         proposal.append_empty_data();
         proposal.append(&vec![0u8; 20]); // proposer_address
-        vec![0; 9].iter().for_each(|_| {
+        vec![0; 8].iter().for_each(|_| {
             proposal.append_empty_data();
         });
-        proposal.append(&vec![0u8; 32]); // last_checkpoint_block_hash
-        proposal.append_empty_data();
-        proposal.append_empty_data();
         proposal.as_raw().to_vec()
     };
 
@@ -324,7 +324,7 @@ pub fn generate_bls_signature(message: &[u8], bls_keypairs: &[(SecretKey, Vec<u8
     for (privkey, _) in bls_keypairs.to_vec() {
         let signature = privkey.sign(
             &message,
-            b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_",
+            b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RONUL",
             &[],
         );
         let pubkey = privkey.sk_to_pk();
@@ -342,7 +342,7 @@ pub fn generate_bls_signature(message: &[u8], bls_keypairs: &[(SecretKey, Vec<u8
     let result = signature.verify(
         true,
         &message,
-        b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_",
+        b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RONUL",
         &[],
         &pubkey,
         false,
