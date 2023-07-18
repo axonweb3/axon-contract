@@ -23,6 +23,8 @@ use util::{
     smt::{u64_to_h256, verify_2layer_smt, LockInfo},
 };
 
+use crate::types::WithdrawAmountMap;
+
 pub fn main() -> Result<(), Error> {
     debug!("start delegate smt type script");
     // check type id is unique
@@ -94,6 +96,8 @@ pub fn main() -> Result<(), Error> {
                         &checkpoint_script_hash.to_vec(),
                         &type_ids.xudt_type_hash(),
                         &metadata_type_id,
+                        &type_ids.delegate_at_code_hash(),
+                        &type_ids.withdraw_code_hash(),
                     )?;
                 }
                 1 => {
@@ -117,6 +121,7 @@ fn update_delegate_info(
     delegator: [u8; 20],
     delegate_info_delta: &DelegateInfoDelta,
     delegate_infos_set: &mut BTreeSet<LockInfo>,
+    delegate_withdraw_infos: &mut WithdrawAmountMap,
 ) -> Result<(), Error> {
     // get this delegator's old delegate amount in smt tree from delegate_infos_set
     let delegate_info = delegate_infos_set
@@ -160,14 +165,8 @@ fn update_delegate_info(
     delegate_infos_set.insert(delegate_info_obj);
     debug!("delegate_info_obj: {:?}", delegate_info_obj);
 
-    // get input & output withdraw AT cell, we need to update this after withdraw script's finish
     if redeem_amount > 0 {
-        let _input_withdraw_amount = 10u128; // get from delegator input withdraw at cell
-        let _output_withdraw_amount = 10u128; // get from delegator input withdraw at cell
-                                              // if output_withdraw_amount - input_withdraw_amount != redeem_amount {
-                                              //     return Err(Error::BadRedeem);
-                                              // }
-        debug!("redeem_amount: {}", redeem_amount);
+        delegate_withdraw_infos.insert(delegator, redeem_amount);
     }
 
     Ok(())
@@ -225,6 +224,8 @@ fn update_delegate_smt(
     checkpoint_type_id: &Vec<u8>,
     xudt_type_hash: &Vec<u8>,
     metadata_type_id: &[u8; 32],
+    delegate_at_code_hash: &Vec<u8>,
+    withdraw_code_hash: &Vec<u8>,
 ) -> Result<(), Error> {
     debug!("update delegate smt root mode");
     // this is delegate smt cell
@@ -247,6 +248,7 @@ fn update_delegate_smt(
     let epoch = get_current_epoch(&checkpoint_type_id)?;
     debug!("get_current_epoch: {}", epoch);
     let stake_group_infos = delegate_smt_update_infos.all_stake_group_infos();
+    let mut delegate_withdraw_infos = WithdrawAmountMap::new();
     for i in 0..stake_group_infos.len() {
         // verify old delegate info
         let stake_group_info = stake_group_infos.get(i);
@@ -287,7 +289,12 @@ fn update_delegate_smt(
         let xudt_type_hash: [u8; 32] = xudt_type_hash.as_slice().try_into().unwrap();
         // debug!("xudt_type_hash: {:?}", xudt_type_hash);
         // get this staker's delegate update infos
-        let update_infos = get_delegate_update_infos(&staker, &xudt_type_hash, Source::Input)?;
+        let update_infos = get_delegate_update_infos(
+            &staker,
+            &xudt_type_hash,
+            delegate_at_code_hash,
+            Source::Input,
+        )?;
         // update old delegate infos to new delegate infos
         for (delegator_addr, delegate_at_lock_hash, delegate_info_delta) in update_infos {
             let inauguration_epoch = delegate_info_delta.inauguration_epoch();
@@ -305,6 +312,7 @@ fn update_delegate_smt(
                 delegator_addr,
                 &delegate_info_delta,
                 &mut delegate_infos_set,
+                &mut delegate_withdraw_infos,
             )?;
         }
 
@@ -321,6 +329,45 @@ fn update_delegate_smt(
             epoch,
             metadata_type_id,
         )?;
+    }
+
+    // get input & output withdraw AT cell, we need to update this after withdraw script's finish
+    verify_withdraw_amount(
+        delegate_withdraw_infos,
+        metadata_type_id,
+        withdraw_code_hash,
+    )?;
+
+    Ok(())
+}
+
+fn verify_withdraw_amount(
+    delegate_withdraw_infos: WithdrawAmountMap,
+    metadata_type_id: &[u8; 32],
+    withdraw_code_hash: &Vec<u8>,
+) -> Result<(), Error> {
+    for addr in delegate_withdraw_infos.map.keys() {
+        let undelegate_amount = delegate_withdraw_infos.map.get(addr).unwrap();
+        debug!(
+            "verify_withdraw_amount addr:{:?}, amount:{}",
+            addr, undelegate_amount
+        );
+        let withdraw_lock_hash =
+            calc_withdrawal_lock_hash(withdraw_code_hash, addr, metadata_type_id);
+        let (input_amount, input_info) =
+            get_withdraw_at_data_by_lock_hash(&withdraw_lock_hash, Source::Input)?;
+        let (output_amount, output_info) =
+            get_withdraw_at_data_by_lock_hash(&withdraw_lock_hash, Source::Output)?;
+        debug!(
+            "undelegate_amount:{}, input_amount: {}, output_amount: {}",
+            undelegate_amount, input_amount, output_amount
+        );
+        if input_amount + undelegate_amount != output_amount {
+            return Err(Error::BadUnstake);
+        }
+        if input_info.lock().version() != output_info.lock().version() {
+            return Err(Error::WithdrawUpdateDataError);
+        }
     }
 
     Ok(())

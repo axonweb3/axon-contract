@@ -175,6 +175,10 @@
           "type": "Byte32"
         },
         {
+          "name": "delegate_at_code_hash",
+          "type": "Byte32"
+        },
+        {
           "name": "withdraw_code_hash",
           "type": "Byte32"
         }

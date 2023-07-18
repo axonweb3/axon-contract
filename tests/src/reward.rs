@@ -285,6 +285,7 @@ fn test_reward_success() {
             .unwrap(),
         &metadata_type_script.code_hash(),
         &metadata_type_script.code_hash(),
+        &metadata_type_script.code_hash(),
     );
 
     let metadata_script_dep = CellDep::new_builder()

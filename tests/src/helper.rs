@@ -298,6 +298,7 @@ pub fn axon_metadata_data_by_script(
     epoch: u64,
     propose_count_smt_root: [u8; 32],
     stake_at_code_hash: &packed::Byte32,
+    delegate_at_code_hash: &packed::Byte32,
     withdraw_at_code_hash: &packed::Byte32,
 ) -> axon_types::metadata::MetadataCellData {
     let checkpoint_args = checkpoint_type_id.args();
@@ -312,6 +313,7 @@ pub fn axon_metadata_data_by_script(
         .delegate_smt_code_hash(axon_byte32(&delegate_smt_type_id.code_hash()))
         .delegate_smt_type_id(axon_bytes_byte32(&delegate_smt_type_id.args().raw_data()))
         .stake_at_code_hash(axon_byte32(stake_at_code_hash))
+        .delegate_at_code_hash(axon_byte32(delegate_at_code_hash))
         .withdraw_code_hash(axon_byte32(withdraw_at_code_hash))
         .build();
     axon_types::metadata::MetadataCellData::new_builder()

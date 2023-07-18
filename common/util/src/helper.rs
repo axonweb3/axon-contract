@@ -427,6 +427,7 @@ pub fn get_stake_update_infos(
 pub fn get_delegate_update_infos(
     staker: &Vec<u8>,
     cell_type_hash: &[u8; 32],
+    delegate_at_code_hash: &Vec<u8>,
     source: Source,
 ) -> Result<Vec<([u8; 20], [u8; 32], DelegateInfoDelta)>, Error> {
     let mut delegate_update_infos = Vec::<([u8; 20], [u8; 32], DelegateInfoDelta)>::default();
@@ -438,22 +439,25 @@ pub fn get_delegate_update_infos(
         .enumerate()
         .for_each(|(i, type_hash)| {
             if &type_hash.unwrap_or([0u8; 32]) == cell_type_hash {
-                let lock_hash = load_cell_lock_hash(i, source).unwrap();
-                let data = load_cell_data(i, source).unwrap();
-                let delegate_at_data = {
-                    let delegate_data: delegate_reader::DelegateAtCellData =
-                        Cursor::from(data[16..].to_vec()).into();
-                    delegate_data.lock()
-                };
-                let delegate_infos = delegate_at_data.delegator_infos();
-                for i in 0..delegate_infos.len() {
-                    let delegate_info = delegate_infos.get(i);
-                    if delegate_info.staker() == *staker {
-                        let address: [u8; 20] =
-                            delegate_at_data.l2_address().as_slice().try_into().unwrap();
-                        // debug!("delegate_info.staker: {:?}, amount: {}", delegate_info.staker(), delegate_info.amount());
-                        delegate_update_infos.push((address, lock_hash, delegate_info));
-                        break;
+                let lock_script_code_hash = load_cell_lock(i, source).unwrap().code_hash();
+                if delegate_at_code_hash == lock_script_code_hash.as_slice() {
+                    let lock_hash = load_cell_lock_hash(i, source).unwrap();
+                    let data = load_cell_data(i, source).unwrap();
+                    let delegate_at_data = {
+                        let delegate_data: delegate_reader::DelegateAtCellData =
+                            Cursor::from(data[16..].to_vec()).into();
+                        delegate_data.lock()
+                    };
+                    let delegate_infos = delegate_at_data.delegator_infos();
+                    for i in 0..delegate_infos.len() {
+                        let delegate_info = delegate_infos.get(i);
+                        if delegate_info.staker() == *staker {
+                            let address: [u8; 20] =
+                                delegate_at_data.l2_address().as_slice().try_into().unwrap();
+                            // debug!("delegate_info.staker: {:?}, amount: {}", delegate_info.staker(), delegate_info.amount());
+                            delegate_update_infos.push((address, lock_hash, delegate_info));
+                            break;
+                        }
                     }
                 }
             }

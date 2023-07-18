@@ -167,6 +167,7 @@ fn test_stake_at_increase_success() {
         [0u8; 32],
         &metadata_type_script.code_hash(),
         &metadata_type_script.code_hash(),
+        &metadata_type_script.code_hash(),
     );
     let metadata_script_dep = CellDep::new_builder()
         .out_point(
@@ -443,6 +444,7 @@ fn test_stake_smt_success() {
         inauguration_epoch - 2,
         [0u8; 32],
         &stake_at_lock_script.code_hash(),
+        &metadata_type_script.code_hash(),
         &metadata_type_script.code_hash(),
     );
     let metadata_script_dep = CellDep::new_builder()
@@ -799,7 +801,7 @@ fn test_stake_smt_redeem_success() {
         Bytes::from(axon_withdraw_at_cell_data(
             new_unstake_amount,
             output_withdraw_data,
-        )), // delegate at cell
+        )), // withdraw at cell
     ];
 
     // prepare metadata cell_dep
@@ -818,6 +820,7 @@ fn test_stake_smt_redeem_success() {
         inauguration_epoch - 2,
         [0u8; 32],
         &stake_at_lock_script.code_hash(),
+        &metadata_type_script.code_hash(),
         &withdraw_lock_script.code_hash(),
     );
     println!(
