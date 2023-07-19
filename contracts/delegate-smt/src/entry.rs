@@ -172,7 +172,7 @@ fn update_delegate_info(
     Ok(())
 }
 
-fn verify_delegator_seletion(
+fn verify_delegator_selection(
     delegate_infos_set: &BTreeSet<LockInfo>,
     new_epoch_root: [u8; 32],
     new_epoch_proof: Vec<u8>,
@@ -322,7 +322,7 @@ fn update_delegate_smt(
             staker.as_slice().try_into().unwrap(),
             &new_delegate_smt_data,
         )?;
-        verify_delegator_seletion(
+        verify_delegator_selection(
             &delegate_infos_set,
             new_epoch_root,
             new_proof,
