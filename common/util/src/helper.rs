@@ -736,3 +736,12 @@ pub fn pubkey_to_eth_addr(pubkey: &Vec<u8>) -> [u8; 20] {
     let pubkey_hash = output[12..].to_vec();
     pubkey_hash.try_into().unwrap()
 }
+
+pub fn keccak256(data: &Vec<u8>) -> [u8; 32] {
+    let mut keccak = Keccak::v256();
+    let input = data.as_slice();
+    keccak.update(input);
+    let mut output = [0; 32];
+    keccak.finalize(&mut output);
+    output
+}
