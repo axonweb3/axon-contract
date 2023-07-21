@@ -687,7 +687,11 @@ fn test_stake_smt_redeem_success() {
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
         .build();
     let withdraw_lock_script = context
-        .build_script(&always_success_out_point, withdraw_lock_args.as_bytes())
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            withdraw_lock_args.as_bytes(),
+        )
         .expect("withdraw lock script");
     println!(
         "withdraw_lock_script code hash: {:?}, addr: {:?}, metadata_type_id: {:?}, args: {:?}",

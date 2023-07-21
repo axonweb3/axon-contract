@@ -736,7 +736,7 @@ pub fn calc_withdrawal_lock_hash(
         let code_hash: [u8; 32] = withdraw_code_hash.clone().try_into().unwrap();
         Script::new_builder()
             .code_hash(code_hash.pack())
-            .hash_type(ScriptHashType::Data1.into())
+            .hash_type(ScriptHashType::Type.into())
             .args(withdraw_lock_args.as_slice().pack())
             .build()
     };
