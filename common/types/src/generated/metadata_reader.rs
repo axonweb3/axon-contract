@@ -320,8 +320,22 @@ impl TypeIds {
 }
 
 impl TypeIds {
-    pub fn withdraw_code_hash(&self) -> Vec<u8> {
+    pub fn stake_at_code_hash(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(14).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn delegate_at_code_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(15).unwrap();
+        cur.into()
+    }
+}
+
+impl TypeIds {
+    pub fn withdraw_code_hash(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(16).unwrap();
         cur.into()
     }
 }

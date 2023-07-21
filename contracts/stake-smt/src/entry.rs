@@ -180,6 +180,10 @@ fn update_stake_info(
     stake_infos_set.insert(stake_info_obj);
 
     // get input & output withdraw AT cell, we need to update this after withdraw script's finish
+    debug!(
+        "verify_withdraw_amount withdraw_code_hash: {:?}, addr: {:?}, metadata_type_id: {:?}",
+        withdraw_code_hash, addr, metadata_type_id
+    );
     verify_withdraw_amount(unstake_amount, metadata_type_id, &addr, withdraw_code_hash)?;
 
     Ok(())
@@ -328,6 +332,7 @@ fn update_stake_smt(
     // get delta stake infos by parsing Stake AT cells' data
     let update_infos = get_stake_update_infos(
         &xudt_type_hash.as_slice().try_into().unwrap(),
+        &type_ids.stake_at_code_hash(),
         Source::Input,
     )?;
     debug!("update_infos.len():{}", update_infos.len());
@@ -344,8 +349,10 @@ fn update_stake_smt(
         // after updated to smt cell, the output stake should be reset
         let (_, output_stake_at_data) =
             get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Output)?;
+        debug!("is_output_lock_info_reset");
         is_output_lock_info_reset(&output_stake_at_data)?;
 
+        debug!("update_stake_info");
         update_stake_info(
             staker_addr,
             &metadata_type_id,
@@ -355,6 +362,7 @@ fn update_stake_smt(
         )?;
     }
 
+    debug!("verify_staker_seletion");
     verify_staker_seletion(
         &stake_infos_set,
         &new_stake_smt_data,

@@ -256,11 +256,12 @@ pub fn axon_normal_at_cell_data(
 
 pub fn axon_checkpoint_data(
     metadata_type_id: &packed::Byte32,
+    epoch: u64,
 ) -> axon_types::checkpoint::CheckpointCellData {
     // build CheckpointCellData from scrach
     axon_types::checkpoint::CheckpointCellData::new_builder()
         .version(0.into())
-        .epoch(axon_u64(1))
+        .epoch(axon_u64(epoch))
         .period(axon_u32(2))
         .metadata_type_id(axon_byte32(metadata_type_id))
         .build()
@@ -296,6 +297,9 @@ pub fn axon_metadata_data_by_script(
     metadata_list: MetadataList,
     epoch: u64,
     propose_count_smt_root: [u8; 32],
+    stake_at_code_hash: &packed::Byte32,
+    delegate_at_code_hash: &packed::Byte32,
+    withdraw_at_code_hash: &packed::Byte32,
 ) -> axon_types::metadata::MetadataCellData {
     let checkpoint_args = checkpoint_type_id.args();
     let type_ids = axon_types::metadata::TypeIds::new_builder()
@@ -308,6 +312,9 @@ pub fn axon_metadata_data_by_script(
         .stake_smt_type_id(axon_bytes_byte32(&stake_smt_type_id.args().raw_data()))
         .delegate_smt_code_hash(axon_byte32(&delegate_smt_type_id.code_hash()))
         .delegate_smt_type_id(axon_bytes_byte32(&delegate_smt_type_id.args().raw_data()))
+        .stake_at_code_hash(axon_byte32(stake_at_code_hash))
+        .delegate_at_code_hash(axon_byte32(delegate_at_code_hash))
+        .withdraw_code_hash(axon_byte32(withdraw_at_code_hash))
         .build();
     axon_types::metadata::MetadataCellData::new_builder()
         .version(0.into())
