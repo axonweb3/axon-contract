@@ -1,5 +1,5 @@
 use std::collections::BTreeSet;
-// use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 
 use crate::smt::{construct_epoch_smt, construct_lock_info_smt, TopSmtInfo};
 
@@ -15,8 +15,11 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
+use ophelia::{Crypto, PrivateKey, Signature, ToPublicKey, UncompressedPublicKey};
+use ophelia_secp256k1::{Secp256k1Recoverable, Secp256k1RecoverablePrivateKey};
 use util::smt::u64_to_h256;
 use util::smt::{new_blake2b, LockInfo, BOTTOM_SMT};
+// use util::helper::pubkey_to_eth_addr;
 
 #[test]
 fn test_stake_at_increase_success() {
@@ -24,6 +27,7 @@ fn test_stake_at_increase_success() {
     let mut context = Context::default();
     let secp256k1_data_bin = BUNDLED_CELL.get("specs/cells/secp256k1_data").unwrap();
     let secp256k1_data_out_point = context.deploy_cell(secp256k1_data_bin.to_vec().into());
+
     let secp256k1_data_dep = CellDep::new_builder()
         .out_point(secp256k1_data_out_point)
         .build();
@@ -43,13 +47,7 @@ fn test_stake_at_increase_success() {
             Bytes::from(vec![2]),
         )
         .expect("checkpoint script");
-    println!(
-        "checkpoint type hash: {:?}",
-        checkpoint_type_script.calc_script_hash().as_slice()
-    );
-    // let stake_at_lock_script = context
-    //     .build_script(&always_success_out_point, Bytes::from(vec![3]))
-    //     .expect("stake at script");
+
     let stake_at_type_script = context
         .build_script(&always_success_out_point, Bytes::from(vec![4]))
         .expect("sudt script");
@@ -64,11 +62,22 @@ fn test_stake_at_increase_success() {
         .out_point(always_success_out_point.clone())
         .build();
 
+    // eth signature
+    let hex_privkey = [0xcd; 32];
+    let priv_key = Secp256k1RecoverablePrivateKey::try_from(hex_privkey.as_slice()).unwrap();
+    let pubkey = priv_key.pub_key();
+    let pubkey = pubkey.to_uncompressed_bytes().to_vec();
+    // println!("pubkey: {:?}, len: {:?}", pubkey, pubkey.len());
+
     // prepare stake_args and stake_data
-    let keypair = Generator::random_keypair();
+    println!(
+        "metadata_type_script type hash: {:?}",
+        metadata_type_script.calc_script_hash().as_slice()
+    );
+    let l2_addr = eth_addr(pubkey);
     let stake_args = stake::StakeArgs::new_builder()
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-        .stake_addr(axon_identity(&keypair.1.serialize()))
+        .stake_addr(l2_addr.clone())
         .build();
 
     let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
@@ -76,10 +85,12 @@ fn test_stake_at_increase_success() {
         .amount(axon_u128(0 as u128))
         .inauguration_epoch(axon_u64(0 as u64))
         .build();
+    let keypair = Generator::random_keypair();
+    // println!("staker pubkey: {:?}", keypair.1.serialize());
     let input_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
-        &keypair.1.serialize(),
+        l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         input_stake_info_delta,
     );
@@ -143,7 +154,7 @@ fn test_stake_at_increase_success() {
     let output_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
-        &keypair.1.serialize(),
+        l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         output_stake_info_delta,
     );
@@ -183,7 +194,7 @@ fn test_stake_at_increase_success() {
         .build();
     // prepare checkpoint cell_dep
     let checkpoint_data = axon_checkpoint_data(&metadata_type_script.clone().calc_script_hash(), 1);
-    println!("checkpoint data: {:?}", checkpoint_data.as_bytes().len());
+    // println!("checkpoint data: {:?}", checkpoint_data.as_bytes().len());
     let checkpoint_script_dep = CellDep::new_builder()
         .out_point(
             context.create_cell(
@@ -197,25 +208,65 @@ fn test_stake_at_increase_success() {
         )
         .build();
 
-    let stake_at_witness = StakeAtWitness::new_builder().mode(0.into()).build();
-    println!("stake at witness: {:?}", stake_at_witness.as_bytes().len());
-    let stake_at_witness = WitnessArgs::new_builder()
-        .lock(Some(Bytes::from(stake_at_witness.as_bytes())).pack())
-        .build();
+    // let stake_at_witness = StakeAtWitness::new_builder().mode(0.into()).build();
+    // println!("stake at witness: {:?}", stake_at_witness.as_bytes().len());
+    // let stake_at_witness = WitnessArgs::new_builder()
+    //     .lock(Some(Bytes::from(stake_at_witness.as_bytes())).pack())
+    //     .build();
 
     // prepare signed tx
     let tx = TransactionBuilder::default()
         .inputs(inputs)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
-        .witness(stake_at_witness.as_bytes().pack())
+        // .witness(stake_at_witness.as_bytes().pack())
         .cell_dep(contract_dep)
         .cell_dep(always_success_script_dep)
         .cell_dep(secp256k1_data_dep)
         .cell_dep(checkpoint_script_dep)
         .cell_dep(metadata_script_dep)
         .build();
+
+    let msg = tx.hash();
+    // println!("tx hash: {:?}", msg.clone().as_bytes().to_vec());
+    let signature = Secp256k1Recoverable::sign_message(&msg.as_bytes(), &priv_key.to_bytes())
+        .unwrap()
+        .to_bytes()
+        .to_vec();
+    println!(
+        "eth_addr msg: {:?}, signature:{:?}, len: {:?}",
+        tx.hash(),
+        signature,
+        signature.len()
+    );
+
+    // {
+    //     let pubkey: ophelia_secp256k1::Secp256k1RecoverablePublicKey = priv_key.pub_key();
+    //     let pubkey = pubkey.to_uncompressed_bytes();
+    //     let result = Secp256k1Recoverable::verify_signature(&msg.as_slice(), &signature, &pubkey);
+    //     println!(
+    //         "secp256k1 signature, signature: {:?}, msg: {:?}, pubkey: {:?}",
+    //         signature,
+    //         msg.as_slice().to_vec(),
+    //         pubkey.to_vec()
+    //     );
+    //     match result {
+    //         Ok(_) => println!("Verify secp256k1 signature success!"),
+    //         Err(err) => println!("Verify secp256k1 signature failed! {}", err),
+    //     }
+    // }
+
+    let stake_at_witness = StakeAtWitness::new_builder()
+        .mode(0.into())
+        .eth_sig(axon_byte65(signature))
+        .build();
+    println!("stake at witness: {:?}", stake_at_witness.as_bytes().len());
+    let stake_at_witness = WitnessArgs::new_builder()
+        .lock(Some(Bytes::from(stake_at_witness.as_bytes())).pack())
+        .build();
+
     let tx = context.complete_tx(tx);
+    let tx = sign_eth_tx(tx, stake_at_witness);
 
     // sign tx for stake at cell (update stake at cell delta mode)
     // let tx = sign_stake_tx(tx, &keypair.0, stake_at_witness);
@@ -279,9 +330,10 @@ fn test_stake_smt_success() {
 
     // prepare stake_args and stake_data
     let keypair = Generator::random_keypair();
+    let l2_addr = eth_addr(keypair.1.serialize());
     let stake_at_args = stake::StakeArgs::new_builder()
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-        .stake_addr(axon_identity(&keypair.1.serialize()))
+        .stake_addr(l2_addr.clone())
         .build();
 
     let new_stake_amount = 100;
@@ -294,7 +346,7 @@ fn test_stake_smt_success() {
     let input_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
-        &keypair.1.serialize(),
+        l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         input_stake_info_delta,
     );
@@ -333,9 +385,6 @@ fn test_stake_smt_success() {
             .build(),
         input_stake_smt_data.as_bytes(),
     );
-    // let stake_smt_input_dep = CellDep::new_builder()
-    //     .out_point(input_stake_smt_out_point.clone())
-    //     .build();
 
     let inputs = vec![
         // stake AT cell
@@ -353,31 +402,9 @@ fn test_stake_smt_success() {
             .build(),
         // stake smt cell
         CellInput::new_builder()
-            .previous_output(
-                // context.create_cell(
-                //     CellOutput::new_builder()
-                //         .capacity(1000.pack())
-                //         .lock(always_success_lock_script.clone())
-                //         .type_(Some(stake_smt_type_script.clone()).pack())
-                //         .build(),
-                //     input_stake_smt_data.as_bytes(),
-                // ),
-                input_stake_smt_out_point,
-            )
+            .previous_output(input_stake_smt_out_point)
             .build(),
     ];
-
-    // let output_stake_smt_out_point = context.create_cell(
-    //     CellOutput::new_builder()
-    //         .capacity(1000.pack())
-    //         .lock(always_success_lock_script.clone())
-    //         .type_(Some(stake_smt_type_script.clone()).pack())
-    //         .build(),
-    //     input_stake_smt_data.as_bytes(),
-    // );
-    // let stake_smt_input_dep = CellDep::new_builder()
-    //     .out_point(input_stake_smt_out_point.clone())
-    //     .build();
 
     let outputs = vec![
         // stake at cell
@@ -395,21 +422,18 @@ fn test_stake_smt_success() {
     ];
 
     // prepare outputs_data
-    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
-        // .is_increase(0.into())
-        // .amount(axon_u128(0 as u128))
-        // .inauguration_epoch(axon_u64(0 as u64))
-        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder().build();
     let output_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
-        &keypair.1.serialize(),
+        l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         output_stake_info_delta,
     );
 
     let lock_info = LockInfo {
-        addr: blake160(keypair.1.serialize().as_slice()),
+        // addr: blake160(keypair.1.serialize().as_slice()),
+        addr: l2_addr.as_slice().try_into().unwrap(),
         amount: new_stake_amount,
     };
     let output_stake_infos = vec![lock_info].into_iter().collect::<BTreeSet<LockInfo>>();
@@ -615,9 +639,10 @@ fn test_stake_smt_redeem_success() {
 
     // prepare stake_args and stake_data
     let keypair = Generator::random_keypair();
+    let l2_addr = eth_addr(keypair.1.serialize());
     let stake_at_args = stake::StakeArgs::new_builder()
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-        .stake_addr(axon_identity(&keypair.1.serialize()))
+        .stake_addr(l2_addr.clone())
         .build();
 
     // redeem 10 AT
@@ -631,7 +656,7 @@ fn test_stake_smt_redeem_success() {
     let input_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
-        &keypair.1.serialize(),
+        l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         input_stake_info_delta,
     );
@@ -656,7 +681,7 @@ fn test_stake_smt_redeem_success() {
     println!("input stake infos of stake smt cell");
     let old_stake_amount = 100;
     let old_lock_info = LockInfo {
-        addr: blake160(keypair.1.serialize().as_slice()),
+        addr: l2_addr.as_slice().try_into().unwrap(),
         amount: old_stake_amount,
     };
     let input_stake_infos = vec![old_lock_info]
@@ -683,7 +708,7 @@ fn test_stake_smt_redeem_success() {
     //     .out_point(withdraw_contract_out_point.clone())
     //     .build();
     let withdraw_lock_args = WithdrawArgs::new_builder()
-        .addr(axon_identity(&keypair.1.serialize()))
+        .addr(l2_addr.clone())
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
         .build();
     let withdraw_lock_script = context
@@ -696,7 +721,7 @@ fn test_stake_smt_redeem_success() {
     println!(
         "withdraw_lock_script code hash: {:?}, addr: {:?}, metadata_type_id: {:?}, args: {:?}",
         withdraw_lock_script.code_hash().as_slice(),
-        axon_identity(&keypair.1.serialize()).as_slice(),
+        l2_addr.clone(),
         metadata_type_script.calc_script_hash().as_slice(),
         withdraw_lock_args.as_slice()
     );
@@ -768,13 +793,13 @@ fn test_stake_smt_redeem_success() {
     let output_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
-        &keypair.1.serialize(),
+        l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         output_stake_info_delta,
     );
 
     let new_lock_info = LockInfo {
-        addr: blake160(keypair.1.serialize().as_slice()),
+        addr: l2_addr.as_slice().try_into().unwrap(),
         amount: old_stake_amount - new_unstake_amount,
     };
     let output_stake_infos = vec![new_lock_info]
@@ -897,7 +922,7 @@ fn test_stake_smt_redeem_success() {
     );
 
     let stake_info = stake::StakeInfo::new_builder()
-        .addr(axon_identity(&keypair.1.serialize().as_slice().to_vec()))
+        .addr(l2_addr.clone())
         .amount(axon_u128(old_stake_amount))
         .build(); // assume old stake smt is empty
     let stake_infos = stake::StakeInfos::new_builder().push(stake_info).build();
