@@ -157,7 +157,7 @@ fn verify_last_checkpoint_of_epoch(
         Source::GroupInput,
     )?;
     let period = checkpoint.period();
-    if period != epoch_len {
+    if period != epoch_len - 1 {
         return Err(Error::NotLastCheckpoint);
     }
     Ok(())

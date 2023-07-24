@@ -212,7 +212,7 @@ fn test_metadata_success() {
     let checkpoint_data = CheckpointCellData::new_builder()
         .version(0.into())
         .epoch(axon_u64(current_epoch))
-        .period(axon_u32(epoch_len))
+        .period(axon_u32(epoch_len - 1))
         // .latest_block_hash(v)
         .latest_block_height(axon_u64(10))
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
