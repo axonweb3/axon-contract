@@ -84,7 +84,7 @@ table MinerGroupInfo {
 vector MinerGroupInfos <MinerGroupInfo>;
 
 table ElectionSmtProof {
-    miners: MinerGroupInfos, // calculate staker_smt_root based on this
+    miners: MinerGroupInfos,   // calculate staker_smt_root based on this
     staker_epoch_proof: Bytes, // prove staker_smt_root's existence
 }
 

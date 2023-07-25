@@ -188,9 +188,10 @@ fn test_metadata_success() {
 
     let keypair = Generator::random_keypair();
     let staker_addr = pubkey_to_addr(&keypair.1.serialize());
+    let staker_propose_count = 100;
     let propose_count = ProposeCount::new_builder()
         .address(axon_byte20(&staker_addr))
-        .count(axon_u64(100))
+        .count(axon_u64(staker_propose_count))
         .build();
     let propose_counts = vec![propose_count];
     let propose_counts = ProposeCounts::new_builder().set(propose_counts).build();
@@ -268,16 +269,14 @@ fn test_metadata_success() {
     );
 
     // prepare metadata
-    let metadata0 = Metadata::new_builder()
+    let input_metadata0 = Metadata::new_builder()
         .epoch_len(axon_u32(epoch_len))
         .quorum(axon_u16(2))
         .build();
-    let metadata1 = metadata0.clone();
-    let metadata2 = metadata0.clone();
-    let metadata_list = MetadataList::new_builder()
-        .push(metadata0)
-        .push(metadata1)
-        .push(metadata2)
+    let input_metadata1 = input_metadata0.clone();
+    let input_metadata_list = MetadataList::new_builder()
+        .push(input_metadata0)
+        .push(input_metadata1.clone())
         .build();
 
     let propose_count_smt_root = [0u8; 32];
@@ -287,8 +286,8 @@ fn test_metadata_success() {
         &checkpoint_type_script,
         &stake_smt_type_script,
         &delegate_smt_type_script,
-        metadata_list.clone(),
-        input_waiting_epoch,
+        input_metadata_list.clone(),
+        current_epoch,
         propose_count_smt_root,
         &metadata_type_script.code_hash(),
         &metadata_type_script.code_hash(),
@@ -366,11 +365,11 @@ fn test_metadata_success() {
     ];
 
     let output_stake_infos = input_stake_infos.clone();
-    let output_waiting_epoch = input_waiting_epoch + 1;
+    let output_quasi_epoch = input_waiting_epoch;
     let output_stake_smt_data = axon_stake_smt_cell_data(
         &output_stake_infos,
         &metadata_type_script.calc_script_hash(),
-        output_waiting_epoch,
+        output_quasi_epoch,
     );
     let propose_count = ProposeCountObject {
         addr: staker_addr,
@@ -386,6 +385,12 @@ fn test_metadata_success() {
     let (top_smt_root, proof) = construct_epoch_smt(&vec![top_smt_info]);
     let propose_count_proof = proof.compile(vec![u64_to_h256(1)]).unwrap().0;
 
+    let output_metadata0 = input_metadata1.clone();
+    let output_metadata1 = output_metadata0.clone();
+    let metadata_list = MetadataList::new_builder()
+        .push(output_metadata0)
+        .push(output_metadata1)
+        .build();
     let output_meta_data = axon_metadata_data_by_script(
         &metadata_type_script.clone(),
         &stake_smt_type_script.calc_script_hash(),
@@ -393,7 +398,7 @@ fn test_metadata_success() {
         &stake_smt_type_script,
         &delegate_smt_type_script,
         metadata_list,
-        output_waiting_epoch,
+        current_epoch + 1,
         top_smt_root.as_slice().try_into().unwrap(),
         &metadata_type_script.code_hash(),
         &metadata_type_script.code_hash(),
@@ -412,12 +417,12 @@ fn test_metadata_success() {
 
     let (stake_root, _stake_proof) = construct_lock_info_smt(&input_stake_infos);
     let stake_top_smt_infos = vec![TopSmtInfo {
-        epoch: output_waiting_epoch,
+        epoch: input_waiting_epoch,
         smt_root: stake_root,
     }];
     let (_stake_root, staker_epoch_proof) = construct_epoch_smt(&stake_top_smt_infos);
     let staker_epoch_proof = staker_epoch_proof
-        .compile(vec![u64_to_h256(output_waiting_epoch)])
+        .compile(vec![u64_to_h256(input_waiting_epoch)])
         .unwrap()
         .0;
 

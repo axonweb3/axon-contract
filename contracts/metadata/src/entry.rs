@@ -113,36 +113,33 @@ fn verify_chain_config(
 
     let input_metadatas = input_metadata.metadata();
     let output_metadatas = output_metadata.metadata();
-    if input_metadatas.len() != 3 || output_metadatas.len() != 3 {
+    let metadata_list_size = 2;
+    if input_metadatas.len() != metadata_list_size || output_metadatas.len() != metadata_list_size {
         return Err(Error::MetadataSizeWrong);
     }
 
     let input_metadata1 = input_metadatas.get(1);
-    let input_metadata2 = input_metadatas.get(2);
     let output_metadata0 = output_metadatas.get(0);
     let output_metadata1 = output_metadatas.get(1);
-    let output_metadata2 = output_metadatas.get(2);
 
-    if !is_metadata_equal(&input_metadata1, &output_metadata0)
-        || !is_metadata_equal(&input_metadata2, &output_metadata1)
-    {
+    if !is_metadata_equal(&input_metadata1, &output_metadata0) {
         debug!("input_metadata1: MetadataInputOutputMismatch");
         return Err(Error::MetadataInputOutputMismatch);
     }
 
     // output metadata2 will update something, like validators, block height, etc.
-    if output_metadata1.brake_ratio() != output_metadata2.brake_ratio()
-        || output_metadata1.epoch_len() != output_metadata2.epoch_len()
-        || output_metadata1.gas_limit() != output_metadata2.gas_limit()
-        || output_metadata1.gas_price() != output_metadata2.gas_price()
-        || output_metadata1.interval() != output_metadata2.interval()
-        || output_metadata1.max_tx_size() != output_metadata2.max_tx_size()
-        || output_metadata1.period_len() != output_metadata2.period_len()
-        || output_metadata1.precommit_ratio() != output_metadata2.precommit_ratio()
-        || output_metadata1.prevote_ratio() != output_metadata2.prevote_ratio()
-        || output_metadata1.propose_ratio() != output_metadata2.propose_ratio()
-        || output_metadata1.quorum() != output_metadata2.quorum()
-        || output_metadata1.tx_num_limit() != output_metadata2.tx_num_limit()
+    if output_metadata1.brake_ratio() != output_metadata0.brake_ratio()
+        || output_metadata1.epoch_len() != output_metadata0.epoch_len()
+        || output_metadata1.gas_limit() != output_metadata0.gas_limit()
+        || output_metadata1.gas_price() != output_metadata0.gas_price()
+        || output_metadata1.interval() != output_metadata0.interval()
+        || output_metadata1.max_tx_size() != output_metadata0.max_tx_size()
+        || output_metadata1.period_len() != output_metadata0.period_len()
+        || output_metadata1.precommit_ratio() != output_metadata0.precommit_ratio()
+        || output_metadata1.prevote_ratio() != output_metadata0.prevote_ratio()
+        || output_metadata1.propose_ratio() != output_metadata0.propose_ratio()
+        || output_metadata1.quorum() != output_metadata0.quorum()
+        || output_metadata1.tx_num_limit() != output_metadata0.tx_num_limit()
     {
         debug!("output_metadata1: MetadataInputOutputMismatch");
         return Err(Error::MetadataInputOutputMismatch);
@@ -354,8 +351,8 @@ fn verify_election_metadata(
     }
     // get output metadata, verify the validators data.
     debug!("verify_new_validators, {:?}", validators);
-    let output_waiting_epoch = input_waiting_epoch + 1;
-    verify_new_validators(&validators, output_waiting_epoch, type_ids, &election_infos)?;
+    let output_quasi_epoch = input_waiting_epoch;
+    verify_new_validators(&validators, output_quasi_epoch, type_ids, &election_infos)?;
 
     // verify validators' stake amount, verify delete_stakers & delete_delegators all zero & withdraw At cell amount is equal.
     // todo
@@ -395,10 +392,10 @@ pub fn verify_stake_delegate(
     let epoch_root: H256 = epoch_root.into();
     let result =
         util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+    debug!("staker verify_2layer_smt result: {:?}", result);
     if !result {
         return Err(Error::MetadataSmtVerifyError);
     }
-    debug!("staker verify_2layer_smt result: {:?}", result);
 
     let new_miners = miners.clone();
     debug!("new_miners: {:?}", new_miners);
