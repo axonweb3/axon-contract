@@ -636,17 +636,24 @@ pub fn get_delegate_smt_root(
     addr: &[u8; 20],
     source: Source,
 ) -> Result<[u8; 32], Error> {
-    let mut delegate_smt_data: Option<DelegateSmtCellData> = None;
-    QueryIter::new(load_cell_type_hash, source)
-        .enumerate()
-        .for_each(|(i, lock_hash)| {
-            if &lock_hash.unwrap_or([0u8; 32]) == typd_id {
-                let data = load_cell_data(i, source).unwrap();
-                delegate_smt_data = Some(Cursor::from(data[..].to_vec()).into());
-            }
-        });
+    let delegate_smt_data = {
+        let mut delegate_smt_data: Option<DelegateSmtCellData> = None;
+        QueryIter::new(load_cell_type_hash, source)
+            .enumerate()
+            .for_each(|(i, lock_hash)| {
+                if &lock_hash.unwrap_or([0u8; 32]) == typd_id {
+                    let data = load_cell_data(i, source).unwrap();
+                    delegate_smt_data = Some(Cursor::from(data[..].to_vec()).into());
+                }
+            });
 
-    let smt_roots = delegate_smt_data.unwrap().smt_roots();
+        match delegate_smt_data {
+            Some(data) => data,
+            None => return Err(Error::DelegateSmtCellDataNotFound),
+        }
+    };
+
+    let smt_roots = delegate_smt_data.smt_roots();
     for i in 0..smt_roots.len() {
         let smt_root = smt_roots.get(i);
         if smt_root.staker() == addr {

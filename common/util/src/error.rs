@@ -77,6 +77,7 @@ pub enum Error {
     IllegalDefaultDelegateInfo,
     DelegateSmtTypeIdMismatch,
     DelegateSmtVerifySelectionError,
+    DelegateSmtCellDataNotFound,
 
     // checkpoint
     CheckpointDataEmpty = 90,

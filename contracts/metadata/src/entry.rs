@@ -409,7 +409,7 @@ pub fn verify_stake_delegate(
         let epoch_proof = CompiledMerkleProof(miner.delegator_epoch_proof);
         debug!("delegate_smt_type_hash");
         let delegate_smt_type_hash = get_script_hash(
-            &type_ids.checkpoint_code_hash(),
+            &type_ids.delegate_smt_code_hash(),
             &type_ids.delegate_smt_type_id(),
         );
         let epoch_root = get_delegate_smt_root(&delegate_smt_type_hash, &miner.staker, source)?;
@@ -485,7 +485,7 @@ fn verify_new_validators(
         }
         let epoch_proof = CompiledMerkleProof(epoch_proof);
         let delegate_smt_type_hash = get_script_hash(
-            &type_ids.checkpoint_code_hash(),
+            &type_ids.delegate_smt_code_hash(),
             &type_ids.delegate_smt_type_id(),
         );
         let epoch_root =
