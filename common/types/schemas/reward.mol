@@ -24,10 +24,10 @@ vector RewardDelegateInfos <RewardDelegateInfo>; // total delegator infos of one
 
 table RewardStakeInfo {
     validator:       Identity,
-    propose_count:   Uint64, // this epoch, this validator's propose count
+    propose_count:   Uint64,              // this epoch, this validator's propose count
     staker_amount:   Uint128,
     delegate_infos:  RewardDelegateInfos, // this epoch, this validator's total delegate infos
-    delegate_epoch_proof: Bytes, // smt root of delegate can be calculated
+    delegate_epoch_proof: Bytes,          // smt root of delegate can be calculated
 }
 vector RewardStakeInfos <RewardStakeInfo>; // one delegator may delegate multiple staker
 table EpochRewardStakeInfo { // this epoch, one miner's all releated staker delegator infos
@@ -42,8 +42,8 @@ table EpochRewardStakeInfo { // this epoch, one miner's all releated staker dele
 vector EpochRewardStakeInfos <EpochRewardStakeInfo>; // 
 
 table RewardWitness {
-    miner: Identity, // the one who are claiming it's rewards
-    old_not_claim_info: NotClaimInfo, // prove the miner has claimed reward of [0, n]
+    miner: Identity,                     // the one who are claiming it's rewards
+    old_not_claim_info: NotClaimInfo,    // prove the miner has claimed reward of [0, n]
     reward_infos: EpochRewardStakeInfos, // the validator's proof, assume epoch [n + 1, m]
-    new_not_claim_info: NotClaimInfo, // prove the miner has claimed reward of [0, m]
+    new_not_claim_info: NotClaimInfo,    // prove the miner has claimed reward of [0, m]
 }
