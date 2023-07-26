@@ -4,6 +4,7 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
+use util::error::Error::OmniRewardCountError;
 
 #[test]
 fn test_selection_success() {
@@ -121,7 +122,7 @@ fn test_selection_fail() {
     let issue_lock_hash = always_success_lock_script.calc_script_hash();
     // prepare args for reward contract
     let reward_type_script = context
-        .build_script(&reward_out_point, Bytes::new())
+        .build_script(&reward_out_point, Bytes::from(vec![1u8; 32]))
         .expect("reward script");
     let reward_script_dep = CellDep::new_builder().out_point(reward_out_point).build();
     let reward_smt_type_id = reward_type_script.calc_script_hash();
@@ -204,7 +205,8 @@ fn test_selection_fail() {
     let tx = context.complete_tx(tx);
 
     // verify_tx return error OmniRewardCountError
-    let _ = context
+    let err = context
         .verify_tx(&tx, MAX_CYCLES)
         .expect_err("OmniRewardCountError");
+    assert_script_error(err, OmniRewardCountError as i8);
 }

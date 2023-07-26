@@ -10,6 +10,7 @@ use axon_types::{
 };
 use ckb_testtool::{
     ckb_crypto::secp::{Privkey, Pubkey},
+    ckb_error::Error,
     ckb_hash::{blake2b_256, new_blake2b},
     ckb_types::{
         bytes::Bytes,
@@ -479,6 +480,15 @@ pub fn axon_stake_smt_cell_data(
         .build()
 }
 
+pub fn assert_script_error(err: Error, err_code: i8) {
+    let error_string = err.to_string();
+    assert!(
+        error_string.contains(format!("error code {} ", err_code).as_str()),
+        "error_string: {}, expected_error_code: {}",
+        error_string,
+        err_code
+    );
+}
 // pub fn axon_delegate_smt_cell_data(
 //     stake_infos: &BTreeSet<LockInfo>,
 //     metadata_type_id: &packed::Byte32,
