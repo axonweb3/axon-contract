@@ -280,7 +280,7 @@ pub fn main() -> Result<(), Error> {
             &propose_count_smt_root,
         )?;
 
-        let epoch_reward = calculate_reward(&miner, &epoch_reward_obj);
+        let epoch_reward = calculate_reward(&miner, &epoch_reward_obj)?;
         reward_amount += epoch_reward;
     }
 
@@ -298,7 +298,7 @@ pub fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn calculate_reward(miner: &Vec<u8>, epoch_reward_obj: &EpochRewardObject) -> u128 {
+fn calculate_reward(miner: &Vec<u8>, epoch_reward_obj: &EpochRewardObject) -> Result<u128, Error> {
     let mut epoch_reward = 0u128;
     let commission_rate = 20; // assume commission rate is 20%
     for obj in &epoch_reward_obj.reward_objs {
@@ -318,11 +318,19 @@ fn calculate_reward(miner: &Vec<u8>, epoch_reward_obj: &EpochRewardObject) -> u1
             let commission_fee = delegate_reward * commission_rate / 100;
             epoch_reward += commission_fee;
         } else {
-            epoch_reward = obj.delegate_amount.unwrap() * delegate_reward * (100 - commission_rate)
+            // delegator reward, miner can only be staker or delegator
+            let delegate_amount = {
+                match obj.delegate_amount {
+                    Some(amount) => amount,
+                    None => return Err(Error::RewardWrongDelegateAmount),
+                }
+            };
+            epoch_reward = delegate_amount * delegate_reward * (100 - commission_rate)
+                / 100
                 / obj.total_delegate_amount;
         }
     }
-    return epoch_reward;
+    Ok(epoch_reward)
 }
 
 /*
