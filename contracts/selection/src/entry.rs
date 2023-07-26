@@ -7,7 +7,7 @@ use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, prelude::*},
     debug,
-    high_level::{load_cell_lock_hash, load_script, QueryIter},
+    high_level::{load_cell_lock_hash, load_cell_type_hash, load_script, QueryIter},
 };
 
 use axon_types::{selection_reader as axon, Cursor};
@@ -26,12 +26,18 @@ pub fn main() -> Result<(), Error> {
     let mut issue_cells_count = 0;
     let mut reward_cells_count = 0;
 
-    // search omni and reward cells via ckb functions
+    // search issue and reward cells via ckb functions
     QueryIter::new(load_cell_lock_hash, Source::Input).for_each(|lock_hash| {
         if &lock_hash == issue_lock_hash.as_slice() {
             issue_cells_count += 1;
-        } else if &lock_hash == reward_smt_type_id.as_slice() {
-            reward_cells_count += 1;
+        }
+    });
+
+    QueryIter::new(load_cell_type_hash, Source::Input).for_each(|type_hash| {
+        if let Some(type_hash) = type_hash {
+            if &type_hash == reward_smt_type_id.as_slice() {
+                reward_cells_count += 1;
+            }
         }
     });
 
