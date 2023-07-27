@@ -628,6 +628,7 @@ pub fn get_stake_smt_data(type_id: &[u8; 32], source: Source) -> Result<StakeSmt
 
 pub fn get_stake_smt_root(typd_id: &[u8; 32], source: Source) -> Result<[u8; 32], Error> {
     let stake_smt_data = get_stake_smt_data(typd_id, source)?;
+    debug!("get_stake_smt_root, {:?}", stake_smt_data.smt_root());
     Ok(stake_smt_data.smt_root().as_slice().try_into().unwrap())
 }
 

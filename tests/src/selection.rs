@@ -108,8 +108,6 @@ fn test_selection_fail() {
     let mut context = Context::default();
     let contract_bin: Bytes = Loader::default().load_binary("selection");
     let out_point = context.deploy_cell(contract_bin);
-    let reward_contract_bin: Bytes = Loader::default().load_binary("reward");
-    let reward_out_point = context.deploy_cell(reward_contract_bin);
     let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
 
     // prepare lock_args
@@ -117,14 +115,13 @@ fn test_selection_fail() {
         .build_script(&always_success_out_point, Bytes::new())
         .expect("always_success script");
     let always_success_script_dep = CellDep::new_builder()
-        .out_point(always_success_out_point)
+        .out_point(always_success_out_point.clone())
         .build();
     let issue_lock_hash = always_success_lock_script.calc_script_hash();
     // prepare args for reward contract
     let reward_type_script = context
-        .build_script(&reward_out_point, Bytes::from(vec![1u8; 32]))
+        .build_script(&always_success_out_point, Bytes::from(vec![1u8; 32]))
         .expect("reward script");
-    let reward_script_dep = CellDep::new_builder().out_point(reward_out_point).build();
     let reward_smt_type_id = reward_type_script.calc_script_hash();
     let selection_args = SelectionLockArgs::new_builder()
         .issue_lock_hash(axon_byte32(&issue_lock_hash))
@@ -200,7 +197,6 @@ fn test_selection_fail() {
         .outputs_data(outputs_data.pack())
         .cell_dep(lock_script_dep)
         .cell_dep(always_success_script_dep)
-        .cell_dep(reward_script_dep)
         .build();
     let tx = context.complete_tx(tx);
 

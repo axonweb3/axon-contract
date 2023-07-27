@@ -5,7 +5,7 @@ use std::iter::FromIterator;
 use super::*;
 use axon_types::checkpoint::CheckpointCellData;
 use axon_types::delegate::DelegateInfoDeltas;
-use axon_types::metadata::MetadataList;
+use axon_types::metadata::{Metadata, MetadataList, Validator, ValidatorList};
 use axon_types::reward::{
     EpochRewardStakeInfo, EpochRewardStakeInfos, NotClaimInfo, RewardDelegateInfos,
     RewardSmtCellData, RewardStakeInfo, RewardStakeInfos, RewardWitness,
@@ -228,9 +228,21 @@ fn test_reward_success() {
         .build_script(&always_success_out_point, Bytes::from(vec![6]))
         .expect("sudt script");
     // prepare metadata
-    let metadata_list = MetadataList::new_builder().build();
+    let validator = Validator::new_builder().build();
+    let validator_list = ValidatorList::new_builder().push(validator).build();
+    let epoch_len = 100;
+    let period_len = 10;
+    let metadata0 = Metadata::new_builder()
+        .epoch_len(axon_u32(epoch_len))
+        .period_len(axon_u32(period_len))
+        .validators(validator_list)
+        .build();
+    let metadata_list = MetadataList::new_builder()
+        .push(metadata0.clone())
+        .push(metadata0)
+        .build();
 
-    let propose_count = 1000;
+    let propose_count: u64 = period_len as u64 * epoch_len as u64;
     let mut propose_count_smt_bottom_tree = PROPOSE_BOTTOM_SMT::default();
     propose_count_smt_bottom_tree
         .update(
@@ -279,6 +291,8 @@ fn test_reward_success() {
         &delegate_smt_type_script,
         metadata_list.clone(),
         current_epoch,
+        1000,
+        100,
         propose_count_smt_top_tree_root
             .as_slice()
             .try_into()

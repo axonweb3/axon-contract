@@ -51,7 +51,10 @@ table TypeIds {
 
 table MetadataCellData {
     version:                byte,
-    epoch:                  Uint64, // needless?
+    epoch:                  Uint64,
+    base_reward:            Uint128,   // little endian number，AT reward of every epoch
+    half_epoch:             Uint64,    // little endian number，base reward halve epoch
+    propose_discount_rate:  byte,      // discount rate for lazy validator
     propose_count_smt_root: Byte32,
     type_ids:               TypeIds,
     metadata:               MetadataList, // metadata of current and next epoch 

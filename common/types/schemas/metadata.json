@@ -197,6 +197,18 @@
           "type": "Uint64"
         },
         {
+          "name": "base_reward",
+          "type": "Uint128"
+        },
+        {
+          "name": "half_epoch",
+          "type": "Uint64"
+        },
+        {
+          "name": "propose_discount_rate",
+          "type": "byte"
+        },
+        {
           "name": "propose_count_smt_root",
           "type": "Byte32"
         },

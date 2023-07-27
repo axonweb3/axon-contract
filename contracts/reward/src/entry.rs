@@ -1,6 +1,7 @@
 // Import from `core` instead of from `std` since we are in no-std mode
 use alloc::vec::Vec;
 use alloc::{collections::BTreeSet, vec};
+use axon_types::metadata_reader::MetadataCellData;
 use axon_types::reward_reader::NotClaimInfo;
 use axon_types::reward_reader::RewardSmtCellData;
 use ckb_type_id::{load_type_id_from_script_args, validate_type_id};
@@ -183,6 +184,13 @@ pub fn main() -> Result<(), Error> {
         .as_slice()
         .try_into()
         .unwrap();
+    let base_reward = bytes_to_u128(&metadata.base_reward());
+    let half_epoch = metadata.half_epoch();
+    let minimum_normal_propose_count = get_minimum_normal_propose_count(&metadata);
+    debug!(
+        "base_reward: {}, half_epoch: {}, minimum_normal_propose_count: {}",
+        base_reward, half_epoch, minimum_normal_propose_count
+    );
 
     let mut reward_amount: u128 = 0;
     let reward_infos = reward_witness.reward_infos();
@@ -280,7 +288,15 @@ pub fn main() -> Result<(), Error> {
             &propose_count_smt_root,
         )?;
 
-        let epoch_reward = calculate_reward(&miner, &epoch_reward_obj)?;
+        let epoch_reward = calculate_reward(
+            &miner,
+            &epoch_reward_obj,
+            base_reward,
+            current_epoch,
+            half_epoch,
+            minimum_normal_propose_count,
+            metadata.propose_discount_rate(),
+        )?;
         reward_amount += epoch_reward;
     }
 
@@ -298,21 +314,38 @@ pub fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn calculate_reward(miner: &Vec<u8>, epoch_reward_obj: &EpochRewardObject) -> Result<u128, Error> {
+fn get_minimum_normal_propose_count(metadata: &MetadataCellData) -> u64 {
+    let metadata = metadata.metadata().get(0);
+    let epoch_total_block_num = metadata.epoch_len() * metadata.period_len();
+    let validator_num = metadata.validators().len();
+    (epoch_total_block_num * 95 / validator_num as u32 / 100).into()
+}
+
+fn calculate_reward(
+    miner: &Vec<u8>,
+    epoch_reward_obj: &EpochRewardObject,
+    base_reward: u128,
+    current_epoch: u64,
+    half_epoch: u64,
+    minimum_normal_propose_count: u64,
+    propose_discount_rate: u8,
+) -> Result<u128, Error> {
     let mut epoch_reward = 0u128;
     let commission_rate = 20; // assume commission rate is 20%
     for obj in &epoch_reward_obj.reward_objs {
         let propose_count = obj.propose_count;
-        let base_reward = 1000u128;
-        let mut reward = base_reward;
-        if propose_count < 100 {
-            reward = base_reward * 95 / 100;
+        let mut reward = base_reward / 2u128.pow((current_epoch / half_epoch) as u32);
+        if propose_count < minimum_normal_propose_count {
+            reward = base_reward * propose_discount_rate as u128 / 100;
         }
 
         let total_lock_amount = obj.stake_amount + obj.total_delegate_amount;
         let staker_reward = reward * obj.stake_amount / total_lock_amount;
         let delegate_reward = reward - staker_reward;
-        debug!("miner: {:?},staker: {:?}", miner, obj.staker);
+        debug!(
+            "miner: {:?},staker: {:?}, reward: {}, base_reward:{},current_epoch:{},half_epoch:{},propse_count:{}",
+            miner, obj.staker, reward, base_reward, current_epoch, half_epoch, propose_count
+        );
         if *miner == obj.staker.to_vec() {
             epoch_reward = staker_reward;
             let commission_fee = delegate_reward * commission_rate / 100;
