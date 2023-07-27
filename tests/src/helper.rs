@@ -6,6 +6,7 @@ use axon_types::{
     basic::{self, Identity},
     delegate::{StakerSmtRoot, StakerSmtRoots},
     metadata::MetadataList,
+    stake::DelegateRequirementInfo,
     withdraw::{WithdrawInfo, WithdrawInfos},
 };
 use ckb_testtool::{
@@ -123,8 +124,7 @@ pub fn axon_u16(value: u16) -> basic::Uint16 {
     basic::Uint16::new_unchecked(value.to_le_bytes().to_vec().into())
 }
 
-pub fn axon_identity(pubkey: &Vec<u8>) -> basic::Identity {
-    let pubkey_hash = blake160(pubkey.as_slice());
+pub fn axon_byte20_identity(pubkey_hash: &[u8; 20]) -> basic::Identity {
     // convert [u8; 20] to [Byte; 20]
     let pubkey_hash = pubkey_hash
         .iter()
@@ -134,6 +134,12 @@ pub fn axon_identity(pubkey: &Vec<u8>) -> basic::Identity {
     basic::Identity::new_builder()
         .set(pubkey_hash.as_slice().try_into().unwrap())
         .build()
+}
+
+pub fn axon_identity(pubkey: &Vec<u8>) -> basic::Identity {
+    let pubkey_hash = blake160(pubkey.as_slice());
+    // convert [u8; 20] to [Byte; 20]
+    axon_byte20_identity(&pubkey_hash)
 }
 
 pub fn axon_identity_opt(pubkey: &Vec<u8>) -> basic::IdentityOpt {
@@ -166,6 +172,7 @@ pub fn axon_stake_at_cell_data_without_amount(
     l2_address: Identity,
     metadata_type_id: &packed::Byte32,
     delta: axon_types::stake::StakeInfoDelta,
+    requirement_info: DelegateRequirementInfo,
 ) -> axon_types::stake::StakeAtCellData {
     let xudt_data_lock = axon_types::stake::StakeAtCellLockData::new_builder()
         .version(version.into())
@@ -173,6 +180,7 @@ pub fn axon_stake_at_cell_data_without_amount(
         .l2_address(l2_address)
         .metadata_type_id(axon_byte32(metadata_type_id))
         .delta(delta)
+        .requirement_info(requirement_info)
         .build();
     axon_types::stake::StakeAtCellData::new_builder()
         .lock(xudt_data_lock)
