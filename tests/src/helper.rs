@@ -323,6 +323,8 @@ pub fn axon_metadata_data_by_script(
     delegate_smt_type_id: &Script,
     metadata_list: MetadataList,
     epoch: u64,
+    base_reward: u128,
+    half_epoch: u64,
     propose_count_smt_root: [u8; 32],
     stake_at_code_hash: &packed::Byte32,
     delegate_at_code_hash: &packed::Byte32,
@@ -346,6 +348,9 @@ pub fn axon_metadata_data_by_script(
     axon_types::metadata::MetadataCellData::new_builder()
         .version(0.into())
         .epoch(axon_u64(epoch))
+        .base_reward(axon_u128(base_reward))
+        .half_epoch(axon_u64(half_epoch))
+        .propose_discount_rate(95.into())
         .metadata(metadata_list)
         .type_ids(type_ids)
         .propose_count_smt_root(axon_array32_byte32(propose_count_smt_root))

@@ -160,6 +160,8 @@ fn test_delegate_at_increase_success() {
         &delegate_at_type_script, // needless here
         metadata_list,
         1,
+        100,
+        100,
         propose_count_smt_root,
         &metadata_type_script.code_hash(),
         &delegate_at_lock_script.code_hash(),
@@ -484,6 +486,8 @@ fn test_delegate_smt_redeem_success() {
         &delegate_smt_type_script, // needless here
         metadata_list,
         1,
+        100,
+        100,
         propose_count_smt_root,
         &metadata_type_script.code_hash(),
         &delegate_at_lock_script.code_hash(),
@@ -782,6 +786,8 @@ fn test_delegate_smt_increase_success() {
         &delegate_smt_type_script, // needless here
         metadata_list,
         1,
+        100,
+        100,
         propose_count_smt_root,
         &metadata_type_script.code_hash(),
         &delegate_at_lock_script.code_hash(),

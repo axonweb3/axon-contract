@@ -365,22 +365,43 @@ impl MetadataCellData {
 }
 
 impl MetadataCellData {
-    pub fn propose_count_smt_root(&self) -> Vec<u8> {
+    pub fn base_reward(&self) -> Vec<u8> {
         let cur = self.cursor.table_slice_by_index(2).unwrap();
         cur.into()
     }
 }
 
 impl MetadataCellData {
-    pub fn type_ids(&self) -> TypeIds {
+    pub fn half_epoch(&self) -> u64 {
         let cur = self.cursor.table_slice_by_index(3).unwrap();
         cur.into()
     }
 }
 
 impl MetadataCellData {
-    pub fn metadata(&self) -> MetadataList {
+    pub fn propose_discount_rate(&self) -> u8 {
         let cur = self.cursor.table_slice_by_index(4).unwrap();
+        cur.into()
+    }
+}
+
+impl MetadataCellData {
+    pub fn propose_count_smt_root(&self) -> Vec<u8> {
+        let cur = self.cursor.table_slice_by_index(5).unwrap();
+        cur.into()
+    }
+}
+
+impl MetadataCellData {
+    pub fn type_ids(&self) -> TypeIds {
+        let cur = self.cursor.table_slice_by_index(6).unwrap();
+        cur.into()
+    }
+}
+
+impl MetadataCellData {
+    pub fn metadata(&self) -> MetadataList {
+        let cur = self.cursor.table_slice_by_index(7).unwrap();
         cur.into()
     }
 }

@@ -11,7 +11,6 @@ table StakeInfoDelta {
     inauguration_epoch: Uint64,
 }
 
-
 struct DelegateRequirementArgs {
     metadata_type_id:    Byte32,
     requirement_type_id: Byte32,
