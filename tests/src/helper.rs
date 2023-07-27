@@ -350,6 +350,7 @@ pub fn axon_metadata_data_by_script(
         .epoch(axon_u64(epoch))
         .base_reward(axon_u128(base_reward))
         .half_epoch(axon_u64(half_epoch))
+        .propose_minimum_rate(95.into())
         .propose_discount_rate(95.into())
         .metadata(metadata_list)
         .type_ids(type_ids)

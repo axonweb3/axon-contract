@@ -54,6 +54,7 @@ table MetadataCellData {
     epoch:                  Uint64,
     base_reward:            Uint128,   // little endian number，AT reward of every epoch
     half_epoch:             Uint64,    // little endian number，base reward halve epoch
+    propose_minimum_rate:   byte,      // minimum percent of expected work for validator to avoid punishment
     propose_discount_rate:  byte,      // discount rate for lazy validator
     propose_count_smt_root: Byte32,
     type_ids:               TypeIds,

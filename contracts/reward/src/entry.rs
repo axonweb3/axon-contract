@@ -315,10 +315,11 @@ pub fn main() -> Result<(), Error> {
 }
 
 fn get_minimum_normal_propose_count(metadata: &MetadataCellData) -> u64 {
+    let propose_minimum_rate = metadata.propose_minimum_rate();
     let metadata = metadata.metadata().get(0);
     let epoch_total_block_num = metadata.epoch_len() * metadata.period_len();
     let validator_num = metadata.validators().len();
-    (epoch_total_block_num * 95 / validator_num as u32 / 100).into()
+    (epoch_total_block_num * propose_minimum_rate as u32 / validator_num as u32 / 100).into()
 }
 
 fn calculate_reward(
