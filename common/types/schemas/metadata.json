@@ -205,6 +205,10 @@
           "type": "Uint64"
         },
         {
+          "name": "propose_minimum_rate",
+          "type": "byte"
+        },
+        {
           "name": "propose_discount_rate",
           "type": "byte"
         },

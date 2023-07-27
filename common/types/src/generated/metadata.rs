@@ -2404,6 +2404,12 @@ impl ::core::fmt::Display for MetadataCellData {
         write!(
             f,
             ", {}: {}",
+            "propose_minimum_rate",
+            self.propose_minimum_rate()
+        )?;
+        write!(
+            f,
+            ", {}: {}",
             "propose_discount_rate",
             self.propose_discount_rate()
         )?;
@@ -2425,15 +2431,13 @@ impl ::core::fmt::Display for MetadataCellData {
 impl ::core::default::Default for MetadataCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            210, 2, 0, 0, 36, 0, 0, 0, 37, 0, 0, 0, 45, 0, 0, 0, 61, 0, 0, 0, 69, 0, 0, 0, 70, 0,
-            0, 0, 102, 0, 0, 0, 206, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            215, 2, 0, 0, 40, 0, 0, 0, 41, 0, 0, 0, 49, 0, 0, 0, 65, 0, 0, 0, 73, 0, 0, 0, 74, 0,
+            0, 0, 75, 0, 0, 0, 107, 0, 0, 0, 211, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 104, 2, 0, 0, 72, 0, 0, 0,
-            104, 0, 0, 0, 136, 0, 0, 0, 168, 0, 0, 0, 200, 0, 0, 0, 232, 0, 0, 0, 8, 1, 0, 0, 40,
-            1, 0, 0, 72, 1, 0, 0, 104, 1, 0, 0, 136, 1, 0, 0, 168, 1, 0, 0, 200, 1, 0, 0, 232, 1,
-            0, 0, 8, 2, 0, 0, 40, 2, 0, 0, 72, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 104, 2, 0,
+            0, 72, 0, 0, 0, 104, 0, 0, 0, 136, 0, 0, 0, 168, 0, 0, 0, 200, 0, 0, 0, 232, 0, 0, 0,
+            8, 1, 0, 0, 40, 1, 0, 0, 72, 1, 0, 0, 104, 1, 0, 0, 136, 1, 0, 0, 168, 1, 0, 0, 200, 1,
+            0, 0, 232, 1, 0, 0, 8, 2, 0, 0, 40, 2, 0, 0, 72, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2450,13 +2454,15 @@ impl ::core::default::Default for MetadataCellData {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
         MetadataCellData::new_unchecked(v.into())
     }
 }
 impl MetadataCellData {
-    pub const FIELD_COUNT: usize = 8;
+    pub const FIELD_COUNT: usize = 9;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -2497,29 +2503,35 @@ impl MetadataCellData {
         let end = molecule::unpack_number(&slice[20..]) as usize;
         Uint64::new_unchecked(self.0.slice(start..end))
     }
-    pub fn propose_discount_rate(&self) -> Byte {
+    pub fn propose_minimum_rate(&self) -> Byte {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[20..]) as usize;
         let end = molecule::unpack_number(&slice[24..]) as usize;
         Byte::new_unchecked(self.0.slice(start..end))
     }
-    pub fn propose_count_smt_root(&self) -> Byte32 {
+    pub fn propose_discount_rate(&self) -> Byte {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[24..]) as usize;
         let end = molecule::unpack_number(&slice[28..]) as usize;
+        Byte::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn propose_count_smt_root(&self) -> Byte32 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[28..]) as usize;
+        let end = molecule::unpack_number(&slice[32..]) as usize;
         Byte32::new_unchecked(self.0.slice(start..end))
     }
     pub fn type_ids(&self) -> TypeIds {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[28..]) as usize;
-        let end = molecule::unpack_number(&slice[32..]) as usize;
+        let start = molecule::unpack_number(&slice[32..]) as usize;
+        let end = molecule::unpack_number(&slice[36..]) as usize;
         TypeIds::new_unchecked(self.0.slice(start..end))
     }
     pub fn metadata(&self) -> MetadataList {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[32..]) as usize;
+        let start = molecule::unpack_number(&slice[36..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[36..]) as usize;
+            let end = molecule::unpack_number(&slice[40..]) as usize;
             MetadataList::new_unchecked(self.0.slice(start..end))
         } else {
             MetadataList::new_unchecked(self.0.slice(start..))
@@ -2556,6 +2568,7 @@ impl molecule::prelude::Entity for MetadataCellData {
             .epoch(self.epoch())
             .base_reward(self.base_reward())
             .half_epoch(self.half_epoch())
+            .propose_minimum_rate(self.propose_minimum_rate())
             .propose_discount_rate(self.propose_discount_rate())
             .propose_count_smt_root(self.propose_count_smt_root())
             .type_ids(self.type_ids())
@@ -2588,6 +2601,12 @@ impl<'r> ::core::fmt::Display for MetadataCellDataReader<'r> {
         write!(
             f,
             ", {}: {}",
+            "propose_minimum_rate",
+            self.propose_minimum_rate()
+        )?;
+        write!(
+            f,
+            ", {}: {}",
             "propose_discount_rate",
             self.propose_discount_rate()
         )?;
@@ -2607,7 +2626,7 @@ impl<'r> ::core::fmt::Display for MetadataCellDataReader<'r> {
     }
 }
 impl<'r> MetadataCellDataReader<'r> {
-    pub const FIELD_COUNT: usize = 8;
+    pub const FIELD_COUNT: usize = 9;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -2648,29 +2667,35 @@ impl<'r> MetadataCellDataReader<'r> {
         let end = molecule::unpack_number(&slice[20..]) as usize;
         Uint64Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn propose_discount_rate(&self) -> ByteReader<'r> {
+    pub fn propose_minimum_rate(&self) -> ByteReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[20..]) as usize;
         let end = molecule::unpack_number(&slice[24..]) as usize;
         ByteReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn propose_count_smt_root(&self) -> Byte32Reader<'r> {
+    pub fn propose_discount_rate(&self) -> ByteReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[24..]) as usize;
         let end = molecule::unpack_number(&slice[28..]) as usize;
+        ByteReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn propose_count_smt_root(&self) -> Byte32Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[28..]) as usize;
+        let end = molecule::unpack_number(&slice[32..]) as usize;
         Byte32Reader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn type_ids(&self) -> TypeIdsReader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[28..]) as usize;
-        let end = molecule::unpack_number(&slice[32..]) as usize;
+        let start = molecule::unpack_number(&slice[32..]) as usize;
+        let end = molecule::unpack_number(&slice[36..]) as usize;
         TypeIdsReader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn metadata(&self) -> MetadataListReader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[32..]) as usize;
+        let start = molecule::unpack_number(&slice[36..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[36..]) as usize;
+            let end = molecule::unpack_number(&slice[40..]) as usize;
             MetadataListReader::new_unchecked(&self.as_slice()[start..end])
         } else {
             MetadataListReader::new_unchecked(&self.as_slice()[start..])
@@ -2731,9 +2756,10 @@ impl<'r> molecule::prelude::Reader<'r> for MetadataCellDataReader<'r> {
         Uint128Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         Uint64Reader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
         ByteReader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
-        Byte32Reader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
-        TypeIdsReader::verify(&slice[offsets[6]..offsets[7]], compatible)?;
-        MetadataListReader::verify(&slice[offsets[7]..offsets[8]], compatible)?;
+        ByteReader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
+        Byte32Reader::verify(&slice[offsets[6]..offsets[7]], compatible)?;
+        TypeIdsReader::verify(&slice[offsets[7]..offsets[8]], compatible)?;
+        MetadataListReader::verify(&slice[offsets[8]..offsets[9]], compatible)?;
         Ok(())
     }
 }
@@ -2743,13 +2769,14 @@ pub struct MetadataCellDataBuilder {
     pub(crate) epoch: Uint64,
     pub(crate) base_reward: Uint128,
     pub(crate) half_epoch: Uint64,
+    pub(crate) propose_minimum_rate: Byte,
     pub(crate) propose_discount_rate: Byte,
     pub(crate) propose_count_smt_root: Byte32,
     pub(crate) type_ids: TypeIds,
     pub(crate) metadata: MetadataList,
 }
 impl MetadataCellDataBuilder {
-    pub const FIELD_COUNT: usize = 8;
+    pub const FIELD_COUNT: usize = 9;
     pub fn version(mut self, v: Byte) -> Self {
         self.version = v;
         self
@@ -2764,6 +2791,10 @@ impl MetadataCellDataBuilder {
     }
     pub fn half_epoch(mut self, v: Uint64) -> Self {
         self.half_epoch = v;
+        self
+    }
+    pub fn propose_minimum_rate(mut self, v: Byte) -> Self {
+        self.propose_minimum_rate = v;
         self
     }
     pub fn propose_discount_rate(mut self, v: Byte) -> Self {
@@ -2792,6 +2823,7 @@ impl molecule::prelude::Builder for MetadataCellDataBuilder {
             + self.epoch.as_slice().len()
             + self.base_reward.as_slice().len()
             + self.half_epoch.as_slice().len()
+            + self.propose_minimum_rate.as_slice().len()
             + self.propose_discount_rate.as_slice().len()
             + self.propose_count_smt_root.as_slice().len()
             + self.type_ids.as_slice().len()
@@ -2809,6 +2841,8 @@ impl molecule::prelude::Builder for MetadataCellDataBuilder {
         offsets.push(total_size);
         total_size += self.half_epoch.as_slice().len();
         offsets.push(total_size);
+        total_size += self.propose_minimum_rate.as_slice().len();
+        offsets.push(total_size);
         total_size += self.propose_discount_rate.as_slice().len();
         offsets.push(total_size);
         total_size += self.propose_count_smt_root.as_slice().len();
@@ -2824,6 +2858,7 @@ impl molecule::prelude::Builder for MetadataCellDataBuilder {
         writer.write_all(self.epoch.as_slice())?;
         writer.write_all(self.base_reward.as_slice())?;
         writer.write_all(self.half_epoch.as_slice())?;
+        writer.write_all(self.propose_minimum_rate.as_slice())?;
         writer.write_all(self.propose_discount_rate.as_slice())?;
         writer.write_all(self.propose_count_smt_root.as_slice())?;
         writer.write_all(self.type_ids.as_slice())?;
