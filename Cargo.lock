@@ -1351,10 +1351,6 @@ dependencies = [
 
 [[package]]
 name = "secp256k1"
-version = "0.1.0"
-
-[[package]]
-name = "secp256k1"
 version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "295642060261c80709ac034f52fca8e5a9fa2c7d341ded5cdb164b7c33768b2a"
@@ -1385,6 +1381,13 @@ name = "secp256k1-sys"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83080e2c2fc1006e625be82e5d1eb6a43b7fd9578b617fcc55814daf286bba4b"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "secp256k1-utils"
+version = "0.1.0"
 dependencies = [
  "cc",
 ]
@@ -1464,6 +1467,7 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "ckb-std",
+ "secp256k1-utils",
  "sparse-merkle-tree",
  "util",
 ]
@@ -1526,6 +1530,7 @@ dependencies = [
  "rand 0.8.5",
  "rand_core 0.6.4",
  "rlp",
+ "secp256k1-utils",
  "sparse-merkle-tree",
  "util",
 ]

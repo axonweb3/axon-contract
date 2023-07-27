@@ -1,7 +1,6 @@
 // Import from `core` instead of from `std` since we are in no-std mode
 use alloc::vec::Vec;
 use axon_types::metadata_reader;
-// use ckb_std::ckb_types::packed::WitnessArgs;
 
 use core::result::Result;
 
@@ -11,11 +10,13 @@ use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, prelude::*},
     debug,
-    high_level::{load_script, load_witness_args},
+    high_level::{load_script, load_tx_hash, load_witness_args},
 };
 
 use axon_types::{stake_reader, Cursor};
 use util::{error::Error, helper::*};
+
+use crate::eth::Secp256k1Eth;
 
 pub fn main() -> Result<(), Error> {
     let script = load_script()?;
@@ -28,14 +29,17 @@ pub fn main() -> Result<(), Error> {
     let stake_args: stake_reader::StakeArgs = Cursor::from(args.to_vec()).into();
     let metadata_type_id = stake_args.metadata_type_id();
     let staker_identity = stake_args.stake_addr();
-    debug!("metadata_type_id:{:?}", metadata_type_id);
+    debug!(
+        "metadata_type_id:{:?}, staker_identity: {:?}",
+        metadata_type_id, staker_identity
+    );
     check_l2_addr(&staker_identity, &stake_at_lock_hash)?;
 
     // identify contract mode by witness
     let witness_args = load_witness_args(0, Source::GroupInput);
     match witness_args {
         Ok(witness) => {
-            let mode = {
+            let (mode, eth_sig) = {
                 let witness_lock = witness.lock().to_opt();
                 if witness_lock.is_none() {
                     return Err(Error::WitnessLockError);
@@ -47,9 +51,14 @@ pub fn main() -> Result<(), Error> {
                 let value: stake_reader::StakeAtWitness =
                     Cursor::from(witness_lock.unwrap().raw_data().to_vec()).into();
                 debug!("witness mode: {}", value.mode());
-                value.mode()
+                (value.mode(), value.eth_sig())
             };
-            debug!("stake at mode: {}", mode);
+            debug!(
+                "stake at mode: {}, eth_sig: {:?}, len:{}",
+                mode,
+                eth_sig,
+                eth_sig.len()
+            );
 
             let type_ids = get_type_ids(
                 &metadata_type_id.as_slice().try_into().unwrap(),
@@ -70,6 +79,7 @@ pub fn main() -> Result<(), Error> {
                     );
                     update_stake_at_cell(
                         &staker_identity,
+                        &eth_sig,
                         &stake_at_lock_hash,
                         &checkpoint_type_hash.to_vec(),
                         &type_ids.xudt_type_hash(),
@@ -129,14 +139,26 @@ fn check_stake_change(
 
 pub fn update_stake_at_cell(
     staker_identity: &Vec<u8>,
+    eth_sig: &Vec<u8>,
     stake_at_lock_hash: &[u8; 32],
     checkpoint_type_id: &Vec<u8>,
     xudt_type_hash: &Vec<u8>,
 ) -> Result<(), Error> {
     debug!("update stake info in stake at cell");
-    // if !secp256k1::verify_signature(&staker_identity) {
-    //     return Err(Error::SignatureMismatch);
-    // }
+    let msg = load_tx_hash()?;
+    let secp256_eth = Secp256k1Eth::default();
+    let result = secp256_eth.verify_alone(
+        staker_identity.as_slice().try_into().unwrap(),
+        eth_sig.as_slice().try_into().unwrap(),
+        msg,
+    )?;
+    debug!(
+        "verify_signature eth_sig: {:?}, msg: {:?}, pubkey: {:?}, result: {}",
+        eth_sig, msg, staker_identity, result
+    );
+    if !result {
+        return Err(Error::SignatureMismatch);
+    }
 
     check_xudt_type_hash(xudt_type_hash)?;
 

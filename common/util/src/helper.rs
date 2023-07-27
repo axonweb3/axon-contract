@@ -758,8 +758,7 @@ pub fn calc_withdrawal_lock_hash(
 
 pub fn pubkey_to_eth_addr(pubkey: &Vec<u8>) -> [u8; 20] {
     let mut keccak = Keccak::v256();
-    let input = pubkey.as_slice();
-    keccak.update(input);
+    keccak.update(&pubkey[1..]);
     let mut output = [0; 32];
     keccak.finalize(&mut output);
     let pubkey_hash = output[12..].to_vec();

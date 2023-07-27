@@ -25,6 +25,7 @@ pub enum Error {
     WitnessLockError,
     WitnessInputTypeError,
     UpdateDataError,
+    EthPubkeyRecoverError,
 
     // SMT
     MerkleProof = 30,
