@@ -93,6 +93,7 @@ fn test_stake_at_increase_success() {
         l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         input_stake_info_delta,
+        DelegateRequirementInfo::default(),
     );
 
     // prepare stake lock_script
@@ -157,6 +158,7 @@ fn test_stake_at_increase_success() {
         l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         output_stake_info_delta,
+        DelegateRequirementInfo::default(),
     );
     let outputs_data = vec![
         Bytes::from(axon_stake_at_cell_data(100, output_stake_at_data)), // stake at cell
@@ -351,6 +353,7 @@ fn test_stake_smt_success() {
         l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         input_stake_info_delta,
+        DelegateRequirementInfo::default(),
     );
 
     // prepare stake lock_script
@@ -431,6 +434,7 @@ fn test_stake_smt_success() {
         l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         output_stake_info_delta,
+        DelegateRequirementInfo::default(),
     );
 
     let lock_info = LockInfo {
@@ -663,6 +667,7 @@ fn test_stake_smt_redeem_success() {
         l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         input_stake_info_delta,
+        DelegateRequirementInfo::default(),
     );
 
     // prepare stake lock_script
@@ -800,6 +805,7 @@ fn test_stake_smt_redeem_success() {
         l2_addr.clone(),
         &metadata_type_script.calc_script_hash(),
         output_stake_info_delta,
+        DelegateRequirementInfo::default(),
     );
 
     let new_lock_info = LockInfo {
