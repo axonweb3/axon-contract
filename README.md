@@ -5,13 +5,6 @@ Clone the repo and submodules.
 git submodule update --init
 ```
 
-build secp256k1 archive:
-
-``` sh
-cd common/secp256k1/ckb-lib-secp256k1
-make all-via-docker
-```
-
 build blst archive:   
 
 The docker version has some problem, so we have to execute the following beforehand to update `no_asm.h` & `vect.h` mannually.

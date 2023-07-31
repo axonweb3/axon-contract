@@ -10,5 +10,4 @@ ckb-std = "0.13"
 axon-types = { path = "../../common/types" }
 util = { path = "../../common/util" }
 # ckb-smt = { path = "../ckb-smt", default-features = false }
-# secp256k1 = { path = "../../common/secp256k1" }
 sparse-merkle-tree = { version = "0.6.1", default-features = false }  
