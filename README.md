@@ -12,7 +12,7 @@ The docker version has some problem, so we have to execute the following beforeh
 cd common/blst/ckb-lib-secp256k1-blst/deps/blst
 git apply ../../blst/blst.patch
 ```
-After runing the above command, you should see changes in `no_asm.h` & `vect.h`.
+After runing the above command, you should see changes in `no_asm.h` & `vect.h`.  
 
 Then, We can build lib blst:   
 ``` sh
@@ -20,7 +20,15 @@ cd common/blst/ckb-lib-secp256k1-blst
 make all-via-docker
 ```
 
-Build CKB contracts:
+Prepare work to run Eth sig releated contracts (stake at, delegate at, withdraw at) :
+``` sh
+cd common/c/secp256k1_extra
+cp secp256k1_data_info.h ../deps/ckb-production-scripts/build/
+cp libsecp256k1-config.h ecmult_static_context.h ecmult_static_pre_context.h ../deps/ckb-production-scripts/deps/secp256k1/src
+```
+Meanwhile, to avoid duplicate symbol error, we must remove line `175` to `472` in `common/c/deps/ckb-production-scripts/c/blake2b.h`.  
+
+Build CKB contracts:  
 You can use ```capsule build``` to build all contracts at once.
 or build sepecific contract using following commands.
 ``` sh
