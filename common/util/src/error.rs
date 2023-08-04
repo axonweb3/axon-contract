@@ -122,12 +122,13 @@ pub enum Error {
     RewardStakeAmountBottomFail,
     RewardStakeAmountTopFail,
     RewardWrongDelegateAmount,
+    RewardOldNewMismatch,
 
     // requirement
-    CommissionRateTooLarge,
+    CommissionRateTooLarge = -10,
 
     // molecule::error::VerificationError
-    TotalSizeNotMatch = -10,
+    TotalSizeNotMatch = -20,
     HeaderIsBroken,
     UnknownItem,
     OffsetsNotMatch,

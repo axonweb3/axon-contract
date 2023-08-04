@@ -116,8 +116,10 @@ fn verify_old_new_claim_smt(
         &new_reward_smt_data,
     )?;
 
-    if old_reward_smt_data.metadata_type_id() != new_reward_smt_data.metadata_type_id() {
-        return Err(Error::MisMatchMetadataTypeId);
+    if old_reward_smt_data.version() != new_reward_smt_data.version()
+        || old_reward_smt_data.metadata_type_id() != new_reward_smt_data.metadata_type_id()
+    {
+        return Err(Error::RewardOldNewMismatch);
     }
 
     Ok((
