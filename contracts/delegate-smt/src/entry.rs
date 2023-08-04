@@ -8,6 +8,7 @@ use sparse_merkle_tree::{CompiledMerkleProof, H256};
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
     ckb_constants::Source,
+    ckb_types::prelude::Entity,
     debug,
     high_level::{load_cell_type_hash, load_script, load_witness_args},
 };
@@ -96,6 +97,7 @@ pub fn main() -> Result<(), Error> {
                         &checkpoint_script_hash.to_vec(),
                         &type_ids.xudt_type_hash(),
                         &metadata_type_id,
+                        &type_ids.stake_at_code_hash(),
                         &type_ids.delegate_at_code_hash(),
                         &type_ids.withdraw_code_hash(),
                     )?;
@@ -177,12 +179,11 @@ fn verify_delegator_selection(
     new_epoch_root: [u8; 32],
     new_epoch_proof: Vec<u8>,
     epoch: u64,
-    _metadata_type_id: &[u8; 32],
+    max_delegator_size: u32,
 ) -> Result<(), Error> {
     // sort delegator by amount
-    let delegator_limit = 10u16; // should get from staker's delegate cell
     let iter = delegate_infos_set.iter();
-    let mut top = iter.take(3 * delegator_limit as usize);
+    let mut top = iter.take(3 * max_delegator_size as usize);
     let mut new_delegate_infos_set = BTreeSet::new();
     while let Some(elem) = top.next() {
         new_delegate_infos_set.insert((*elem).clone());
@@ -224,6 +225,7 @@ fn update_delegate_smt(
     checkpoint_type_id: &Vec<u8>,
     xudt_type_hash: &Vec<u8>,
     metadata_type_id: &[u8; 32],
+    stake_at_code_hash: &Vec<u8>,
     delegate_at_code_hash: &Vec<u8>,
     withdraw_code_hash: &Vec<u8>,
 ) -> Result<(), Error> {
@@ -322,12 +324,15 @@ fn update_delegate_smt(
             staker.as_slice().try_into().unwrap(),
             &new_delegate_smt_data,
         )?;
+        let max_delegator_size = get_delegator_size(&staker, metadata_type_id, stake_at_code_hash)?;
+        debug!("max_delegator_size: {}", max_delegator_size);
+
         verify_delegator_selection(
             &delegate_infos_set,
             new_epoch_root,
             new_proof,
             epoch,
-            metadata_type_id,
+            max_delegator_size,
         )?;
     }
 
@@ -339,6 +344,22 @@ fn update_delegate_smt(
     )?;
 
     Ok(())
+}
+
+fn get_delegator_size(
+    staker: &Vec<u8>,
+    metadata_type_id: &[u8; 32],
+    stake_at_code_hash: &Vec<u8>,
+) -> Result<u32, Error> {
+    let delegate_requirement =
+        get_delegate_requirement(staker, metadata_type_id, stake_at_code_hash)?;
+
+    Ok(bytes_to_u32(
+        &delegate_requirement
+            .max_delegator_size()
+            .as_slice()
+            .to_vec(),
+    ))
 }
 
 fn verify_withdraw_amount(

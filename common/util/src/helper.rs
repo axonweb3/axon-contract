@@ -3,7 +3,9 @@ extern crate alloc;
 use crate::{error::Error, smt::LockInfo};
 use alloc::vec::Vec;
 use axon_types::{
-    basic, checkpoint_reader,
+    basic::{self},
+    checkpoint_reader,
+    delegate::{DelegateCellData, DelegateRequirement},
     delegate_reader::{self, DelegateInfoDelta, DelegateSmtCellData},
     metadata_reader::{self, MetadataCellData, TypeIds},
     reward_reader::RewardSmtCellData,
@@ -716,9 +718,55 @@ pub fn get_reward_smt_data(type_id: &[u8; 32], source: Source) -> Result<RewardS
     Ok(reward_smt_data.unwrap())
 }
 
+pub fn get_delegate_requirement(
+    staker: &Vec<u8>,
+    metadata_type_id: &[u8; 32],
+    stake_at_code_hash: &Vec<u8>,
+) -> Result<DelegateRequirement, Error> {
+    // debug!(
+    //     "staker: {:?}, metadata_type_id: {:?}, stake_at_code_hash: {:?}",
+    //     staker, metadata_type_id, stake_at_code_hash
+    // );
+    let args = {
+        let mut args = Vec::new();
+        args.extend_from_slice(metadata_type_id);
+        args.extend_from_slice(staker);
+        args
+    };
+    // debug!("args: {:?}", args);
+    let stake_at_lock_hash = get_script_hash(stake_at_code_hash, &args);
+    // debug!("stake_at_lock_hash: {:?}", stake_at_lock_hash);
+    let (_, stake_at_data) = get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::CellDep)?;
+    let delegate_requirement = stake_at_data.requirement_info();
+    let delegate_args = {
+        let mut args = Vec::new();
+        args.extend_from_slice(&delegate_requirement.requirement().metadata_type_id());
+        args.extend_from_slice(&delegate_requirement.requirement().requirement_type_id());
+        args
+    };
+    let delegate_requirement_type_id =
+        get_script_hash(&delegate_requirement.code_hash(), &delegate_args);
+
+    let mut delegate_requirement = DelegateRequirement::new_builder().build();
+    QueryIter::new(load_cell_type_hash, Source::CellDep)
+        .enumerate()
+        .for_each(|(i, type_hash)| {
+            if let Some(type_hash) = type_hash {
+                if type_hash == delegate_requirement_type_id {
+                    let data = load_cell_data(i, Source::CellDep).unwrap();
+                    let req = DelegateCellData::from_slice(&data).unwrap();
+                    delegate_requirement = req.delegate_requirement();
+                }
+            }
+        });
+
+    Ok(delegate_requirement)
+}
+
 pub fn axon_byte32(bytes: &[u8]) -> basic::Byte32 {
     basic::Byte32::new_unchecked(bytes.to_vec().into())
 }
+
 pub fn axon_identity(addr: &[u8; 20]) -> basic::Identity {
     // convert [u8; 20] to [Byte; 20]
     let mut new_addr = [Byte::new(0); 20];

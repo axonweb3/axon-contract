@@ -275,6 +275,7 @@ fn test_delegate_smt_redeem_success() {
 
     let delegator_keypair = Generator::random_keypair();
     let staker_keypair = Generator::random_keypair();
+    let staker_addr = pubkey_to_addr(&staker_keypair.1.serialize());
     println!(
         "staker pubkey: {:?}",
         blake160(&staker_keypair.1.serialize())
@@ -366,6 +367,16 @@ fn test_delegate_smt_redeem_success() {
             .build(),
         Bytes::from(axon_withdraw_at_cell_data(0, input_withdraw_data)), // delegate at cell
     );
+
+    let (delegate_requirement_script_dep, stake_at_script_dep, stake_at_lock_script) =
+        axon_delegate_requirement_and_stake_at_cell(
+            &metadata_type_script,
+            &always_success_out_point,
+            &always_success_lock_script,
+            &mut context,
+            &staker_keypair,
+            &staker_addr,
+        );
 
     // prepare tx inputs and outputs
     let inputs = vec![
@@ -489,7 +500,7 @@ fn test_delegate_smt_redeem_success() {
         100,
         100,
         propose_count_smt_root,
-        &metadata_type_script.code_hash(),
+        &stake_at_lock_script.code_hash(),
         &delegate_at_lock_script.code_hash(),
         &withdraw_lock_script.code_hash(),
     );
@@ -571,6 +582,8 @@ fn test_delegate_smt_redeem_success() {
         .cell_dep(always_success_script_dep)
         .cell_dep(checkpoint_script_dep)
         .cell_dep(metadata_script_dep)
+        .cell_dep(delegate_requirement_script_dep)
+        .cell_dep(stake_at_script_dep)
         .build();
     let tx = context.complete_tx(tx);
 
@@ -639,6 +652,7 @@ fn test_delegate_smt_increase_success() {
 
     let delegator_keypair = Generator::random_keypair();
     let staker_keypair = Generator::random_keypair();
+    let staker_addr = pubkey_to_addr(&staker_keypair.1.serialize());
     println!(
         "staker pubkey: {:?}",
         blake160(&staker_keypair.1.serialize())
@@ -689,6 +703,16 @@ fn test_delegate_smt_increase_success() {
         &staker_keypair.1,
         3,
     );
+
+    let (delegate_requirement_script_dep, stake_at_script_dep, stake_at_lock_script) =
+        axon_delegate_requirement_and_stake_at_cell(
+            &metadata_type_script,
+            &always_success_out_point,
+            &always_success_lock_script,
+            &mut context,
+            &staker_keypair,
+            &staker_addr,
+        );
 
     // prepare tx inputs and outputs
     let inputs = vec![
@@ -789,7 +813,7 @@ fn test_delegate_smt_increase_success() {
         100,
         100,
         propose_count_smt_root,
-        &metadata_type_script.code_hash(),
+        &stake_at_lock_script.code_hash(),
         &delegate_at_lock_script.code_hash(),
         &metadata_type_script.code_hash(),
     );
@@ -872,6 +896,8 @@ fn test_delegate_smt_increase_success() {
         .cell_dep(always_success_script_dep)
         .cell_dep(checkpoint_script_dep)
         .cell_dep(metadata_script_dep)
+        .cell_dep(delegate_requirement_script_dep)
+        .cell_dep(stake_at_script_dep)
         .build();
     let tx = context.complete_tx(tx);
 
