@@ -366,16 +366,16 @@ fn calculate_reward(
             let commission_fee = delegate_reward * obj.commission_rate as u128 / 100;
             epoch_reward += commission_fee;
         } else {
-            // delegator reward, miner can only be staker or delegator
-            let delegate_amount = {
-                match obj.delegate_amount {
-                    Some(amount) => amount,
-                    None => return Err(Error::RewardWrongDelegateAmount),
+            match obj.delegate_amount {
+                // delegator reward, miner can only be staker or delegator
+                Some(amount) => {
+                    epoch_reward = amount * delegate_reward * (100 - obj.commission_rate as u128)
+                        / 100
+                        / obj.total_delegate_amount
                 }
-            };
-            epoch_reward = delegate_amount * delegate_reward * (100 - obj.commission_rate as u128)
-                / 100
-                / obj.total_delegate_amount;
+                // miner not staker or delegator
+                None => epoch_reward = 0,
+            }
         }
     }
     Ok(epoch_reward)
