@@ -1215,3 +1215,35 @@ fn test_stake_election_success() {
         .expect("pass verification");
     println!("consume cycles: {}", cycles);
 }
+
+#[test]
+fn test_lock_info_sort_success() {
+    let lock_info0 = LockInfo {
+        addr: [0u8; 20],
+        amount: 200,
+    };
+    let lock_info1 = LockInfo {
+        addr: [1u8; 20],
+        amount: 100,
+    };
+    let lock_info2 = LockInfo {
+        addr: [2u8; 20],
+        amount: 300,
+    };
+
+    let mut lock_infos = BTreeSet::new();
+    lock_infos.insert(lock_info0);
+    lock_infos.insert(lock_info1);
+    lock_infos.insert(lock_info2);
+
+    let iter = lock_infos.iter();
+    let mut top_3quorum = iter.take(2);
+    let mut new_stake_infos_set = BTreeSet::new();
+    while let Some(elem) = top_3quorum.next() {
+        new_stake_infos_set.insert((*elem).clone());
+    }
+
+    for lock_info in &new_stake_infos_set {
+        println!("LockInfo: {:?}", lock_info);
+    }
+}

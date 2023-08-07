@@ -6,7 +6,7 @@ use axon_types::{
     basic::{self, Identity},
     delegate::{StakerSmtRoot, StakerSmtRoots},
     metadata::MetadataList,
-    stake::DelegateRequirementInfo,
+    stake::{DelegateRequirementArgs, DelegateRequirementInfo, StakeArgs},
     withdraw::{WithdrawInfo, WithdrawInfos},
 };
 use ckb_testtool::{
@@ -15,11 +15,12 @@ use ckb_testtool::{
     ckb_hash::{blake2b_256, new_blake2b},
     ckb_types::{
         bytes::Bytes,
-        core::TransactionView,
+        core::{ScriptHashType, TransactionView},
         packed::{self, *},
         prelude::*,
         H256,
     },
+    context::Context,
 };
 use molecule::prelude::*;
 // use sha3::{Digest, Keccak256};
@@ -233,10 +234,94 @@ pub fn axon_delegate_requirement_cell_data(
 ) -> axon_types::delegate::DelegateCellData {
     let requirement = axon_types::delegate::DelegateRequirement::new_builder()
         .commission_rate(commission_rate.into())
+        .max_delegator_size(axon_u32(100))
         .build();
     axon_types::delegate::DelegateCellData::new_builder()
         .delegate_requirement(requirement)
         .build()
+}
+
+pub fn axon_delegate_requirement_and_stake_at_cell(
+    metadata_type_script: &Script,
+    always_success_out_point: &OutPoint,
+    always_success_lock_script: &Script,
+    context: &mut Context,
+    keypair: &(Privkey, Pubkey),
+    staker_addr: &[u8; 20],
+) -> (CellDep, CellDep, Script) {
+    let requirement_type_id = [1u8; 32];
+    let delegate_requirement_args = DelegateRequirementArgs::new_builder()
+        .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
+        .requirement_type_id(axon_array32_byte32(requirement_type_id))
+        .build();
+    let delegate_requirement_type_script = context
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            delegate_requirement_args.as_bytes(),
+        )
+        .expect("delegate requirement type script");
+    let delegate_requirement_cell_data = axon_delegate_requirement_cell_data(10);
+    let delegate_requirement_script_dep = CellDep::new_builder()
+        .out_point(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(1000.pack())
+                    .lock(always_success_lock_script.clone())
+                    .type_(Some(delegate_requirement_type_script.clone()).pack())
+                    .build(),
+                delegate_requirement_cell_data.as_bytes(),
+            ),
+        )
+        .build();
+
+    let delegate_requirement_info = DelegateRequirementInfo::new_builder()
+        .code_hash(axon_byte32(&delegate_requirement_type_script.code_hash()))
+        .requirement(delegate_requirement_args)
+        .build();
+    let stake_args = StakeArgs::new_builder()
+        .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
+        .stake_addr(axon_byte20_identity(&staker_addr))
+        .build();
+    // prepare stake lock_script
+    let stake_at_lock_script = context
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            stake_args.as_bytes(),
+        )
+        .expect("stake script");
+    // println!(
+    //     "stake_at_code_hash: {:?}, staker:{:?}, stake_args: {:?}",
+    //     stake_at_lock_script.code_hash().as_slice(),
+    //     staker_addr,
+    //     stake_args.as_slice()
+    // );
+    let input_stake_info_delta = axon_types::stake::StakeInfoDelta::new_builder().build();
+    let input_stake_at_data = axon_stake_at_cell_data_without_amount(
+        0,
+        &keypair.1.serialize(),
+        axon_byte20_identity(&staker_addr),
+        &metadata_type_script.calc_script_hash(),
+        input_stake_info_delta,
+        delegate_requirement_info,
+    );
+    let stake_at_script_dep = CellDep::new_builder()
+        .out_point(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(1000.pack())
+                    .lock(stake_at_lock_script.clone())
+                    .build(),
+                Bytes::from(axon_stake_at_cell_data(100, input_stake_at_data)),
+            ),
+        )
+        .build();
+    (
+        delegate_requirement_script_dep,
+        stake_at_script_dep,
+        stake_at_lock_script,
+    )
 }
 
 // construct stake_at cell data based on version, l1_address, l2_address, metadata_type_id, delta

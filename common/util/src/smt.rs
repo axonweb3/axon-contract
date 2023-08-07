@@ -91,33 +91,21 @@ pub fn u64_to_byte32(epoch: &u64) -> [u8; 32] {
     buf
 }
 
-#[derive(Clone, Copy, Default, Eq, PartialOrd, Debug)]
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug)]
 pub struct LockInfo {
     pub addr: [u8; 20], // address of locker(staker or delegator), smt key
     pub amount: u128,   // amount locked, smt value
 }
 
-// impl LockInfo {
-//     pub fn new(stake_info: &stake_reader::StakeInfo) -> Self {
-//         let mut identity = [0u8; 20];
-//         identity.copy_from_slice(&stake_info.addr());
-//         Self {
-//             addr: identity,
-//             amount: bytes_to_u128(&stake_info.amount()),
-//         }
-//     }
-// }
-
-impl Ord for LockInfo {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let order = other.addr.cmp(&self.addr);
-        order
+impl PartialOrd for LockInfo {
+    fn partial_cmp(&self, other: &LockInfo) -> Option<Ordering> {
+        self.amount.partial_cmp(&other.amount)
     }
 }
 
-impl PartialEq for LockInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.addr == other.addr
+impl Ord for LockInfo {
+    fn cmp(&self, other: &LockInfo) -> Ordering {
+        other.partial_cmp(self).unwrap()
     }
 }
 

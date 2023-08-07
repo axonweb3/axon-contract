@@ -212,7 +212,7 @@ fn verify_old_stake_infos(
     Ok(())
 }
 
-fn verify_staker_seletion(
+fn verify_staker_selection(
     stake_infos_set: &BTreeSet<LockInfo>,
     new_stake_smt_data: &StakeSmtCellData,
     stake_smt_update_infos: &StakeSmtUpdateInfo,
@@ -248,7 +248,10 @@ fn verify_staker_seletion(
         new_epoch_root,
         new_epoch_proof,
     )?;
-    debug!("verify_staker_seletion verify_2layer_smt result:{}", result);
+    debug!(
+        "verify_staker_selection verify_2layer_smt result:{}",
+        result
+    );
     if !result {
         return Err(Error::StakeSmtVerifySelectionError);
     }
@@ -362,8 +365,8 @@ fn update_stake_smt(
         )?;
     }
 
-    debug!("verify_staker_seletion");
-    verify_staker_seletion(
+    debug!("verify_staker_selection");
+    verify_staker_selection(
         &stake_infos_set,
         &new_stake_smt_data,
         &stake_smt_update_infos,

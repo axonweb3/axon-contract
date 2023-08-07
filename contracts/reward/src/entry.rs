@@ -1,12 +1,9 @@
 // Import from `core` instead of from `std` since we are in no-std mode
 use alloc::vec::Vec;
 use alloc::{collections::BTreeSet, vec};
-use axon_types::delegate::DelegateCellData;
 use axon_types::metadata_reader::MetadataCellData;
 use axon_types::reward_reader::NotClaimInfo;
 use axon_types::reward_reader::RewardSmtCellData;
-use ckb_std::ckb_types::prelude::Entity;
-use ckb_std::high_level::{load_cell_data, load_cell_type_hash, QueryIter};
 use ckb_type_id::{load_type_id_from_script_args, validate_type_id};
 use core::result::Result;
 use sparse_merkle_tree::{blake2b::Blake2bHasher, CompiledMerkleProof, H256};
@@ -116,8 +113,10 @@ fn verify_old_new_claim_smt(
         &new_reward_smt_data,
     )?;
 
-    if old_reward_smt_data.metadata_type_id() != new_reward_smt_data.metadata_type_id() {
-        return Err(Error::MisMatchMetadataTypeId);
+    if old_reward_smt_data.version() != new_reward_smt_data.version()
+        || old_reward_smt_data.metadata_type_id() != new_reward_smt_data.metadata_type_id()
+    {
+        return Err(Error::RewardOldNewMismatch);
     }
 
     Ok((
@@ -325,44 +324,9 @@ fn get_commission_rate(
     metadata_type_id: &[u8; 32],
     stake_at_code_hash: &Vec<u8>,
 ) -> Result<u8, Error> {
-    // debug!(
-    //     "staker: {:?}, metadata_type_id: {:?}, stake_at_code_hash: {:?}",
-    //     staker, metadata_type_id, stake_at_code_hash
-    // );
-    let args = {
-        let mut args = Vec::new();
-        args.extend_from_slice(metadata_type_id);
-        args.extend_from_slice(staker);
-        args
-    };
-    // debug!("args: {:?}", args);
-    let stake_at_lock_hash = get_script_hash(stake_at_code_hash, &args);
-    // debug!("stake_at_lock_hash: {:?}", stake_at_lock_hash);
-    let (_, stake_at_data) = get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::CellDep)?;
-    let delegate_requirement = stake_at_data.requirement_info();
-    let delegate_args = {
-        let mut args = Vec::new();
-        args.extend_from_slice(&delegate_requirement.requirement().metadata_type_id());
-        args.extend_from_slice(&delegate_requirement.requirement().requirement_type_id());
-        args
-    };
-    let delegate_requirement_type_id =
-        get_script_hash(&delegate_requirement.code_hash(), &delegate_args);
-
-    let mut commission_rate = 0u8; // assume commission rate is 20%
-    QueryIter::new(load_cell_type_hash, Source::CellDep)
-        .enumerate()
-        .for_each(|(i, type_hash)| {
-            if let Some(type_hash) = type_hash {
-                if type_hash == delegate_requirement_type_id {
-                    let data = load_cell_data(i, Source::CellDep).unwrap();
-                    let req = DelegateCellData::from_slice(&data).unwrap();
-                    commission_rate = req.delegate_requirement().commission_rate().as_slice()[0];
-                }
-            }
-        });
-
-    Ok(commission_rate)
+    let delegate_requirement =
+        get_delegate_requirement(staker, metadata_type_id, stake_at_code_hash)?;
+    Ok(delegate_requirement.commission_rate().as_slice()[0])
 }
 
 fn get_minimum_normal_propose_count(metadata: &MetadataCellData) -> u64 {
@@ -402,16 +366,16 @@ fn calculate_reward(
             let commission_fee = delegate_reward * obj.commission_rate as u128 / 100;
             epoch_reward += commission_fee;
         } else {
-            // delegator reward, miner can only be staker or delegator
-            let delegate_amount = {
-                match obj.delegate_amount {
-                    Some(amount) => amount,
-                    None => return Err(Error::RewardWrongDelegateAmount),
+            match obj.delegate_amount {
+                // delegator reward, miner can only be staker or delegator
+                Some(amount) => {
+                    epoch_reward = amount * delegate_reward * (100 - obj.commission_rate as u128)
+                        / 100
+                        / obj.total_delegate_amount
                 }
-            };
-            epoch_reward = delegate_amount * delegate_reward * (100 - obj.commission_rate as u128)
-                / 100
-                / obj.total_delegate_amount;
+                // miner not staker or delegator
+                None => epoch_reward = 0,
+            }
         }
     }
     Ok(epoch_reward)

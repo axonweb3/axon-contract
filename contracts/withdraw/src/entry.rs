@@ -12,7 +12,10 @@ use ckb_std::{
     high_level::{load_cell_lock_hash, load_script, load_witness_args},
 };
 
-use axon_types::{withdraw_reader, Cursor};
+use axon_types::{
+    withdraw_reader::{self, WithdrawInfos},
+    Cursor,
+};
 use util::{error::Error, helper::*};
 
 // #[derive(PartialEq, Eq)]
@@ -71,7 +74,6 @@ pub fn main() -> Result<(), Error> {
     {
         return Err(Error::MisMatchMetadataTypeId);
     }
-    // let owner = withdraw_args.addr();
 
     // identify contract mode by witness
     let witness_args = load_witness_args(0, Source::GroupInput)?;
@@ -92,11 +94,11 @@ pub fn main() -> Result<(), Error> {
         get_withdraw_at_data_by_lock_hash(&withdraw_at_lock_hash, Source::Input)?;
     let (out_amount, out_data) =
         get_withdraw_at_data_by_lock_hash(&withdraw_at_lock_hash, Source::Output)?;
+
     let checkpoint_type_id = get_script_hash(
         &type_ids.checkpoint_code_hash(),
         &type_ids.checkpoint_type_id(),
     );
-
     let epoch = get_current_epoch(&checkpoint_type_id.to_vec())?;
     debug!(
         "epoch: {:?}, in_amount: {}, out_amount: {}",
@@ -114,17 +116,15 @@ pub fn main() -> Result<(), Error> {
         let mut unlock_amount: u128 = 0u128; // can be withdraw immediately
         let mut lock1_amount: u128 = 0u128; // can be withdraw in current epoch + 1
         let mut lock2_amount: u128 = increased_amount; // can be withdraw in current epoch + 2
-        for i in 0..in_data.len() {
-            let withdraw_info = in_data.get(i);
-            if withdraw_info.unlock_epoch() <= epoch {
-                unlock_amount += bytes_to_u128(&withdraw_info.amount());
-            } else if withdraw_info.unlock_epoch() == epoch + 1 {
-                lock1_amount += bytes_to_u128(&withdraw_info.amount());
-            } else if withdraw_info.unlock_epoch() == epoch + 2 {
-                lock2_amount += bytes_to_u128(&withdraw_info.amount());
-            } else {
-                return Err(Error::WrongLockEpoch);
-            }
+        update_withdraw_amounts(
+            epoch,
+            in_data,
+            &mut unlock_amount,
+            &mut lock1_amount,
+            &mut lock2_amount,
+        )?;
+        if in_amount != unlock_amount + lock1_amount + lock2_amount - increased_amount {
+            return Err(Error::WithdrawTotalAmountError);
         }
         let new_withdraw_infos =
             get_withdraw_infos(epoch, unlock_amount, lock1_amount, lock2_amount);
@@ -133,17 +133,15 @@ pub fn main() -> Result<(), Error> {
         let mut unlock_amount: u128 = 0u128; // can be withdraw immediately
         let mut lock1_amount: u128 = 0u128; // can be withdraw in current epoch + 1
         let mut lock2_amount: u128 = 0u128; // can be withdraw in current epoch + 2
-        for i in 0..out_data.len() {
-            let withdraw_info = out_data.get(i);
-            if withdraw_info.unlock_epoch() == epoch {
-                unlock_amount = bytes_to_u128(&withdraw_info.amount());
-            } else if withdraw_info.unlock_epoch() == epoch + 1 {
-                lock1_amount = bytes_to_u128(&withdraw_info.amount());
-            } else if withdraw_info.unlock_epoch() == epoch + 2 {
-                lock2_amount = bytes_to_u128(&withdraw_info.amount());
-            } else {
-                return Err(Error::WrongOutWithdrawEpoch);
-            }
+        update_withdraw_amounts(
+            epoch,
+            out_data,
+            &mut unlock_amount,
+            &mut lock1_amount,
+            &mut lock2_amount,
+        )?;
+        if out_amount != unlock_amount + lock1_amount + lock2_amount {
+            return Err(Error::WithdrawTotalAmountError);
         }
         let out_withdraw_infos =
             get_withdraw_infos(epoch, unlock_amount, lock1_amount, lock2_amount);
@@ -157,17 +155,15 @@ pub fn main() -> Result<(), Error> {
         let mut unlock_amount: u128 = 0u128; // can be withdraw immediately
         let mut lock1_amount: u128 = 0u128; // can be withdraw in current epoch + 1
         let mut lock2_amount: u128 = 0u128; // can be withdraw in current epoch + 2
-        for i in 0..in_data.len() {
-            let withdraw_info = in_data.get(i);
-            if withdraw_info.unlock_epoch() <= epoch {
-                unlock_amount += bytes_to_u128(&withdraw_info.amount());
-            } else if withdraw_info.unlock_epoch() == epoch + 1 {
-                lock1_amount = bytes_to_u128(&withdraw_info.amount());
-            } else if withdraw_info.unlock_epoch() == epoch + 2 {
-                lock2_amount = bytes_to_u128(&withdraw_info.amount());
-            } else {
-                return Err(Error::WrongLockEpoch);
-            }
+        update_withdraw_amounts(
+            epoch,
+            in_data,
+            &mut unlock_amount,
+            &mut lock1_amount,
+            &mut lock2_amount,
+        )?;
+        if in_amount != unlock_amount + lock1_amount + lock2_amount {
+            return Err(Error::WithdrawTotalAmountError);
         }
         let new_withdraw_infos = get_withdraw_infos(epoch, 0, lock1_amount, lock2_amount);
 
@@ -177,20 +173,21 @@ pub fn main() -> Result<(), Error> {
 
         let out_data = out_data.lock().withdraw_infos();
         if out_data.len() > 2 {
-            return Err(Error::WrongOutWithdrawArraySize);
+            return Err(Error::WithdrawWrongRecordSize);
         }
 
         let mut lock1_amount: u128 = 0u128; // can be withdraw in current epoch + 1
         let mut lock2_amount: u128 = 0u128; // can be withdraw in current epoch + 2
-        for i in 0..out_data.len() {
-            let withdraw_info = out_data.get(i);
-            if withdraw_info.unlock_epoch() == epoch + 1 {
-                lock1_amount = bytes_to_u128(&withdraw_info.amount());
-            } else if withdraw_info.unlock_epoch() == epoch + 2 {
-                lock2_amount = bytes_to_u128(&withdraw_info.amount());
-            } else {
-                return Err(Error::WrongOutWithdrawEpoch);
-            }
+                                            // unlock_amount is uesless here
+        update_withdraw_amounts(
+            epoch,
+            out_data,
+            &mut unlock_amount,
+            &mut lock1_amount,
+            &mut lock2_amount,
+        )?;
+        if out_amount != lock1_amount + lock2_amount {
+            return Err(Error::WithdrawTotalAmountError);
         }
         let out_withdraw_infos = get_withdraw_infos(epoch, 0, lock1_amount, lock2_amount);
 
@@ -204,6 +201,35 @@ pub fn main() -> Result<(), Error> {
     let output_total_amount = get_xudt_by_type_hash(&type_ids.xudt_type_hash(), Source::Output)?;
     if input_total_amount > output_total_amount {
         return Err(Error::WrongIncreasedXudt);
+    }
+    Ok(())
+}
+
+fn update_withdraw_amounts(
+    epoch: u64,
+    data: WithdrawInfos,
+    unlock_amount: &mut u128,
+    lock1_amount: &mut u128,
+    lock2_amount: &mut u128,
+) -> Result<(), Error> {
+    if data.len() > 3 {
+        return Err(Error::WithdrawWrongRecordSize);
+    }
+    for i in 0..data.len() {
+        let withdraw_info = data.get(i);
+        let amount = bytes_to_u128(&withdraw_info.amount());
+        if amount == 0 {
+            return Err(Error::WithdrawZeroAmount);
+        }
+        if withdraw_info.unlock_epoch() <= epoch {
+            *unlock_amount += bytes_to_u128(&withdraw_info.amount());
+        } else if withdraw_info.unlock_epoch() == epoch + 1 {
+            *lock1_amount += bytes_to_u128(&withdraw_info.amount());
+        } else if withdraw_info.unlock_epoch() == epoch + 2 {
+            *lock2_amount += bytes_to_u128(&withdraw_info.amount());
+        } else {
+            return Err(Error::WrongLockEpoch);
+        }
     }
     Ok(())
 }

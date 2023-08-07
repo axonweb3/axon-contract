@@ -101,6 +101,30 @@ pub fn main() -> Result<(), Error> {
     Ok(())
 }
 
+fn is_type_ids_equal(ids1: &TypeIds, ids2: &TypeIds) -> bool {
+    if ids1.issue_type_id() != ids2.issue_type_id()
+        || ids1.selection_type_id() != ids2.selection_type_id()
+        || ids1.xudt_owner_lock_hash() != ids2.xudt_owner_lock_hash()
+        || ids1.metadata_code_hash() != ids2.metadata_code_hash()
+        || ids1.metadata_type_id() != ids2.metadata_type_id()
+        || ids1.checkpoint_code_hash() != ids2.checkpoint_code_hash()
+        || ids1.checkpoint_type_id() != ids2.checkpoint_type_id()
+        || ids1.stake_smt_code_hash() != ids2.stake_smt_code_hash()
+        || ids1.stake_smt_type_id() != ids2.stake_smt_type_id()
+        || ids1.delegate_smt_code_hash() != ids2.delegate_smt_code_hash()
+        || ids1.delegate_smt_type_id() != ids2.delegate_smt_type_id()
+        || ids1.reward_code_hash() != ids2.reward_code_hash()
+        || ids1.reward_type_id() != ids2.reward_type_id()
+        || ids1.xudt_type_hash() != ids2.xudt_type_hash()
+        || ids1.stake_at_code_hash() != ids2.stake_at_code_hash()
+        || ids1.delegate_at_code_hash() != ids2.delegate_at_code_hash()
+        || ids1.withdraw_code_hash() != ids2.withdraw_code_hash()
+    {
+        return false;
+    }
+    true
+}
+
 // verify data correctness exclude propose count and election
 fn verify_chain_config(
     input_metadata: &MetadataCellData,
@@ -116,6 +140,16 @@ fn verify_chain_config(
     let metadata_list_size = 2;
     if input_metadatas.len() != metadata_list_size || output_metadatas.len() != metadata_list_size {
         return Err(Error::MetadataSizeWrong);
+    }
+
+    if input_metadata.version() != output_metadata.version()
+        || input_metadata.base_reward() != output_metadata.base_reward()
+        || input_metadata.half_epoch() != output_metadata.half_epoch()
+        || input_metadata.propose_minimum_rate() != output_metadata.propose_minimum_rate()
+        || input_metadata.propose_discount_rate() != output_metadata.propose_discount_rate()
+        || !is_type_ids_equal(&input_metadata.type_ids(), &output_metadata.type_ids())
+    {
+        return Err(Error::MetadataInputOutputMismatch);
     }
 
     let input_metadata1 = input_metadatas.get(1);

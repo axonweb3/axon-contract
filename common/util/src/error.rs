@@ -103,7 +103,7 @@ pub enum Error {
     MetadataProposeCountVerifyFail,
 
     // withdraw
-    WrongOutWithdrawArraySize = 110,
+    WithdrawWrongRecordSize = 110,
     WrongLockEpoch,
     WrongOutWithdrawEpoch,
     WrongOutWithdraw,
@@ -114,20 +114,22 @@ pub enum Error {
     BadUnstake,
     WithdrawDataEmpty,
     WithdrawBadSudtDataFormat,
+    WithdrawZeroAmount,
 
     // reward
-    RewardWrongAmount,
+    RewardWrongAmount = -10,
     RewardProposeCountBottomFail,
     RewardProposeCountTopFail,
     RewardStakeAmountBottomFail,
     RewardStakeAmountTopFail,
     RewardWrongDelegateAmount,
+    RewardOldNewMismatch,
 
     // requirement
-    CommissionRateTooLarge,
+    CommissionRateTooLarge = -20,
 
     // molecule::error::VerificationError
-    TotalSizeNotMatch = -10,
+    TotalSizeNotMatch = -30,
     HeaderIsBroken,
     UnknownItem,
     OffsetsNotMatch,
