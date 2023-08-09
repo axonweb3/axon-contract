@@ -46,6 +46,15 @@ pub fn pubkey_to_addr(pubkey: &Vec<u8>) -> [u8; 20] {
     blake160(pubkey.as_slice())
 }
 
+pub fn calc_type_id(input: &CellInput, index: u64) -> Bytes {
+    let mut blake2b = new_blake2b();
+    blake2b.update(input.as_slice());
+    blake2b.update(&index.to_le_bytes());
+    let mut ret = [0; 32];
+    blake2b.finalize(&mut ret);
+    Bytes::from(ret.to_vec())
+}
+
 // pub fn axon_byte48(bytes: &[u8; 48]) -> basic::Byte48 {
 //     axon::Byte48::new_unchecked(bytes.to_vec().into())
 // }

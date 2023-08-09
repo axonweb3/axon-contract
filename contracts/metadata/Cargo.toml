@@ -11,3 +11,4 @@ axon-types = { path = "../../common/types" }
 util = { path = "../../common/util" }
 # ckb-smt = { path = "../ckb-smt", default-features = false }
 sparse-merkle-tree = { version = "0.6.1", default-features = false }  
+ckb-type-id = "0.1.0-alpha.3"

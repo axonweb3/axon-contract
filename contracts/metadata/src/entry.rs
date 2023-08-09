@@ -24,6 +24,7 @@ use ckb_std::{
 };
 
 use axon_types::{metadata_reader::Metadata, Cursor};
+use ckb_type_id::{load_type_id_from_script_args, validate_type_id};
 use sparse_merkle_tree::{CompiledMerkleProof, H256};
 use util::helper::{
     calc_script_hash, get_cell_count_by_type_hash, get_current_epoch, get_delegate_smt_root,
@@ -39,6 +40,10 @@ use util::{
 };
 
 pub fn main() -> Result<(), Error> {
+    let type_id = load_type_id_from_script_args(0)?;
+    debug!("type_id: {:?}", type_id);
+    validate_type_id(type_id)?;
+
     // debug!("begin metadata verification");
     let script = load_script()?;
     // debug!("script: {:?}", script);
