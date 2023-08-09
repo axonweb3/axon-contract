@@ -908,6 +908,7 @@ version = "0.1.0"
 dependencies = [
  "axon-types",
  "ckb-std",
+ "ckb-type-id",
  "sparse-merkle-tree",
  "util",
 ]

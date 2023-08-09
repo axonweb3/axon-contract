@@ -35,15 +35,21 @@ fn test_metadata_creation_success() {
         .build_script(&always_success_out_point, Bytes::from(vec![1]))
         .expect("always_success script");
 
-    let metadata_args = MetadataArgs::new_builder()
-        .metadata_type_id(axon_byte32(&[1u8; 32].pack()))
-        .build();
-    let metadata_type_script = context
-        .build_script_with_hash_type(
-            &contract_out_point,
-            ScriptHashType::Type,
-            Bytes::from(metadata_args.as_bytes()),
+    let input = CellInput::new_builder()
+        .previous_output(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(500.pack())
+                    .lock(always_success_lock_script.clone())
+                    .build(),
+                Bytes::new(),
+            ),
         )
+        .build();
+
+    let input_hash = calc_type_id(&input, 0);
+    let metadata_type_script = context
+        .build_script_with_hash_type(&contract_out_point, ScriptHashType::Type, input_hash)
         .expect("metadata type script");
     println!(
         "metadata type script: {:?}",
@@ -96,7 +102,7 @@ fn test_metadata_creation_success() {
         checkpoint_type_script.calc_script_hash()
     );
 
-    let inputs = vec![];
+    let inputs = vec![input];
     let outputs = vec![
         // metadata cell
         CellOutput::new_builder()

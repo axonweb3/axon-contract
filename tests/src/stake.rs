@@ -17,8 +17,7 @@ use helper::*;
 use molecule::prelude::*;
 use ophelia::{Crypto, PrivateKey, Signature, ToPublicKey, UncompressedPublicKey};
 use ophelia_secp256k1::{Secp256k1Recoverable, Secp256k1RecoverablePrivateKey};
-use util::smt::u64_to_h256;
-use util::smt::{new_blake2b, LockInfo, BOTTOM_SMT};
+use util::smt::{u64_to_h256, LockInfo, BOTTOM_SMT};
 // use util::helper::pubkey_to_eth_addr;
 
 #[test]
@@ -1014,14 +1013,7 @@ fn test_stake_smt_create_success() {
         )
         .build();
 
-    let input_hash = {
-        let mut blake2b = new_blake2b();
-        blake2b.update(input.as_slice());
-        blake2b.update(&0u64.to_le_bytes());
-        let mut ret = [0; 32];
-        blake2b.finalize(&mut ret);
-        Bytes::from(ret.to_vec())
-    };
+    let input_hash = calc_type_id(&input, 0);
     let stake_smt_type_script = context
         .build_script(&smt_contract_out_point, input_hash)
         .expect("stake smt type script");

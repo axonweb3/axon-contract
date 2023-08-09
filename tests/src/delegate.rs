@@ -11,7 +11,7 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use util::smt::{new_blake2b, LockInfo};
+use util::smt::LockInfo;
 
 #[test]
 fn test_delegate_at_increase_success() {
@@ -942,14 +942,7 @@ fn test_delegate_smt_create_success() {
         )
         .build();
 
-    let input_hash = {
-        let mut blake2b = new_blake2b();
-        blake2b.update(input.as_slice());
-        blake2b.update(&0u64.to_le_bytes());
-        let mut ret = [0; 32];
-        blake2b.finalize(&mut ret);
-        Bytes::from(ret.to_vec())
-    };
+    let input_hash = calc_type_id(&input, 0);
     // let input_hash = {
     //     let ret = [0; 32];
     //     Bytes::from(ret.to_vec())
