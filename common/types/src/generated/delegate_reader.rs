@@ -161,15 +161,8 @@ impl DelegateInfoDelta {
 }
 
 impl DelegateInfoDelta {
-    pub fn total_amount(&self) -> Vec<u8> {
-        let cur = self.cursor.table_slice_by_index(3).unwrap();
-        cur.into()
-    }
-}
-
-impl DelegateInfoDelta {
     pub fn inauguration_epoch(&self) -> u64 {
-        let cur = self.cursor.table_slice_by_index(4).unwrap();
+        let cur = self.cursor.table_slice_by_index(3).unwrap();
         cur.into()
     }
 }

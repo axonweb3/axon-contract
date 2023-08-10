@@ -127,7 +127,6 @@ fn test_delegate_at_increase_success() {
     let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
         .is_increase(1.into())
         .amount(axon_u128(100 as u128))
-        .total_amount(axon_u128(100 as u128))
         .inauguration_epoch(axon_u64(3 as u64))
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();
@@ -285,7 +284,6 @@ fn test_delegate_smt_redeem_success() {
     let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
         .is_increase(0.into())
         .amount(axon_u128(new_undelegate_amount))
-        .total_amount(axon_u128(new_undelegate_amount))
         .inauguration_epoch(axon_u64(inauguration_epoch))
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();
@@ -661,7 +659,6 @@ fn test_delegate_smt_increase_success() {
     let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
         .is_increase(1.into())
         .amount(axon_u128(delegate_amount))
-        .total_amount(axon_u128(delegate_amount))
         .inauguration_epoch(axon_u64(3 as u64))
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();

@@ -97,10 +97,6 @@
           "type": "Uint128"
         },
         {
-          "name": "total_amount",
-          "type": "Uint128"
-        },
-        {
           "name": "inauguration_epoch",
           "type": "Uint64"
         }

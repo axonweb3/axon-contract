@@ -1020,7 +1020,6 @@ impl ::core::fmt::Display for DelegateInfoDelta {
         write!(f, "{}: {}", "is_increase", self.is_increase())?;
         write!(f, ", {}: {}", "staker", self.staker())?;
         write!(f, ", {}: {}", "amount", self.amount())?;
-        write!(f, ", {}: {}", "total_amount", self.total_amount())?;
         write!(
             f,
             ", {}: {}",
@@ -1037,15 +1036,15 @@ impl ::core::fmt::Display for DelegateInfoDelta {
 impl ::core::default::Default for DelegateInfoDelta {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            85, 0, 0, 0, 24, 0, 0, 0, 25, 0, 0, 0, 45, 0, 0, 0, 61, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0,
+            65, 0, 0, 0, 20, 0, 0, 0, 21, 0, 0, 0, 41, 0, 0, 0, 57, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         DelegateInfoDelta::new_unchecked(v.into())
     }
 }
 impl DelegateInfoDelta {
-    pub const FIELD_COUNT: usize = 5;
+    pub const FIELD_COUNT: usize = 4;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1080,17 +1079,11 @@ impl DelegateInfoDelta {
         let end = molecule::unpack_number(&slice[16..]) as usize;
         Uint128::new_unchecked(self.0.slice(start..end))
     }
-    pub fn total_amount(&self) -> Uint128 {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
-        let end = molecule::unpack_number(&slice[20..]) as usize;
-        Uint128::new_unchecked(self.0.slice(start..end))
-    }
     pub fn inauguration_epoch(&self) -> Uint64 {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[20..]) as usize;
+        let start = molecule::unpack_number(&slice[16..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[24..]) as usize;
+            let end = molecule::unpack_number(&slice[20..]) as usize;
             Uint64::new_unchecked(self.0.slice(start..end))
         } else {
             Uint64::new_unchecked(self.0.slice(start..))
@@ -1126,7 +1119,6 @@ impl molecule::prelude::Entity for DelegateInfoDelta {
             .is_increase(self.is_increase())
             .staker(self.staker())
             .amount(self.amount())
-            .total_amount(self.total_amount())
             .inauguration_epoch(self.inauguration_epoch())
     }
 }
@@ -1152,7 +1144,6 @@ impl<'r> ::core::fmt::Display for DelegateInfoDeltaReader<'r> {
         write!(f, "{}: {}", "is_increase", self.is_increase())?;
         write!(f, ", {}: {}", "staker", self.staker())?;
         write!(f, ", {}: {}", "amount", self.amount())?;
-        write!(f, ", {}: {}", "total_amount", self.total_amount())?;
         write!(
             f,
             ", {}: {}",
@@ -1167,7 +1158,7 @@ impl<'r> ::core::fmt::Display for DelegateInfoDeltaReader<'r> {
     }
 }
 impl<'r> DelegateInfoDeltaReader<'r> {
-    pub const FIELD_COUNT: usize = 5;
+    pub const FIELD_COUNT: usize = 4;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -1202,17 +1193,11 @@ impl<'r> DelegateInfoDeltaReader<'r> {
         let end = molecule::unpack_number(&slice[16..]) as usize;
         Uint128Reader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn total_amount(&self) -> Uint128Reader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
-        let end = molecule::unpack_number(&slice[20..]) as usize;
-        Uint128Reader::new_unchecked(&self.as_slice()[start..end])
-    }
     pub fn inauguration_epoch(&self) -> Uint64Reader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[20..]) as usize;
+        let start = molecule::unpack_number(&slice[16..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[24..]) as usize;
+            let end = molecule::unpack_number(&slice[20..]) as usize;
             Uint64Reader::new_unchecked(&self.as_slice()[start..end])
         } else {
             Uint64Reader::new_unchecked(&self.as_slice()[start..])
@@ -1271,8 +1256,7 @@ impl<'r> molecule::prelude::Reader<'r> for DelegateInfoDeltaReader<'r> {
         ByteReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
         IdentityReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         Uint128Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
-        Uint128Reader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
-        Uint64Reader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
+        Uint64Reader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
         Ok(())
     }
 }
@@ -1281,11 +1265,10 @@ pub struct DelegateInfoDeltaBuilder {
     pub(crate) is_increase: Byte,
     pub(crate) staker: Identity,
     pub(crate) amount: Uint128,
-    pub(crate) total_amount: Uint128,
     pub(crate) inauguration_epoch: Uint64,
 }
 impl DelegateInfoDeltaBuilder {
-    pub const FIELD_COUNT: usize = 5;
+    pub const FIELD_COUNT: usize = 4;
     pub fn is_increase(mut self, v: Byte) -> Self {
         self.is_increase = v;
         self
@@ -1296,10 +1279,6 @@ impl DelegateInfoDeltaBuilder {
     }
     pub fn amount(mut self, v: Uint128) -> Self {
         self.amount = v;
-        self
-    }
-    pub fn total_amount(mut self, v: Uint128) -> Self {
-        self.total_amount = v;
         self
     }
     pub fn inauguration_epoch(mut self, v: Uint64) -> Self {
@@ -1315,7 +1294,6 @@ impl molecule::prelude::Builder for DelegateInfoDeltaBuilder {
             + self.is_increase.as_slice().len()
             + self.staker.as_slice().len()
             + self.amount.as_slice().len()
-            + self.total_amount.as_slice().len()
             + self.inauguration_epoch.as_slice().len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
@@ -1328,8 +1306,6 @@ impl molecule::prelude::Builder for DelegateInfoDeltaBuilder {
         offsets.push(total_size);
         total_size += self.amount.as_slice().len();
         offsets.push(total_size);
-        total_size += self.total_amount.as_slice().len();
-        offsets.push(total_size);
         total_size += self.inauguration_epoch.as_slice().len();
         writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
         for offset in offsets.into_iter() {
@@ -1338,7 +1314,6 @@ impl molecule::prelude::Builder for DelegateInfoDeltaBuilder {
         writer.write_all(self.is_increase.as_slice())?;
         writer.write_all(self.staker.as_slice())?;
         writer.write_all(self.amount.as_slice())?;
-        writer.write_all(self.total_amount.as_slice())?;
         writer.write_all(self.inauguration_epoch.as_slice())?;
         Ok(())
     }
