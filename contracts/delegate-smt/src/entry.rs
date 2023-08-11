@@ -208,18 +208,6 @@ fn verify_delegator_selection(
     Ok(())
 }
 
-fn is_output_lock_info_reset(output_delegate_info_delta: &DelegateInfoDelta) -> Result<(), Error> {
-    let output_delegate = bytes_to_u128(&output_delegate_info_delta.amount());
-    let output_increase = output_delegate_info_delta.is_increase() == 0;
-    let output_inaugutation_epoch = output_delegate_info_delta.inauguration_epoch();
-
-    if output_delegate != 0 || !output_increase || output_inaugutation_epoch != 0 {
-        return Err(Error::IllegalDefaultDelegateInfo);
-    }
-
-    Ok(())
-}
-
 fn update_delegate_smt(
     delegate_smt_update_infos: &delegate_reader::DelegateSmtUpdateInfo,
     checkpoint_type_id: &Vec<u8>,
@@ -307,7 +295,9 @@ fn update_delegate_smt(
             // after updated to smt cell, the output delegate should be reset
             let output_delegate_info_delta =
                 get_delegate_delta(&staker, &delegate_at_lock_hash, Source::Output)?;
-            is_output_lock_info_reset(&output_delegate_info_delta)?;
+            if output_delegate_info_delta.is_some() {
+                return Err(Error::DelegateSmtRecordNotDelete);
+            }
 
             // get the delegator's new delegate info for this staker
             update_delegate_info(

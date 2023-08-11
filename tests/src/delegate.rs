@@ -431,12 +431,7 @@ fn test_delegate_smt_redeem_success() {
     ];
 
     // prepare outputs_data
-    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
-        .staker(axon_identity(&staker_keypair.1.serialize()))
-        .build();
-    let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
-        .set(vec![output_delegate_info_delta.clone()])
-        .build();
+    let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder().build();
     let output_delegate_at_data = axon_delegate_at_cell_data_without_amount(
         0,
         &delegator_keypair.1.serialize(),
@@ -655,11 +650,12 @@ fn test_delegate_smt_increase_success() {
         "staker pubkey: {:?}",
         blake160(&staker_keypair.1.serialize())
     );
+    let current_epoch = 1u64;
     let delegate_amount = 1000 as u128;
     let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
         .is_increase(1.into())
         .amount(axon_u128(delegate_amount))
-        .inauguration_epoch(axon_u64(3 as u64))
+        .inauguration_epoch(axon_u64(current_epoch + 2))
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();
     let input_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
@@ -698,7 +694,7 @@ fn test_delegate_smt_increase_success() {
         &delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &staker_keypair.1,
-        3,
+        current_epoch + 2,
     );
 
     let (delegate_requirement_script_dep, stake_at_script_dep, stake_at_lock_script) =
@@ -756,12 +752,7 @@ fn test_delegate_smt_increase_success() {
     ];
 
     // prepare outputs_data
-    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
-        .staker(axon_identity(&staker_keypair.1.serialize()))
-        .build();
-    let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
-        .set(vec![output_delegate_info_delta.clone()])
-        .build();
+    let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder().build();
     let output_delegate_at_data = axon_delegate_at_cell_data_without_amount(
         0,
         &delegator_keypair.1.serialize(),
@@ -773,13 +764,13 @@ fn test_delegate_smt_increase_success() {
     let delegate_addr = pubkey_to_addr(&delegator_keypair.1.serialize());
     let output_delegate_infos = BTreeSet::from_iter(vec![LockInfo {
         addr: delegate_addr,
-        amount: 1000,
+        amount: delegate_amount,
     }]);
     let (output_delegate_smt_cell_data, output_delegate_epoch_proof) = axon_delegate_smt_cell_data(
         &output_delegate_infos,
         &metadata_type_script.calc_script_hash(),
         &staker_keypair.1,
-        3,
+        current_epoch + 2,
     );
 
     let outputs_data = vec![
@@ -806,7 +797,7 @@ fn test_delegate_smt_increase_success() {
         &delegate_at_type_script,  // needless here
         &delegate_smt_type_script, // needless here
         metadata_list,
-        1,
+        current_epoch,
         100,
         100,
         propose_count_smt_root,

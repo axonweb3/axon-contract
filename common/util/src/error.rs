@@ -79,6 +79,7 @@ pub enum Error {
     DelegateSmtTypeIdMismatch,
     DelegateSmtVerifySelectionError,
     DelegateSmtCellDataNotFound,
+    DelegateSmtRecordNotDelete,
 
     // checkpoint
     CheckpointDataEmpty = 90,
