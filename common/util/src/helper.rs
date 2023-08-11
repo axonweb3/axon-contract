@@ -376,17 +376,18 @@ pub fn get_delegate_delta(
     staker: &Vec<u8>,
     cell_lock_hash: &[u8; 32],
     source: Source,
-) -> Result<delegate_reader::DelegateInfoDelta, Error> {
+) -> Result<Option<delegate_reader::DelegateInfoDelta>, Error> {
     let (_, delegate_at_data) = get_delegate_at_data_by_lock_hash(cell_lock_hash, source)?;
     let delegate_info_deltas = delegate_at_data.delegator_infos();
+    // debug!("delegate_info_deltas len:{}", delegate_info_deltas.len());
     for i in 0..delegate_info_deltas.len() {
         let delegate_info_delta = delegate_info_deltas.get(i);
         if delegate_info_delta.staker() == *staker {
-            return Ok(delegate_info_delta);
+            return Ok(Some(delegate_info_delta));
         }
     }
 
-    return Err(Error::StakeDataEmpty);
+    Ok(None)
 }
 
 pub fn get_stake_update_infos(

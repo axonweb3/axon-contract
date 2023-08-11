@@ -30,7 +30,6 @@ table DelegateInfoDelta {
     is_increase:        byte, // increase or decrease delegate, 1 is increase, 0 is decrease
     staker:             Identity,
     amount:             Uint128,
-    total_amount:       Uint128, // the delegator's total delegate amount to one staker
     inauguration_epoch: Uint64,
 }
 
