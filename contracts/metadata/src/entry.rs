@@ -496,8 +496,13 @@ fn verify_new_validators(
     );
     let epoch_root = get_stake_smt_root(&stake_smt_type_id, Source::Output)?;
     let epoch_root: H256 = epoch_root.into();
-    let result =
-        util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
+    let result = util::smt::verify_2layer_smt_for_metadata_update(
+        &stake_infos,
+        u64_to_h256(epoch),
+        u64_to_h256(epoch + 1),
+        epoch_root,
+        epoch_proof,
+    )?;
     debug!(
         "verify_new_validators stake verify_2layer_smt result: {:?}",
         result
@@ -530,9 +535,10 @@ fn verify_new_validators(
         let epoch_root =
             get_delegate_smt_root(&delegate_smt_type_hash, &miner.staker, Source::Output)?;
         let epoch_root: H256 = epoch_root.into();
-        let result = util::smt::verify_2layer_smt(
+        let result = util::smt::verify_2layer_smt_for_metadata_update(
             &delegate_infos,
             u64_to_h256(epoch),
+            u64_to_h256(epoch + 1),
             epoch_root,
             epoch_proof,
         )?;
