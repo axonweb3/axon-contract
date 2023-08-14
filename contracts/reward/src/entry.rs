@@ -88,8 +88,6 @@ fn verify_old_new_claim_smt(
     new_not_claim_info: &NotClaimInfo,
 ) -> Result<(u64, u64, Vec<u8>), Error> {
     let old_claim_epoch = old_not_claim_info.epoch();
-    let new_claim_epoch = new_not_claim_info.epoch();
-
     let old_reward_smt_data = get_reward_smt_data(
         reward_smt_type_id.as_slice().try_into().unwrap(),
         Source::GroupInput,
@@ -102,6 +100,7 @@ fn verify_old_new_claim_smt(
         &old_reward_smt_data,
     )?;
 
+    let new_claim_epoch = new_not_claim_info.epoch();
     let new_reward_smt_data = get_reward_smt_data(
         reward_smt_type_id.as_slice().try_into().unwrap(),
         Source::GroupOutput,

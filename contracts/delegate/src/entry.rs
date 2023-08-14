@@ -156,7 +156,7 @@ pub fn update_delegate_at_cell(
     );
 
     let epoch = get_current_epoch(checkpoint_type_id)?;
-    debug!("epoch: {}", epoch);
+    // debug!("epoch: {}", epoch);
     let mut at_change = 0i128;
     let input_delegate_info_deltas = input_delegate_at_data.delegator_infos();
     let output_delegate_info_deltas = output_delegate_at_data.delegator_infos();
@@ -166,6 +166,9 @@ pub fn update_delegate_at_cell(
         let output_increase: bool = output_delegate_info.is_increase() == 1;
         let output_inaugutation_epoch = output_delegate_info.inauguration_epoch();
         let staker = output_delegate_info.staker();
+        if staker == *delegator_identity {
+            return Err(Error::DelegateSelf);
+        }
         if output_inaugutation_epoch != epoch + 2 {
             return Err(Error::BadInaugurationEpoch);
         }
