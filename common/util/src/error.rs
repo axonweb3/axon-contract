@@ -80,6 +80,7 @@ pub enum Error {
     DelegateSmtVerifySelectionError,
     DelegateSmtCellDataNotFound,
     DelegateSmtRecordNotDelete,
+    DelegateSelf,
 
     // checkpoint
     CheckpointDataEmpty = 90,

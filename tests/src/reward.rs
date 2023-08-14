@@ -393,8 +393,13 @@ fn test_reward_success() {
 
     let mut new_claim_tree = CLAIM_SMT::default();
     // only claim the reward of epoch 0, current epoch is 3
+    // because [0, epoch) is the claimed epoches, so after claim reward of epoch 0, the minimum not claim epoch is 1
+    let minimum_not_claim_epoch = claim_epoch + 1;
     new_claim_tree
-        .update(addr_to_h256(&staker_addr), EpochValue(1))
+        .update(
+            addr_to_h256(&staker_addr),
+            EpochValue(minimum_not_claim_epoch),
+        )
         .expect("update");
     let new_claim_proof = new_claim_tree
         .merkle_proof(vec![addr_to_h256(&staker_addr)])
@@ -404,7 +409,7 @@ fn test_reward_success() {
         .unwrap()
         .0;
     let new_not_claim_info = NotClaimInfo::new_builder()
-        .epoch(axon_u64(1))
+        .epoch(axon_u64(minimum_not_claim_epoch))
         .proof(axon_bytes(&new_claim_proof))
         .build();
 

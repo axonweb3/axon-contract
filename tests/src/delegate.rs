@@ -11,7 +11,7 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use util::smt::LockInfo;
+use util::{error::Error::DelegateSelf, smt::LockInfo};
 
 #[test]
 fn test_delegate_at_increase_success() {
@@ -224,6 +224,216 @@ fn test_delegate_at_increase_success() {
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");
     println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_delegate_self_fail() {
+    // init context
+    let mut context = Context::default();
+
+    let contract_bin: Bytes = Loader::default().load_binary("delegate");
+    let contract_out_point = context.deploy_cell(contract_bin);
+    let contract_dep = CellDep::new_builder()
+        .out_point(contract_out_point.clone())
+        .build();
+    let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
+    let always_success_lock_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![1]))
+        .expect("always_success script");
+    let checkpoint_type_script = context
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![2u8; 32]),
+        )
+        .expect("checkpoint script");
+    println!(
+        "checkpoint type script: {:?}",
+        checkpoint_type_script.calc_script_hash()
+    );
+
+    let delegate_at_type_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![4]))
+        .expect("sudt script");
+    let metadata_type_script = context
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            Bytes::from(vec![5]),
+        )
+        .expect("metadata type script");
+    let always_success_script_dep = CellDep::new_builder()
+        .out_point(always_success_out_point.clone())
+        .build();
+
+    let delegator_keypair = Generator::random_keypair();
+    let delegate_args = delegate::DelegateArgs::new_builder()
+        .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
+        .delegator_addr(axon_identity(&delegator_keypair.1.serialize()))
+        .build();
+
+    let staker_keypair = delegator_keypair.clone();
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let input_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
+        .set(vec![input_delegate_info_delta.clone()])
+        .build();
+    let input_delegate_at_data = axon_delegate_at_cell_data_without_amount(
+        0,
+        &delegator_keypair.1.serialize(),
+        &delegator_keypair.1.serialize(),
+        &metadata_type_script.calc_script_hash(),
+        input_delegate_info_deltas,
+    );
+
+    // prepare stake lock_script
+    let delegate_at_lock_script = context
+        .build_script(&contract_out_point, delegate_args.as_bytes())
+        .expect("stake script");
+
+    // prepare tx inputs and outputs
+    let inputs = vec![
+        // delegate AT cell
+        CellInput::new_builder()
+            .previous_output(
+                context.create_cell(
+                    CellOutput::new_builder()
+                        .capacity(1000.pack())
+                        .lock(delegate_at_lock_script.clone())
+                        .type_(Some(delegate_at_type_script.clone()).pack())
+                        .build(),
+                    Bytes::from(axon_delegate_at_cell_data(0, input_delegate_at_data)),
+                ),
+            )
+            .build(),
+        // normal AT cell
+        CellInput::new_builder()
+            .previous_output(
+                context.create_cell(
+                    CellOutput::new_builder()
+                        .capacity(1000.pack())
+                        .lock(always_success_lock_script.clone())
+                        .type_(Some(delegate_at_type_script.clone()).pack())
+                        .build(),
+                    Bytes::from((1000 as u128).to_le_bytes().to_vec()),
+                ),
+            )
+            .build(),
+    ];
+    let outputs = vec![
+        // delegate at cell
+        CellOutput::new_builder()
+            .capacity(1000.pack())
+            .lock(delegate_at_lock_script.clone())
+            .type_(Some(delegate_at_type_script.clone()).pack())
+            .build(),
+        // normal at cell
+        CellOutput::new_builder()
+            .capacity(1000.pack())
+            .lock(always_success_lock_script.clone())
+            .type_(Some(delegate_at_type_script.clone()).pack())
+            .build(),
+    ];
+
+    // prepare outputs_data
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(100 as u128))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
+        .set(vec![output_delegate_info_delta.clone()])
+        .build();
+    let output_delegate_at_data = axon_delegate_at_cell_data_without_amount(
+        0,
+        &delegator_keypair.1.serialize(),
+        &delegator_keypair.1.serialize(),
+        &metadata_type_script.calc_script_hash(),
+        output_delegate_info_deltas,
+    );
+
+    let outputs_data = vec![
+        Bytes::from(axon_delegate_at_cell_data(100, output_delegate_at_data)), // stake at cell
+        Bytes::from((900 as u128).to_le_bytes().to_vec()),                     // normal at cell
+                                                                               // Bytes::from(axon_withdrawal_data(50, 2)),
+    ];
+
+    // prepare metadata cell_dep
+    let metadata = Metadata::new_builder().epoch_len(axon_u32(100)).build();
+    let metadata_list = MetadataList::new_builder().push(metadata).build();
+    let propose_count_smt_root = [0u8; 32];
+    let meta_data = axon_metadata_data_by_script(
+        &metadata_type_script.clone(),
+        &delegate_at_type_script.calc_script_hash(),
+        &checkpoint_type_script,
+        &delegate_at_type_script, // needless here
+        &delegate_at_type_script, // needless here
+        metadata_list,
+        1,
+        100,
+        100,
+        propose_count_smt_root,
+        &metadata_type_script.code_hash(),
+        &delegate_at_lock_script.code_hash(),
+        &metadata_type_script.code_hash(),
+    );
+    let metadata_script_dep = CellDep::new_builder()
+        .out_point(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(1000.pack())
+                    .lock(always_success_lock_script.clone())
+                    .type_(Some(metadata_type_script.clone()).pack())
+                    .build(),
+                meta_data.as_bytes(),
+            ),
+        )
+        .build();
+    // prepare checkpoint cell_dep
+    let checkpoint_data = axon_checkpoint_data(&metadata_type_script.clone().calc_script_hash(), 1);
+    println!("checkpoint data: {:?}", checkpoint_data.as_bytes().len());
+    let checkpoint_script_dep = CellDep::new_builder()
+        .out_point(
+            context.create_cell(
+                CellOutput::new_builder()
+                    .capacity(1000.pack())
+                    .lock(always_success_lock_script.clone())
+                    .type_(Some(checkpoint_type_script).pack())
+                    .build(),
+                checkpoint_data.as_bytes(),
+            ),
+        )
+        .build();
+
+    let delegate_at_witness = DelegateAtWitness::new_builder().mode(0.into()).build();
+    println!(
+        "delegate at witness: {:?}",
+        delegate_at_witness.as_bytes().len()
+    );
+    let delegate_at_witness = WitnessArgs::new_builder()
+        .lock(Some(Bytes::from(delegate_at_witness.as_bytes())).pack())
+        .build();
+
+    // prepare signed tx
+    let tx = TransactionBuilder::default()
+        .inputs(inputs)
+        .outputs(outputs)
+        .witness(delegate_at_witness.as_bytes().pack())
+        .outputs_data(outputs_data.pack())
+        .cell_dep(contract_dep)
+        .cell_dep(always_success_script_dep)
+        .cell_dep(checkpoint_script_dep)
+        .cell_dep(metadata_script_dep)
+        .build();
+    let tx = context.complete_tx(tx);
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("DelegateSelf");
+    assert_script_error(err, DelegateSelf as i8);
 }
 
 #[test]
