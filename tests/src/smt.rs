@@ -171,6 +171,27 @@ pub fn construct_epoch_smt(top_smt_infos: &Vec<TopSmtInfo>) -> (H256, MerkleProo
     )
 }
 
+// top smt tree, only suitable for metadata update and top_smt_infos.len() == 1
+pub fn construct_epoch_smt_for_metadata_update(
+    top_smt_infos: &Vec<TopSmtInfo>,
+) -> (H256, MerkleProof) {
+    assert_eq!(top_smt_infos.len(), 1);
+
+    let mut tree = TOP_SMT::default();
+    let top_smt_info = top_smt_infos.get(0).unwrap();
+    let epoch = top_smt_info.epoch;
+    let key0: H256 = u64_to_h256(epoch);
+    let key1: H256 = u64_to_h256(epoch + 1);
+    let value = top_smt_info.smt_root;
+    let leaves = vec![(key0, value), (key1, value)];
+    tree.update_all(leaves).expect("update");
+
+    (
+        *tree.root(),
+        tree.merkle_proof(vec![key0, key1]).expect("merkle proof"),
+    )
+}
+
 #[test]
 fn test_smt_compiled_proof() {
     let mut tree = BOTTOM_SMT::default();
@@ -223,6 +244,46 @@ fn test_smt_compiled_proof() {
         Ok(true) => println!("Success!"),
         Ok(false) => println!("Failure!"),
         Err(e) => println!("Error: {:?}", e as u32),
+    }
+}
+
+#[test]
+fn test_2leaves_smt() {
+    {
+        let mut tree = TOP_SMT::default();
+        let key0 = u64_to_h256(2);
+        let key1 = u64_to_h256(2 + 1);
+        let value = H256::from([1u8; 32]);
+        println!("key0: {:?}, key1: {:?}, value: {:?}", key0, key1, value);
+        let leaves = vec![(key0, value), (key1, value)];
+        let _ = tree.update_all(leaves.clone());
+        let root = tree.root();
+
+        let keys = vec![key0, key1];
+        let proof = tree.merkle_proof(keys.clone()).unwrap();
+        let proof = proof.compile(keys.clone()).unwrap();
+        println!("root: {:?}, proof: {:?}", root, proof);
+        let result = proof.verify::<Blake2bHasher>(&root, leaves).unwrap();
+        println!("result: {}", result);
+
+        let key2 = u64_to_h256(4);
+        let leaves = vec![(key0, value), (key2, value)];
+        let result = proof.verify::<Blake2bHasher>(&root, leaves);
+        match result {
+            Ok(true) => println!("Success!"),
+            Ok(false) => println!("Failure!"),
+            Err(e) => println!("Error: {:?}", e),
+        }
+
+        {
+            let leaves = vec![(key0, value), (key1, value), (key2, value)];
+            let result = proof.verify::<Blake2bHasher>(&root, leaves);
+            match result {
+                Ok(true) => println!("Success!"),
+                Ok(false) => println!("Failure!"),
+                Err(e) => println!("Error: {:?}", e),
+            }
+        }
     }
 }
 

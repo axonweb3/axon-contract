@@ -31,7 +31,10 @@ use util::{
     smt::{u64_to_h256, LockInfo, TOP_SMT},
 };
 
-use crate::smt::{construct_epoch_smt, construct_lock_info_smt, TopSmtInfo};
+use crate::smt::{
+    construct_epoch_smt, construct_epoch_smt_for_metadata_update, construct_lock_info_smt,
+    TopSmtInfo,
+};
 
 pub const MAX_CYCLES: u64 = 100_000_000;
 
@@ -504,6 +507,51 @@ pub fn axon_delegate_smt_cell_data(
     )
 }
 
+pub fn axon_delegate_smt_cell_data_for_metadata_update(
+    delegate_infos: &BTreeSet<LockInfo>,
+    metadata_type_id: &packed::Byte32,
+    pubkey: &Pubkey,
+    epoch: u64,
+) -> (
+    axon_types::delegate::DelegateSmtCellData,
+    CompiledMerkleProof,
+) {
+    let (delegate_root, _delegate_proof) = construct_lock_info_smt(&delegate_infos);
+    let delegate_top_smt_infos = vec![TopSmtInfo {
+        epoch: epoch,
+        smt_root: delegate_root,
+    }];
+    let (delegate_epoch_root, delegate_epoch_proof) =
+        construct_epoch_smt_for_metadata_update(&delegate_top_smt_infos);
+    let delegate_epoch_proof = CompiledMerkleProof(
+        delegate_epoch_proof
+            .compile(vec![u64_to_h256(epoch), u64_to_h256(epoch + 1)])
+            .unwrap()
+            .0,
+    );
+    println!(
+        "axon_delegate_smt_cell_data_for_metadata_update delegate_epoch_root: {:?}, delegate_epoch_proof: {:?}, delegate_root: {:?}",
+        delegate_epoch_root, delegate_epoch_proof.0, delegate_root
+    );
+
+    let stake_smt_root = StakerSmtRoot::new_builder()
+        .staker(axon_identity(&pubkey.serialize()))
+        .root(axon_array32_byte32(
+            delegate_epoch_root.as_slice().try_into().unwrap(),
+        ))
+        .build();
+    let stake_smt_roots = StakerSmtRoots::new_builder().push(stake_smt_root).build();
+
+    (
+        axon_types::delegate::DelegateSmtCellData::new_builder()
+            .version(0.into())
+            .smt_roots(stake_smt_roots)
+            .metadata_type_id(axon_byte32(metadata_type_id))
+            .build(),
+        delegate_epoch_proof,
+    )
+}
+
 pub fn axon_reward_smt_data(
     metadata_type_id: [u8; 32],
     claim_smt_root: [u8; 32],
@@ -614,6 +662,35 @@ pub fn axon_stake_smt_cell_data(
     //     "axon_stake_smt_cell_data top root: {:?}",
     //     stake_smt_top_tree.root()
     // );
+
+    axon_types::stake::StakeSmtCellData::new_builder()
+        .version(0.into())
+        .smt_root(basic::Byte32::new_unchecked(
+            stake_smt_top_tree.root().as_slice().to_vec().into(),
+        ))
+        .metadata_type_id(axon_byte32(metadata_type_id))
+        .build()
+}
+
+pub fn axon_stake_smt_cell_data_for_update_metadata_cell(
+    stake_infos: &BTreeSet<LockInfo>,
+    metadata_type_id: &packed::Byte32,
+    epoch: u64,
+) -> axon_types::stake::StakeSmtCellData {
+    // call build_smt_tree_and_get_root and print error message
+    let (root, _proof) = crate::smt::construct_lock_info_smt(stake_infos);
+    println!(
+        "axon_stake_smt_cell_data bottom root: {:?}, top tree epoch: {}",
+        root, epoch
+    );
+
+    let mut stake_smt_top_tree = TOP_SMT::default();
+    let leaves = vec![(u64_to_h256(epoch), root), (u64_to_h256(epoch + 1), root)];
+    let result = stake_smt_top_tree.update_all(leaves);
+    println!(
+        "axon_stake_smt_cell_data update top tree result: {:?}",
+        result
+    );
 
     axon_types::stake::StakeSmtCellData::new_builder()
         .version(0.into())

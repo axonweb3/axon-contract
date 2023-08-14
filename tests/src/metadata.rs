@@ -1,5 +1,6 @@
 use crate::smt::{
-    construct_epoch_smt, construct_lock_info_smt, construct_propose_count_smt, TopSmtInfo,
+    construct_epoch_smt, construct_epoch_smt_for_metadata_update, construct_lock_info_smt,
+    construct_propose_count_smt, TopSmtInfo,
 };
 use std::collections::BTreeSet;
 use std::convert::TryInto;
@@ -376,7 +377,7 @@ fn test_metadata_success() {
 
     let output_stake_infos = input_stake_infos.clone();
     let output_quasi_epoch = input_waiting_epoch;
-    let output_stake_smt_data = axon_stake_smt_cell_data(
+    let output_stake_smt_data = axon_stake_smt_cell_data_for_update_metadata_cell(
         &output_stake_infos,
         &metadata_type_script.calc_script_hash(),
         output_quasi_epoch,
@@ -417,9 +418,18 @@ fn test_metadata_success() {
         &metadata_type_script.code_hash(),
     );
 
+    let output_delegate_infos = delegate_infos;
+    let (output_delegate_smt_cell_data, out_delegate_epoch_proof) =
+        axon_delegate_smt_cell_data_for_metadata_update(
+            &output_delegate_infos,
+            &metadata_type_script.calc_script_hash(),
+            &keypair.1,
+            input_waiting_epoch,
+        );
+
     let outputs_data = vec![
         output_stake_smt_data.as_bytes(), // stake smt cell
-        delegate_smt_cell_data.as_bytes(),
+        output_delegate_smt_cell_data.as_bytes(),
         output_meta_data.as_bytes(),
     ];
 
@@ -438,8 +448,27 @@ fn test_metadata_success() {
         .unwrap()
         .0;
 
+    let (_stake_root, out_staker_epoch_proof) =
+        construct_epoch_smt_for_metadata_update(&stake_top_smt_infos);
+    let out_staker_epoch_proof = out_staker_epoch_proof
+        .compile(vec![
+            u64_to_h256(input_waiting_epoch),
+            u64_to_h256(input_waiting_epoch + 1),
+        ])
+        .unwrap()
+        .0;
+
     let delegate_infos = axon_types::metadata::DelegateInfos::new_builder().build();
     let delegate_epoch_proof = delegate_epoch_proof.0;
+    // let (_stake_root, out_delegate_epoch_proof) =
+    //     construct_epoch_smt_for_metadata_update(&stake_top_smt_infos);
+    // let out_delegate_epoch_proof = out_delegate_epoch_proof
+    //     .compile(vec![
+    //         u64_to_h256(input_waiting_epoch),
+    //         u64_to_h256(input_waiting_epoch + 1),
+    //     ])
+    //     .unwrap()
+    //     .0;
     let miner_group_info = MinerGroupInfo::new_builder()
         .staker(axon_identity(&keypair.1.serialize()))
         .amount(axon_u128(stake_amount))
@@ -453,14 +482,15 @@ fn test_metadata_success() {
         .staker_epoch_proof(axon_bytes(&staker_epoch_proof))
         .miners(miner_group_infos)
         .build();
-    let new_stake_proof = staker_epoch_proof;
+    let out_delegate_epoch_proof = out_delegate_epoch_proof.0;
     let new_delegate_proof = DelegateProof::new_builder()
         .staker(axon_identity(&keypair.1.serialize()))
-        .proof(axon_bytes(&delegate_epoch_proof))
+        .proof(axon_bytes(&out_delegate_epoch_proof))
         .build();
     let new_delegate_proofs = DelegateProofs::new_builder()
         .push(new_delegate_proof)
         .build();
+    let new_stake_proof = out_staker_epoch_proof;
     let stake_smt_election_info = StakeSmtElectionInfo::new_builder()
         .n2(election_smt_proof)
         .new_stake_proof(axon_bytes(&new_stake_proof))

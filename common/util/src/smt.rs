@@ -191,6 +191,26 @@ pub fn verify_top_smt(
     Ok(result)
 }
 
+pub fn verify_top_smt_for_metadata_update(
+    key: H256,
+    next_key: H256,
+    value: H256,
+    root: H256,
+    proof: CompiledMerkleProof,
+) -> Result<bool, Error> {
+    let leaves = vec![(key, value), (next_key, value)];
+    let result = proof
+        .verify::<Blake2bHasher>(&root, leaves)
+        .map_err(|_err| {
+            debug!(
+                "verify_top_smt_for_metadata_update update smt tree error: {}",
+                _err
+            );
+            Error::SmterrorCodeErrorUpdate
+        })?;
+    Ok(result)
+}
+
 pub fn verify_2layer_smt(
     lock_infos: &BTreeSet<LockInfo>,
     epoch: H256,
@@ -204,6 +224,22 @@ pub fn verify_2layer_smt(
         bottom_root, top_root, top_proof
     );
     verify_top_smt(epoch, bottom_root, top_root, top_proof)
+}
+
+pub fn verify_2layer_smt_for_metadata_update(
+    lock_infos: &BTreeSet<LockInfo>,
+    epoch: H256,
+    next_epoch: H256,
+    top_root: H256,
+    top_proof: CompiledMerkleProof,
+) -> Result<bool, Error> {
+    // construct old stake smt root & verify
+    let bottom_root = get_bottom_smt_root(lock_infos);
+    debug!(
+        "verify_2layer_smt_for_metadata_update calculated bottom_root: {:?}, top_root: {:?}, top_proof: {:?}",
+        bottom_root, top_root, top_proof
+    );
+    verify_top_smt_for_metadata_update(epoch, next_epoch, bottom_root, top_root, top_proof)
 }
 
 pub fn verify_2layer_smt_propose(
