@@ -19,6 +19,7 @@ use axon_types::{
 use util::{error::Error, helper::*};
 
 // #[derive(PartialEq, Eq)]
+#[derive(Debug)]
 struct WithdrawInfo {
     unlock_epoch: u64,
     amount: u128,
@@ -100,13 +101,17 @@ pub fn main() -> Result<(), Error> {
         &type_ids.checkpoint_type_id(),
     );
     let epoch = get_current_epoch(&checkpoint_type_id.to_vec())?;
+    // get input normal at cell and output noram at cell, verify amount increased by unlock_amount.
+    let input_total_amount = get_xudt_by_type_hash(&type_ids.xudt_type_hash(), Source::Input)?;
+    let output_total_amount = get_xudt_by_type_hash(&type_ids.xudt_type_hash(), Source::Output)?;
     debug!(
-        "epoch: {:?}, in_amount: {}, out_amount: {}",
-        epoch, in_amount, out_amount
+        "epoch: {:?}, in_amount: {}, out_amount: {}, input_total_amount: {}, output_total_amount: {}",
+        epoch, in_amount, out_amount,input_total_amount, output_total_amount
     );
 
     if withdraw_witness.is_none() {
         // ACP mode, someone unstake or undelgate
+        debug!("acp mode");
         if out_amount <= in_amount {
             return Err(Error::OutLessThanIn);
         }
@@ -124,7 +129,7 @@ pub fn main() -> Result<(), Error> {
             &mut lock2_amount,
         )?;
         if in_amount != unlock_amount + lock1_amount + lock2_amount - increased_amount {
-            return Err(Error::WithdrawTotalAmountError);
+            return Err(Error::WithdrawTotalAmount);
         }
         let new_withdraw_infos =
             get_withdraw_infos(epoch, unlock_amount, lock1_amount, lock2_amount);
@@ -141,7 +146,7 @@ pub fn main() -> Result<(), Error> {
             &mut lock2_amount,
         )?;
         if out_amount != unlock_amount + lock1_amount + lock2_amount {
-            return Err(Error::WithdrawTotalAmountError);
+            return Err(Error::WithdrawTotalAmount);
         }
         let out_withdraw_infos =
             get_withdraw_infos(epoch, unlock_amount, lock1_amount, lock2_amount);
@@ -149,8 +154,13 @@ pub fn main() -> Result<(), Error> {
         if new_withdraw_infos != out_withdraw_infos {
             return Err(Error::WrongOutWithdraw);
         }
+
+        if input_total_amount > output_total_amount {
+            return Err(Error::WithdrawTotalAmount);
+        }
     } else {
         // unlock mode,
+        debug!("unlock mode");
         let in_data = in_data.lock().withdraw_infos();
         let mut unlock_amount: u128 = 0u128; // can be withdraw immediately
         let mut lock1_amount: u128 = 0u128; // can be withdraw in current epoch + 1
@@ -162,13 +172,17 @@ pub fn main() -> Result<(), Error> {
             &mut lock1_amount,
             &mut lock2_amount,
         )?;
+        debug!(
+            "unlock_amount: {}, lock1_amount: {}, lock2_amount: {}",
+            unlock_amount, lock1_amount, lock2_amount
+        );
         if in_amount != unlock_amount + lock1_amount + lock2_amount {
-            return Err(Error::WithdrawTotalAmountError);
+            return Err(Error::WithdrawTotalAmount);
         }
         let new_withdraw_infos = get_withdraw_infos(epoch, 0, lock1_amount, lock2_amount);
 
         if in_amount - out_amount != unlock_amount {
-            return Err(Error::WithdrawTotalAmountError);
+            return Err(Error::WithdrawTotalAmount);
         }
 
         let out_data = out_data.lock().withdraw_infos();
@@ -186,22 +200,27 @@ pub fn main() -> Result<(), Error> {
             &mut lock1_amount,
             &mut lock2_amount,
         )?;
+        debug!(
+            "out_amount: {}, lock1_amount: {}, lock2_amount: {}",
+            out_amount, lock1_amount, lock2_amount
+        );
         if out_amount != lock1_amount + lock2_amount {
-            return Err(Error::WithdrawTotalAmountError);
+            return Err(Error::WithdrawTotalAmount);
         }
         let out_withdraw_infos = get_withdraw_infos(epoch, 0, lock1_amount, lock2_amount);
-
+        debug!(
+            "new_withdraw_infos: {:?}, out_withdraw_infos: {:?}",
+            new_withdraw_infos, out_withdraw_infos
+        );
         if new_withdraw_infos != out_withdraw_infos {
             return Err(Error::WrongOutWithdraw);
         }
+
+        if input_total_amount < output_total_amount {
+            return Err(Error::WithdrawTotalAmount);
+        }
     }
 
-    // get input normal at cell and output noram at cell, verify amount increased by unlock_amount.
-    let input_total_amount = get_xudt_by_type_hash(&type_ids.xudt_type_hash(), Source::Input)?;
-    let output_total_amount = get_xudt_by_type_hash(&type_ids.xudt_type_hash(), Source::Output)?;
-    if input_total_amount > output_total_amount {
-        return Err(Error::WrongIncreasedXudt);
-    }
     Ok(())
 }
 
