@@ -202,7 +202,7 @@ pub fn update_delegate_at_cell(
 
         // can not undelegate total delegate at amount
         if !output_increase {
-            if output_delegate > input_delegate_at_amount {
+            if output_delegate > output_delegate_at_amount {
                 return Err(Error::UnDelegateTooMuch);
             }
         }

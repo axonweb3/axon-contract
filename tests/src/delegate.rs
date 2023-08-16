@@ -14,7 +14,7 @@ use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
 use util::{
-    error::Error::{DelegateSelf, InputOutputAtAmountNotEqual},
+    error::Error::{DelegateSelf, InputOutputAtAmountNotEqual, UnDelegateTooMuch},
     smt::LockInfo,
 };
 
@@ -513,6 +513,255 @@ fn test_delegate_self_fail() {
         .verify_tx(&tx, MAX_CYCLES)
         .expect_err("DelegateSelf");
     assert_script_error(err, DelegateSelf as i8);
+}
+
+#[test]
+fn test_undelegate_at_fail_too_much() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 100;
+    let output_normal_at_amount = 1000;
+    let output_delegate_at_amount = 100;
+
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(input_delegate_at_amount + 100))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(input_delegate_at_amount + 300))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("UnDelegateTooMuch");
+    assert_script_error(err, UnDelegateTooMuch as i8);
+}
+
+#[test]
+fn test_undelegate_at_success_decrease_decrease() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 1000;
+    let output_normal_at_amount = 1000;
+    let output_delegate_at_amount = 1000;
+
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(200))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(500))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_undelegate_at_success_increase_decrease_more() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 1000;
+    let output_normal_at_amount = 1500;
+    let output_delegate_at_amount = 500;
+
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(500))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(500))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_undelegate_at_success_increase_decrease_less() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 1000;
+    let output_normal_at_amount = 1500;
+    let output_delegate_at_amount = 500;
+
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(input_delegate_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_delegate_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_undelegate_at_success_stale_increase_decrease_less() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 1000;
+    let delegate_amount = 800;
+    let output_normal_at_amount = input_delegate_at_amount + delegate_amount;
+    let output_delegate_at_amount = input_delegate_at_amount - delegate_amount;
+    let wait_epoch: u64 = 3;
+
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(delegate_amount))
+        .inauguration_epoch(axon_u64(wait_epoch - 1))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(output_delegate_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_undelegate_at_success_stale_decrease_decrease_less() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 100;
+    let output_normal_at_amount = 1000;
+    let output_delegate_at_amount = 100;
+    let wait_epoch: u64 = 3;
+
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(20))
+        .inauguration_epoch(axon_u64(wait_epoch - 1))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(100))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
 }
 
 #[test]
