@@ -109,8 +109,7 @@ pub enum Error {
     WrongLockEpoch,
     WrongOutWithdrawEpoch,
     WrongOutWithdraw,
-    WrongIncreasedXudt,
-    WithdrawTotalAmountError,
+    WithdrawTotalAmount,
     OutLessThanIn,
     WithdrawUpdateDataError,
     BadUnstake,
@@ -126,6 +125,7 @@ pub enum Error {
     RewardStakeAmountTopFail,
     RewardWrongDelegateAmount,
     RewardOldNewMismatch,
+    RewardWrongOwner,
 
     // requirement
     CommissionRateTooLarge = -20,

@@ -276,6 +276,24 @@ pub fn get_xudt_by_type_hash(type_hash: &Vec<u8>, source: Source) -> Result<u128
     Ok(sudt)
 }
 
+pub fn verify_owner_normal_at(miner: &Vec<u8>, type_hash: &Vec<u8>) -> Result<(), Error> {
+    QueryIter::new(load_cell_type_hash, Source::Output)
+        .enumerate()
+        .map(|(i, cell_type_hash)| {
+            if cell_type_hash.unwrap_or([0u8; 32]) == type_hash[..] {
+                let lock_script = load_cell_lock(i, Source::Output).unwrap();
+                let owner = lock_script.args().raw_data().to_vec();
+                debug!("owner: {:?}, miner: {:?}", owner, miner);
+                if owner[..] != miner[..] {
+                    return Err(Error::RewardWrongOwner);
+                }
+            }
+            Ok(())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(())
+}
+
 pub fn get_stake_at_data_by_lock_hash(
     cell_lock_hash: &[u8; 32],
     source: Source,
