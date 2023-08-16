@@ -96,10 +96,7 @@ fn construct_withdraw_tx_with_amount(
             output_withdraw_amount,
             output_withdraw_at_cell_data.clone(),
         )),
-        Bytes::from(axon_normal_at_cell_data(
-            output_normal_at_amount,
-            output_withdraw_at_cell_data.clone(),
-        )),
+        Bytes::from(axon_normal_at_cell_data(output_normal_at_amount, &[])),
     ];
 
     let checkpoint_type_script = context

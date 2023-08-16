@@ -4,19 +4,24 @@ use std::iter::FromIterator;
 
 use super::*;
 use axon_types::checkpoint::CheckpointCellData;
-use axon_types::delegate::DelegateInfoDeltas;
 use axon_types::metadata::{Metadata, MetadataList, Validator, ValidatorList};
 use axon_types::reward::{
-    EpochRewardStakeInfo, EpochRewardStakeInfos, NotClaimInfo, RewardDelegateInfos,
-    RewardSmtCellData, RewardStakeInfo, RewardStakeInfos, RewardWitness,
+    EpochRewardStakeInfo, EpochRewardStakeInfos, NotClaimInfo, RewardDelegateInfo,
+    RewardDelegateInfos, RewardSmtCellData, RewardStakeInfo, RewardStakeInfos, RewardWitness,
 };
-use ckb_testtool::ckb_crypto::secp::Generator;
-use ckb_testtool::ckb_types::core::ScriptHashType;
-use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
+use ckb_system_scripts::BUNDLED_CELL;
+use ckb_testtool::ckb_crypto::secp::{Generator, Privkey, Pubkey};
+use ckb_testtool::ckb_types::{
+    bytes::Bytes,
+    core::{ScriptHashType, TransactionBuilder, TransactionView},
+    packed::*,
+    prelude::*,
+};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
 use sparse_merkle_tree::{blake2b::Blake2bHasher, CompiledMerkleProof, H256};
+use util::error::Error::{RewardWrongAmount, RewardWrongOwner};
 use util::smt::{
     addr_to_h256, u128_to_h256, u64_to_h256, BottomValue, EpochValue, LockInfo, ProposeBottomValue,
     BOTTOM_SMT, CLAIM_SMT, PROPOSE_BOTTOM_SMT, TOP_SMT,
@@ -90,11 +95,30 @@ fn test_reward_creation_success() {
     println!("consume cycles: {}", cycles);
 }
 
-#[test]
-fn test_reward_success() {
-    // init context
-    let mut context = Context::default();
+fn construct_reward_tx(context: &mut Context) -> TransactionView {
+    // base_reward = 1000, staker amount = 1000, delegator amount = 1000, commsion_rate = 10%
+    // 550 = 1000 * (1000/ (1000 + 1000)) + 10% * 1000 * (1000/(1000 + 1000))
+    let reward_amount = 550;
+    let staker_keypair = Generator::random_keypair();
+    let delegator_keypair = Generator::random_keypair();
+    construct_reward_tx_with_reward_amount(
+        context,
+        reward_amount,
+        staker_keypair.clone(),
+        delegator_keypair,
+        staker_keypair.clone(),
+        staker_keypair,
+    )
+}
 
+fn construct_reward_tx_with_reward_amount(
+    context: &mut Context,
+    reward_amount: u128,
+    staker_keypair: (Privkey, Pubkey),
+    delegator_keypair: (Privkey, Pubkey),
+    miner_keypair: (Privkey, Pubkey),
+    reward_keypair: (Privkey, Pubkey),
+) -> TransactionView {
     let contract_bin: Bytes = Loader::default().load_binary("reward");
     let contract_out_point = context.deploy_cell(contract_bin);
     let contract_dep = CellDep::new_builder()
@@ -137,8 +161,7 @@ fn test_reward_success() {
         .build_script(&contract_out_point, input_hash)
         .expect("reward type script");
 
-    let keypair = Generator::random_keypair();
-    let staker_addr = pubkey_to_addr(&keypair.1.serialize());
+    let staker_addr = pubkey_to_addr(&staker_keypair.1.serialize());
     // prepare checkpoint lock_script
     let checkpoint_type_script = context
         .build_script_with_hash_type(
@@ -170,8 +193,8 @@ fn test_reward_success() {
             &metadata_type_script,
             &always_success_out_point,
             &always_success_lock_script,
-            &mut context,
-            &keypair,
+            context,
+            &staker_keypair,
             &staker_addr,
         );
 
@@ -207,11 +230,16 @@ fn test_reward_success() {
         )
         .build();
 
-    let delegate_infos = BTreeSet::new();
+    let delegator_addr = pubkey_to_addr(&delegator_keypair.1.serialize());
+    let delegate_amount = stake_amount;
+    let delegate_infos = BTreeSet::from_iter(vec![LockInfo {
+        addr: delegator_addr,
+        amount: delegate_amount,
+    }]);
     let (delegate_smt_cell_data, delegate_epoch_proof) = axon_delegate_smt_cell_data(
         &delegate_infos,
         &metadata_type_script.calc_script_hash(),
-        &keypair.1,
+        &staker_keypair.1,
         claim_epoch,
     );
     let delegate_smt_type_script = context
@@ -249,7 +277,7 @@ fn test_reward_success() {
         .build();
     let metadata_list = MetadataList::new_builder()
         .push(metadata0.clone())
-        .push(metadata0)
+        .push(metadata0.clone())
         .build();
 
     let propose_count: u64 = period_len as u64 * epoch_len as u64;
@@ -367,6 +395,12 @@ fn test_reward_success() {
             .build(),
     ];
 
+    let secp256k1_data_bin = BUNDLED_CELL.get("specs/cells/secp256k1_data").unwrap();
+    let secp256k1_data_out_point = context.deploy_cell(secp256k1_data_bin.to_vec().into());
+    let reward_addr = pubkey_to_addr(&reward_keypair.1.serialize());
+    let secp256k1_blake2b_lock_script = context
+        .build_script(&secp256k1_data_out_point, Bytes::from(reward_addr.to_vec()))
+        .expect("always_success script");
     let outputs = vec![
         // reward smt cell
         CellOutput::new_builder()
@@ -377,19 +411,10 @@ fn test_reward_success() {
         // normal at cell
         CellOutput::new_builder()
             .capacity(1000.pack())
-            .lock(always_success_lock_script.clone())
+            .lock(secp256k1_blake2b_lock_script.clone())
             .type_(Some(at_type_script.clone()).pack())
             .build(),
     ];
-
-    let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder().build();
-    let output_delegate_at_data = axon_delegate_at_cell_data_without_amount(
-        0,
-        &keypair.1.serialize(),
-        &keypair.1.serialize(),
-        &metadata_type_script.calc_script_hash(),
-        output_delegate_info_deltas,
-    );
 
     let mut new_claim_tree = CLAIM_SMT::default();
     // only claim the reward of epoch 0, current epoch is 3
@@ -423,12 +448,18 @@ fn test_reward_success() {
     );
     let outputs_data = vec![
         output_reward_smt_data.as_bytes(),
-        Bytes::from(axon_delegate_at_cell_data(1000, output_delegate_at_data)),
+        Bytes::from(axon_normal_at_cell_data(reward_amount, &[])),
     ];
 
-    let delegate_infos = RewardDelegateInfos::new_builder().build();
+    let reward_delegate_info = RewardDelegateInfo::new_builder()
+        .delegator_addr(axon_identity(&delegator_keypair.1.serialize()))
+        .amount(axon_u128(stake_amount))
+        .build();
+    let delegate_infos = RewardDelegateInfos::new_builder()
+        .push(reward_delegate_info)
+        .build();
     let reward_stake_info = RewardStakeInfo::new_builder()
-        .validator(axon_identity(&keypair.1.serialize()))
+        .validator(axon_identity(&staker_keypair.1.serialize()))
         .staker_amount(axon_u128(stake_amount))
         .propose_count(axon_u64(propose_count))
         .delegate_infos(delegate_infos)
@@ -493,7 +524,7 @@ fn test_reward_success() {
         .push(epoch_reward_stake_info)
         .build();
     let reward_witness = RewardWitness::new_builder()
-        .miner(axon_identity(&keypair.1.serialize()))
+        .miner(axon_identity(&miner_keypair.1.serialize()))
         .old_not_claim_info(old_not_claim_info)
         .reward_infos(epoch_reward_stake_infos)
         .new_not_claim_info(new_not_claim_info)
@@ -507,10 +538,7 @@ fn test_reward_success() {
         .inputs(inputs)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
-        .witnesses(vec![
-            reward_witness.as_bytes().pack(),
-            reward_witness.as_bytes().pack(),
-        ])
+        .witnesses(vec![Bytes::new().pack(), reward_witness.as_bytes().pack()])
         .cell_dep(contract_dep)
         .cell_dep(checkpoint_script_dep)
         .cell_dep(metadata_script_dep)
@@ -521,12 +549,160 @@ fn test_reward_success() {
         .cell_dep(delegate_requirement_script_dep)
         .build();
     let tx = context.complete_tx(tx);
+    tx
+}
+
+#[test]
+fn test_reward_success() {
+    // init context
+    let mut context = Context::default();
+    let tx = construct_reward_tx(&mut context);
 
     // run
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");
     println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_reward_delegator_success() {
+    // init context
+    let mut context = Context::default();
+    let reward_amount = 450; // 500 - 50 （commision）
+    let staker_keypair = Generator::random_keypair();
+    let delegator_keypair = Generator::random_keypair();
+    let tx = construct_reward_tx_with_reward_amount(
+        &mut context,
+        reward_amount,
+        staker_keypair,
+        delegator_keypair.clone(),
+        delegator_keypair.clone(),
+        delegator_keypair,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_reward_success_not_miner() {
+    // init context
+    let mut context = Context::default();
+    let reward_amount = 0; // should be 0
+    let staker_keypair = Generator::random_keypair();
+    let delegator_keypair = Generator::random_keypair();
+    let miner_keypair = Generator::random_keypair();
+    let tx = construct_reward_tx_with_reward_amount(
+        &mut context,
+        reward_amount,
+        staker_keypair,
+        delegator_keypair.clone(),
+        miner_keypair.clone(),
+        miner_keypair,
+    );
+
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_reward_fail_output_wrong_at_owner() {
+    // init context
+    let mut context = Context::default();
+    let reward_amount = 550; // should be 0
+    let staker_keypair = Generator::random_keypair();
+    let delegator_keypair = Generator::random_keypair();
+    let reward_keypair = Generator::random_keypair();
+    let tx = construct_reward_tx_with_reward_amount(
+        &mut context,
+        reward_amount,
+        staker_keypair.clone(),
+        delegator_keypair.clone(),
+        staker_keypair.clone(),
+        reward_keypair,
+    );
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("RewardWrongOwner");
+    assert_script_error(err, RewardWrongOwner as i8);
+}
+
+#[test]
+fn test_reward_fail_not_miner() {
+    // init context
+    let mut context = Context::default();
+    let reward_amount = 1; // should be 0
+    let staker_keypair = Generator::random_keypair();
+    let delegator_keypair = Generator::random_keypair();
+    let miner_keypair = Generator::random_keypair();
+    let tx = construct_reward_tx_with_reward_amount(
+        &mut context,
+        reward_amount,
+        staker_keypair,
+        delegator_keypair.clone(),
+        miner_keypair.clone(),
+        miner_keypair,
+    );
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("RewardWrongAmount");
+    assert_script_error(err, RewardWrongAmount as i8);
+}
+
+#[test]
+fn test_reward_fail_less_amount() {
+    // init context
+    let mut context = Context::default();
+    let reward_amount = 100;
+    let staker_keypair = Generator::random_keypair();
+    let delegator_keypair = Generator::random_keypair();
+    let tx = construct_reward_tx_with_reward_amount(
+        &mut context,
+        reward_amount,
+        staker_keypair.clone(),
+        delegator_keypair,
+        staker_keypair.clone(),
+        staker_keypair,
+    );
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("RewardWrongAmount");
+    assert_script_error(err, RewardWrongAmount as i8);
+}
+
+#[test]
+fn test_reward_fail_more_amount() {
+    // init context
+    let mut context = Context::default();
+    let reward_amount = 1100;
+    let staker_keypair = Generator::random_keypair();
+    let delegator_keypair = Generator::random_keypair();
+    let tx = construct_reward_tx_with_reward_amount(
+        &mut context,
+        reward_amount,
+        staker_keypair.clone(),
+        delegator_keypair,
+        staker_keypair.clone(),
+        staker_keypair,
+    );
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("RewardWrongAmount");
+    assert_script_error(err, RewardWrongAmount as i8);
 }
 
 #[test]

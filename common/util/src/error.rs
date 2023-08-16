@@ -125,6 +125,7 @@ pub enum Error {
     RewardStakeAmountTopFail,
     RewardWrongDelegateAmount,
     RewardOldNewMismatch,
+    RewardWrongOwner,
 
     // requirement
     CommissionRateTooLarge = -20,

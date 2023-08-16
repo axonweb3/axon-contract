@@ -370,19 +370,11 @@ pub fn axon_withdraw_at_cell_data(
     data
 }
 
-// construct stake_at cell data based on version, l1_address, l2_address, metadata_type_id, delta
-pub fn axon_normal_at_cell_data_without_amount() -> axon_types::withdraw::WithdrawAtCellData {
-    axon_types::withdraw::WithdrawAtCellData::new_builder().build()
-}
-
-pub fn axon_normal_at_cell_data(
-    amount: u128,
-    withdraw_at_cell_data: axon_types::withdraw::WithdrawAtCellData,
-) -> Vec<u8> {
+pub fn axon_normal_at_cell_data(amount: u128, normal_at_cell_data: &[u8]) -> Vec<u8> {
     // merge amount and stake_at_cell_data to Vec<u8>
     let mut data = Vec::new();
     data.extend_from_slice(&amount.to_le_bytes());
-    data.extend_from_slice(withdraw_at_cell_data.as_slice());
+    data.extend_from_slice(normal_at_cell_data);
     data
 }
 
@@ -466,7 +458,7 @@ pub fn axon_metadata_data_by_script(
 pub fn axon_delegate_smt_cell_data(
     delegate_infos: &BTreeSet<LockInfo>,
     metadata_type_id: &packed::Byte32,
-    pubkey: &Pubkey,
+    staker_pubkey: &Pubkey,
     epoch: u64,
 ) -> (
     axon_types::delegate::DelegateSmtCellData,
@@ -490,7 +482,7 @@ pub fn axon_delegate_smt_cell_data(
     );
 
     let stake_smt_root = StakerSmtRoot::new_builder()
-        .staker(axon_identity(&pubkey.serialize()))
+        .staker(axon_identity(&staker_pubkey.serialize()))
         .root(axon_array32_byte32(
             delegate_epoch_root.as_slice().try_into().unwrap(),
         ))

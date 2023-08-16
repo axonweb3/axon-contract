@@ -315,6 +315,9 @@ pub fn main() -> Result<(), Error> {
     if input_total_amount + reward_amount != output_total_amount {
         return Err(Error::RewardWrongAmount);
     }
+
+    verify_owner_normal_at(&miner, &xudt_type_hash)?;
+
     Ok(())
 }
 
