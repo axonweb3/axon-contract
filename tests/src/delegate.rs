@@ -5,18 +5,60 @@ use super::*;
 use axon_types::delegate::*;
 use axon_types::metadata::{Metadata, MetadataList};
 use axon_types::withdraw::WithdrawArgs;
-use ckb_testtool::ckb_crypto::secp::Generator;
+use ckb_testtool::ckb_crypto::secp::{Generator, Privkey, Pubkey};
 use ckb_testtool::ckb_types::core::ScriptHashType;
-use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
+use ckb_testtool::ckb_types::{
+    bytes::Bytes, core::TransactionBuilder, core::TransactionView, packed::*, prelude::*,
+};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
-use util::{error::Error::DelegateSelf, smt::LockInfo};
+use util::{
+    error::Error::{DelegateSelf, InputOutputAtAmountNotEqual},
+    smt::LockInfo,
+};
 
-#[test]
-fn test_delegate_at_increase_success() {
-    // init context
-    let mut context = Context::default();
+// newly added delegate info
+fn construct_delegate_tx(context: &mut Context) -> TransactionView {
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    // let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+    //     .staker(axon_identity(&staker_keypair.1.serialize()))
+    //     .build();
+    let output_at_amount = 1000;
+    let output_delegate_at_amount = 100;
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_delegate_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    construct_delegate_tx_with_args(
+        context,
+        delegator_keypair,
+        None,
+        output_delegate_info_delta,
+        output_at_amount,
+        0,
+        output_at_amount - output_delegate_at_amount,
+        output_delegate_at_amount,
+    )
+}
+
+fn construct_delegate_tx_with_args(
+    context: &mut Context,
+    delegator_keypair: (Privkey, Pubkey),
+    input_delegate_info_delta: Option<delegate::DelegateInfoDelta>,
+    output_delegate_info_delta: delegate::DelegateInfoDelta,
+    input_normal_at_amount: u128,
+    input_delegate_at_amount: u128,
+    output_normal_at_amount: u128,
+    output_delegate_at_amount: u128,
+) -> TransactionView {
+    // let input_normal_at_amount: u128 = 1000;
+    // let output_normal_at_amount: u128 = 900;
+    let current_epoch = 1;
 
     let contract_bin: Bytes = Loader::default().load_binary("delegate");
     let contract_out_point = context.deploy_cell(contract_bin);
@@ -53,19 +95,20 @@ fn test_delegate_at_increase_success() {
         .out_point(always_success_out_point.clone())
         .build();
 
-    let delegator_keypair = Generator::random_keypair();
     let delegate_args = delegate::DelegateArgs::new_builder()
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
         .delegator_addr(axon_identity(&delegator_keypair.1.serialize()))
         .build();
 
-    let staker_keypair = Generator::random_keypair();
-    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
-        .staker(axon_identity(&staker_keypair.1.serialize()))
-        .build();
-    let input_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
-        .set(vec![input_delegate_info_delta.clone()])
-        .build();
+    let input_delegate_info_deltas =
+        if let Some(input_delegate_info_delta) = input_delegate_info_delta {
+            DelegateInfoDeltas::new_builder()
+                .push(input_delegate_info_delta)
+                .build()
+        } else {
+            DelegateInfoDeltas::new_builder().build()
+        };
+
     let input_delegate_at_data = axon_delegate_at_cell_data_without_amount(
         0,
         &delegator_keypair.1.serialize(),
@@ -90,7 +133,10 @@ fn test_delegate_at_increase_success() {
                         .lock(delegate_at_lock_script.clone())
                         .type_(Some(delegate_at_type_script.clone()).pack())
                         .build(),
-                    Bytes::from(axon_delegate_at_cell_data(0, input_delegate_at_data)),
+                    Bytes::from(axon_delegate_at_cell_data(
+                        input_delegate_at_amount,
+                        input_delegate_at_data,
+                    )),
                 ),
             )
             .build(),
@@ -103,7 +149,7 @@ fn test_delegate_at_increase_success() {
                         .lock(always_success_lock_script.clone())
                         .type_(Some(delegate_at_type_script.clone()).pack())
                         .build(),
-                    Bytes::from((1000 as u128).to_le_bytes().to_vec()),
+                    Bytes::from((input_normal_at_amount).to_le_bytes().to_vec()),
                 ),
             )
             .build(),
@@ -124,12 +170,6 @@ fn test_delegate_at_increase_success() {
     ];
 
     // prepare outputs_data
-    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
-        .is_increase(1.into())
-        .amount(axon_u128(100 as u128))
-        .inauguration_epoch(axon_u64(3 as u64))
-        .staker(axon_identity(&staker_keypair.1.serialize()))
-        .build();
     let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
         .set(vec![output_delegate_info_delta.clone()])
         .build();
@@ -142,9 +182,12 @@ fn test_delegate_at_increase_success() {
     );
 
     let outputs_data = vec![
-        Bytes::from(axon_delegate_at_cell_data(100, output_delegate_at_data)), // stake at cell
-        Bytes::from((900 as u128).to_le_bytes().to_vec()),                     // normal at cell
-                                                                               // Bytes::from(axon_withdrawal_data(50, 2)),
+        Bytes::from(axon_delegate_at_cell_data(
+            output_delegate_at_amount,
+            output_delegate_at_data,
+        )), // stake at cell
+        Bytes::from((output_normal_at_amount).to_le_bytes().to_vec()), // normal at cell
+                                                                       // Bytes::from(axon_withdrawal_data(50, 2)),
     ];
 
     // prepare metadata cell_dep
@@ -158,7 +201,7 @@ fn test_delegate_at_increase_success() {
         &delegate_at_type_script, // needless here
         &delegate_at_type_script, // needless here
         metadata_list,
-        1,
+        current_epoch,
         100,
         100,
         propose_count_smt_root,
@@ -179,7 +222,10 @@ fn test_delegate_at_increase_success() {
         )
         .build();
     // prepare checkpoint cell_dep
-    let checkpoint_data = axon_checkpoint_data(&metadata_type_script.clone().calc_script_hash(), 1);
+    let checkpoint_data = axon_checkpoint_data(
+        &metadata_type_script.clone().calc_script_hash(),
+        current_epoch,
+    );
     println!("checkpoint data: {:?}", checkpoint_data.as_bytes().len());
     let checkpoint_script_dep = CellDep::new_builder()
         .out_point(
@@ -215,9 +261,14 @@ fn test_delegate_at_increase_success() {
         .cell_dep(metadata_script_dep)
         .build();
     let tx = context.complete_tx(tx);
+    tx
+}
 
-    // sign tx for delegate at cell (update stake at cell delta mode)
-    // let tx = sign_tx(tx, &delegator_keypair.0, 0);
+#[test]
+fn test_delegate_at_success_add_new() {
+    // init context
+    let mut context = Context::default();
+    let tx = construct_delegate_tx(&mut context);
 
     // run
     let cycles = context
@@ -227,207 +278,235 @@ fn test_delegate_at_increase_success() {
 }
 
 #[test]
-fn test_delegate_self_fail() {
+fn test_delegate_at_success_increase_existing() {
     // init context
     let mut context = Context::default();
-
-    let contract_bin: Bytes = Loader::default().load_binary("delegate");
-    let contract_out_point = context.deploy_cell(contract_bin);
-    let contract_dep = CellDep::new_builder()
-        .out_point(contract_out_point.clone())
-        .build();
-    let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
-    let always_success_lock_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![1]))
-        .expect("always_success script");
-    let checkpoint_type_script = context
-        .build_script_with_hash_type(
-            &always_success_out_point,
-            ScriptHashType::Type,
-            Bytes::from(vec![2u8; 32]),
-        )
-        .expect("checkpoint script");
-    println!(
-        "checkpoint type script: {:?}",
-        checkpoint_type_script.calc_script_hash()
-    );
-
-    let delegate_at_type_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![4]))
-        .expect("sudt script");
-    let metadata_type_script = context
-        .build_script_with_hash_type(
-            &always_success_out_point,
-            ScriptHashType::Type,
-            Bytes::from(vec![5]),
-        )
-        .expect("metadata type script");
-    let always_success_script_dep = CellDep::new_builder()
-        .out_point(always_success_out_point.clone())
-        .build();
-
     let delegator_keypair = Generator::random_keypair();
-    let delegate_args = delegate::DelegateArgs::new_builder()
-        .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-        .delegator_addr(axon_identity(&delegator_keypair.1.serialize()))
-        .build();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 100;
+    let output_normal_at_amount = 900;
+    let output_delegate_at_amount = 200;
 
-    let staker_keypair = delegator_keypair.clone();
     let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
-        .staker(axon_identity(&staker_keypair.1.serialize()))
-        .build();
-    let input_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
-        .set(vec![input_delegate_info_delta.clone()])
-        .build();
-    let input_delegate_at_data = axon_delegate_at_cell_data_without_amount(
-        0,
-        &delegator_keypair.1.serialize(),
-        &delegator_keypair.1.serialize(),
-        &metadata_type_script.calc_script_hash(),
-        input_delegate_info_deltas,
-    );
-
-    // prepare stake lock_script
-    let delegate_at_lock_script = context
-        .build_script(&contract_out_point, delegate_args.as_bytes())
-        .expect("stake script");
-
-    // prepare tx inputs and outputs
-    let inputs = vec![
-        // delegate AT cell
-        CellInput::new_builder()
-            .previous_output(
-                context.create_cell(
-                    CellOutput::new_builder()
-                        .capacity(1000.pack())
-                        .lock(delegate_at_lock_script.clone())
-                        .type_(Some(delegate_at_type_script.clone()).pack())
-                        .build(),
-                    Bytes::from(axon_delegate_at_cell_data(0, input_delegate_at_data)),
-                ),
-            )
-            .build(),
-        // normal AT cell
-        CellInput::new_builder()
-            .previous_output(
-                context.create_cell(
-                    CellOutput::new_builder()
-                        .capacity(1000.pack())
-                        .lock(always_success_lock_script.clone())
-                        .type_(Some(delegate_at_type_script.clone()).pack())
-                        .build(),
-                    Bytes::from((1000 as u128).to_le_bytes().to_vec()),
-                ),
-            )
-            .build(),
-    ];
-    let outputs = vec![
-        // delegate at cell
-        CellOutput::new_builder()
-            .capacity(1000.pack())
-            .lock(delegate_at_lock_script.clone())
-            .type_(Some(delegate_at_type_script.clone()).pack())
-            .build(),
-        // normal at cell
-        CellOutput::new_builder()
-            .capacity(1000.pack())
-            .lock(always_success_lock_script.clone())
-            .type_(Some(delegate_at_type_script.clone()).pack())
-            .build(),
-    ];
-
-    // prepare outputs_data
-    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
         .is_increase(1.into())
-        .amount(axon_u128(100 as u128))
+        .amount(axon_u128(input_delegate_at_amount))
         .inauguration_epoch(axon_u64(3 as u64))
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();
-    let output_delegate_info_deltas: DelegateInfoDeltas = DelegateInfoDeltas::new_builder()
-        .set(vec![output_delegate_info_delta.clone()])
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_delegate_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();
-    let output_delegate_at_data = axon_delegate_at_cell_data_without_amount(
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_delegate_at_success_decrease_increase_more() {
+    // existing decrease, but increase more at
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let delegate_amount = 200;
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 100;
+    let output_normal_at_amount = 800;
+    let output_delegate_at_amount = input_delegate_at_amount + delegate_amount;
+
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(300))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(delegate_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_delegate_at_success_stale_increase_increase() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 100;
+    let output_normal_at_amount = 900;
+    let output_delegate_at_amount = 200;
+
+    let waiting_epoch: u64 = 3;
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(input_delegate_at_amount))
+        .inauguration_epoch(axon_u64(waiting_epoch - 1))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_delegate_at_amount))
+        .inauguration_epoch(axon_u64(waiting_epoch))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_delegate_at_success_stale_decrease_increase() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 100;
+    let output_normal_at_amount = 900;
+    let output_delegate_at_amount = 200;
+
+    let waiting_epoch: u64 = 3;
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(500))
+        .inauguration_epoch(axon_u64(waiting_epoch - 1))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(
+            output_delegate_at_amount - input_delegate_at_amount,
+        ))
+        .inauguration_epoch(axon_u64(waiting_epoch))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_delegate_at_fail_increase_existing_more() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = Generator::random_keypair();
+    let input_normal_at_amount = 1000;
+    let input_delegate_at_amount = 100;
+    let output_normal_at_amount = 1000;
+    let output_delegate_at_amount = 200;
+
+    let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(input_delegate_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_delegate_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        Some(input_delegate_info_delta),
+        output_delegate_info_delta,
+        input_normal_at_amount,
+        input_delegate_at_amount,
+        output_normal_at_amount,
+        output_delegate_at_amount,
+    );
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("InputOutputAtAmountNotEqual");
+    assert_script_error(err, InputOutputAtAmountNotEqual as i8);
+}
+
+#[test]
+fn test_delegate_self_fail() {
+    // init context
+    let mut context = Context::default();
+    let delegator_keypair = Generator::random_keypair();
+    let staker_keypair = delegator_keypair.clone();
+    let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
+        .staker(axon_identity(&staker_keypair.1.serialize()))
+        .build();
+    let tx = construct_delegate_tx_with_args(
+        &mut context,
+        delegator_keypair,
+        None,
+        output_delegate_info_delta,
+        1000,
         0,
-        &delegator_keypair.1.serialize(),
-        &delegator_keypair.1.serialize(),
-        &metadata_type_script.calc_script_hash(),
-        output_delegate_info_deltas,
-    );
-
-    let outputs_data = vec![
-        Bytes::from(axon_delegate_at_cell_data(100, output_delegate_at_data)), // stake at cell
-        Bytes::from((900 as u128).to_le_bytes().to_vec()),                     // normal at cell
-                                                                               // Bytes::from(axon_withdrawal_data(50, 2)),
-    ];
-
-    // prepare metadata cell_dep
-    let metadata = Metadata::new_builder().epoch_len(axon_u32(100)).build();
-    let metadata_list = MetadataList::new_builder().push(metadata).build();
-    let propose_count_smt_root = [0u8; 32];
-    let meta_data = axon_metadata_data_by_script(
-        &metadata_type_script.clone(),
-        &delegate_at_type_script.calc_script_hash(),
-        &checkpoint_type_script,
-        &delegate_at_type_script, // needless here
-        &delegate_at_type_script, // needless here
-        metadata_list,
-        1,
+        900,
         100,
-        100,
-        propose_count_smt_root,
-        &metadata_type_script.code_hash(),
-        &delegate_at_lock_script.code_hash(),
-        &metadata_type_script.code_hash(),
     );
-    let metadata_script_dep = CellDep::new_builder()
-        .out_point(
-            context.create_cell(
-                CellOutput::new_builder()
-                    .capacity(1000.pack())
-                    .lock(always_success_lock_script.clone())
-                    .type_(Some(metadata_type_script.clone()).pack())
-                    .build(),
-                meta_data.as_bytes(),
-            ),
-        )
-        .build();
-    // prepare checkpoint cell_dep
-    let checkpoint_data = axon_checkpoint_data(&metadata_type_script.clone().calc_script_hash(), 1);
-    println!("checkpoint data: {:?}", checkpoint_data.as_bytes().len());
-    let checkpoint_script_dep = CellDep::new_builder()
-        .out_point(
-            context.create_cell(
-                CellOutput::new_builder()
-                    .capacity(1000.pack())
-                    .lock(always_success_lock_script.clone())
-                    .type_(Some(checkpoint_type_script).pack())
-                    .build(),
-                checkpoint_data.as_bytes(),
-            ),
-        )
-        .build();
-
-    let delegate_at_witness = DelegateAtWitness::new_builder().mode(0.into()).build();
-    println!(
-        "delegate at witness: {:?}",
-        delegate_at_witness.as_bytes().len()
-    );
-    let delegate_at_witness = WitnessArgs::new_builder()
-        .lock(Some(Bytes::from(delegate_at_witness.as_bytes())).pack())
-        .build();
-
-    // prepare signed tx
-    let tx = TransactionBuilder::default()
-        .inputs(inputs)
-        .outputs(outputs)
-        .witness(delegate_at_witness.as_bytes().pack())
-        .outputs_data(outputs_data.pack())
-        .cell_dep(contract_dep)
-        .cell_dep(always_success_script_dep)
-        .cell_dep(checkpoint_script_dep)
-        .cell_dep(metadata_script_dep)
-        .build();
-    let tx = context.complete_tx(tx);
 
     // run
     let err = context

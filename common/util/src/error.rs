@@ -72,7 +72,7 @@ pub enum Error {
     MismatchXudtTypeId,
 
     // delegate
-    FirstRedeemError = 80,
+    UnDelegateTooMuch = 80,
     BadDelegateChange,
     StaleDelegateInfo,
     IllegalDefaultDelegateInfo,
