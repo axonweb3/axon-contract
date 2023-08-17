@@ -99,7 +99,20 @@ pub struct LockInfo {
 
 impl PartialOrd for LockInfo {
     fn partial_cmp(&self, other: &LockInfo) -> Option<Ordering> {
-        self.amount.partial_cmp(&other.amount)
+        match self.amount.partial_cmp(&other.amount) {
+            Some(Ordering::Equal) => self.addr.partial_cmp(&other.addr),
+            ordering => ordering,
+        }
+        // let order = self.amount.partial_cmp(&other.amount);
+        // if let Some(order) = order {
+        //     if order == Ordering::Equal {
+        //         self.addr.partial_cmp(&other.addr)
+        //     } else {
+        //         Some(order)
+        //     }
+        // } else {
+        //     order
+        // }
     }
 }
 

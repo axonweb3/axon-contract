@@ -243,10 +243,11 @@ pub fn axon_delegate_at_cell_data(
 
 pub fn axon_delegate_requirement_cell_data(
     commission_rate: u8,
+    max_delegator_size: u32,
 ) -> axon_types::delegate::DelegateCellData {
     let requirement = axon_types::delegate::DelegateRequirement::new_builder()
         .commission_rate(commission_rate.into())
-        .max_delegator_size(axon_u32(100))
+        .max_delegator_size(axon_u32(max_delegator_size))
         .build();
     axon_types::delegate::DelegateCellData::new_builder()
         .delegate_requirement(requirement)
@@ -273,7 +274,7 @@ pub fn axon_delegate_requirement_and_stake_at_cell(
             delegate_requirement_args.as_bytes(),
         )
         .expect("delegate requirement type script");
-    let delegate_requirement_cell_data = axon_delegate_requirement_cell_data(10);
+    let delegate_requirement_cell_data = axon_delegate_requirement_cell_data(10, 3);
     let delegate_requirement_script_dep = CellDep::new_builder()
         .out_point(
             context.create_cell(
