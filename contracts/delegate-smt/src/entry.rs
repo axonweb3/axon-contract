@@ -120,7 +120,7 @@ pub fn main() -> Result<(), Error> {
 }
 
 fn update_delegate_info(
-    delegator: [u8; 20],
+    delegator: &[u8; 20],
     delegate_info_delta: &DelegateInfoDelta,
     delegate_infos_set: &mut BTreeSet<LockInfo>,
     delegate_withdraw_infos: &mut WithdrawAmountMap,
@@ -128,7 +128,7 @@ fn update_delegate_info(
     // get this delegator's old delegate amount in smt tree from delegate_infos_set
     let delegate_info = delegate_infos_set
         .iter()
-        .find(|delegate_info| delegator == delegate_info.addr);
+        .find(|delegate_info| *delegator == delegate_info.addr);
     let mut delegate_info_clone: Option<LockInfo> = None;
     let mut old_delegate = 0u128;
     if let Some(delegate_info) = delegate_info {
@@ -161,48 +161,96 @@ fn update_delegate_info(
     }
 
     let delegate_info_obj = LockInfo {
-        addr: delegator,
+        addr: *delegator,
         amount: old_delegate,
     };
     delegate_infos_set.insert(delegate_info_obj);
     debug!("delegate_info_obj: {:?}", delegate_info_obj);
 
     if redeem_amount > 0 {
-        delegate_withdraw_infos.insert(delegator, redeem_amount);
+        delegate_withdraw_infos.insert(*delegator, redeem_amount);
     }
 
     Ok(())
 }
 
 fn verify_delegator_selection(
-    delegate_infos_set: &BTreeSet<LockInfo>,
+    old_delegate_infos_set: &BTreeSet<LockInfo>,
+    new_delegate_infos_set: &BTreeSet<LockInfo>,
+    delegator_update_infos: &Vec<([u8; 20], [u8; 32], DelegateInfoDelta)>,
     new_epoch_root: [u8; 32],
     new_epoch_proof: Vec<u8>,
     epoch: u64,
     max_delegator_size: u32,
+    staker: &Vec<u8>,
+    delegate_withdraw_infos: &mut WithdrawAmountMap,
 ) -> Result<(), Error> {
     // sort delegator by amount
-    let iter = delegate_infos_set.iter();
-    let mut top = iter.take(3 * max_delegator_size as usize);
-    let mut new_delegate_infos_set = BTreeSet::new();
+    let mut top = new_delegate_infos_set
+        .iter()
+        .take(max_delegator_size as usize);
+    let mut select_delegate_infos_set = BTreeSet::new();
     while let Some(elem) = top.next() {
-        new_delegate_infos_set.insert((*elem).clone());
+        select_delegate_infos_set.insert((*elem).clone());
+        debug!("select_delegate_infos : {:?}", *elem);
     }
 
     let new_epoch_root: H256 = new_epoch_root.into();
     let new_epoch_proof = CompiledMerkleProof(new_epoch_proof);
     let result = verify_2layer_smt(
-        &new_delegate_infos_set,
+        &select_delegate_infos_set,
         u64_to_h256(epoch + 2),
         new_epoch_root,
         new_epoch_proof,
     )?;
     debug!(
-        "verify_2layer_smt new delegate_infos_set result: {}",
-        result
+        "verify_2layer_smt new delegate_infos_set result: {}, new_delegator_size: {}",
+        result,
+        select_delegate_infos_set.len()
     );
     if !result {
         return Err(Error::DelegateSmtVerifySelectionError);
+    }
+
+    let mut deleted_delegate_infos_set = BTreeSet::<LockInfo>::new();
+    if new_delegate_infos_set.len() > select_delegate_infos_set.len() {
+        let mut iter = new_delegate_infos_set.iter();
+        let deleted_size = new_delegate_infos_set.len() - select_delegate_infos_set.len();
+        for _ in 0..deleted_size {
+            if let Some(elem) = iter.next_back() {
+                deleted_delegate_infos_set.insert(elem.clone());
+                debug!("deleted_delegate_infos : {:?}", *elem);
+            }
+        }
+    }
+    debug!(
+        "deleted delegate infos size: {}",
+        deleted_delegate_infos_set.len()
+    );
+
+    for (delegator_addr, delegate_at_lock_hash, _delegate_info_delta) in delegator_update_infos {
+        //after updated to smt cell, the output delegate should be reset
+        let contains = deleted_delegate_infos_set
+            .iter()
+            .any(|item| item.addr == *delegator_addr);
+        if !contains {
+            let output_delegate_info_delta =
+                get_delegate_delta(&staker, &delegate_at_lock_hash, Source::Output)?;
+            if output_delegate_info_delta.is_some() {
+                return Err(Error::DelegateSmtRecordNotDelete);
+            }
+        }
+    }
+
+    // if the deleted delegator has delegate record in input smt tree, we need withdraw the delegated at
+    for deleted_delegator in deleted_delegate_infos_set {
+        if let Some(entry) = old_delegate_infos_set
+            .iter()
+            .find(|info| info.addr == deleted_delegator.addr)
+        {
+            debug!("deleted delegator withdraw info: {:?}", entry);
+            delegate_withdraw_infos.insert(deleted_delegator.addr, entry.amount);
+        }
     }
 
     Ok(())
@@ -244,7 +292,8 @@ fn update_delegate_smt(
         let stake_group_info = stake_group_infos.get(i);
         let staker = stake_group_info.staker();
         let delegate_infos = stake_group_info.delegate_infos();
-        let mut delegate_infos_set = BTreeSet::new();
+        let mut old_delegate_infos_set = BTreeSet::new();
+        // get input total delegate infos of this staker
         for i in 0..delegate_infos.len() {
             let delegate_info = delegate_infos.get(i);
             let delegate_info_obj = LockInfo {
@@ -255,7 +304,7 @@ fn update_delegate_smt(
                     .unwrap(),
                 amount: bytes_to_u128(&delegate_info.amount()),
             };
-            delegate_infos_set.insert(delegate_info_obj);
+            old_delegate_infos_set.insert(delegate_info_obj);
         }
         let old_epoch_proof = stake_group_info.delegate_old_epoch_proof();
         let old_epoch_proof: CompiledMerkleProof = CompiledMerkleProof(old_epoch_proof);
@@ -265,7 +314,7 @@ fn update_delegate_smt(
         )?;
         let old_epoch_root: H256 = old_epoch_root.into();
         let result = verify_2layer_smt(
-            &delegate_infos_set,
+            &old_delegate_infos_set,
             u64_to_h256(epoch + 2),
             old_epoch_root,
             old_epoch_proof,
@@ -275,35 +324,31 @@ fn update_delegate_smt(
             result
         );
 
-        // update old delegate info to new delegate info based on input delegate at cells
+        // initial value of new delegate info set is old delegate info set
+        let mut new_delegate_infos_set = old_delegate_infos_set.clone();
         let xudt_type_hash: [u8; 32] = xudt_type_hash.as_slice().try_into().unwrap();
         // debug!("xudt_type_hash: {:?}", xudt_type_hash);
+        // update old delegate info to new delegate info based on input delegate at cells
         // get this staker's delegate update infos
-        let update_infos = get_delegate_update_infos(
+        let delegator_update_infos = get_delegate_update_infos(
             &staker,
             &xudt_type_hash,
             delegate_at_code_hash,
             Source::Input,
         )?;
         // update old delegate infos to new delegate infos
-        for (delegator_addr, delegate_at_lock_hash, delegate_info_delta) in update_infos {
+        for (delegator_addr, _delegate_at_lock_hash, delegate_info_delta) in &delegator_update_infos
+        {
             let inauguration_epoch = delegate_info_delta.inauguration_epoch();
             if inauguration_epoch < epoch + 2 {
                 return Err(Error::StaleDelegateInfo);
-            }
-
-            // after updated to smt cell, the output delegate should be reset
-            let output_delegate_info_delta =
-                get_delegate_delta(&staker, &delegate_at_lock_hash, Source::Output)?;
-            if output_delegate_info_delta.is_some() {
-                return Err(Error::DelegateSmtRecordNotDelete);
             }
 
             // get the delegator's new delegate info for this staker
             update_delegate_info(
                 delegator_addr,
                 &delegate_info_delta,
-                &mut delegate_infos_set,
+                &mut new_delegate_infos_set,
                 &mut delegate_withdraw_infos,
             )?;
         }
@@ -315,14 +360,23 @@ fn update_delegate_smt(
             &new_delegate_smt_data,
         )?;
         let max_delegator_size = get_delegator_size(&staker, metadata_type_id, stake_at_code_hash)?;
-        debug!("max_delegator_size: {}", max_delegator_size);
+        debug!(
+            "max_delegator_size: {}, old_delegator_size: {}, new_delegator_size: {}",
+            max_delegator_size,
+            old_delegate_infos_set.len(),
+            new_delegate_infos_set.len()
+        );
 
         verify_delegator_selection(
-            &delegate_infos_set,
+            &old_delegate_infos_set,
+            &new_delegate_infos_set,
+            &delegator_update_infos,
             new_epoch_root,
             new_proof,
             epoch,
             max_delegator_size,
+            &staker,
+            &mut delegate_withdraw_infos,
         )?;
     }
 

@@ -67,7 +67,7 @@ pub fn main() -> Result<(), Error> {
                         &type_ids.checkpoint_code_hash(),
                         &type_ids.checkpoint_type_id(),
                     );
-                    debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
+                    // debug!("checkpoint_script_hash: {:?}", checkpoint_script_hash);
                     update_delegate_at_cell(
                         &delegator_identity,
                         &delegate_at_lock_hash,
@@ -141,78 +141,79 @@ pub fn update_delegate_at_cell(
         return Err(Error::InputOutputAtAmountNotEqual);
     }
 
-    let (input_amount, input_delegate_at_data) =
+    let (input_delegate_at_amount, input_delegate_at_data) =
         get_delegate_at_data_by_lock_hash(&delegate_at_lock_hash, Source::Input)?;
-    let (output_amount, output_delegate_at_data) =
+    let (output_delegate_at_amount, output_delegate_at_data) =
         get_delegate_at_data_by_lock_hash(&delegate_at_lock_hash, Source::Output)?;
     if input_delegate_at_data.version() != output_delegate_at_data.version()
         || input_delegate_at_data.metadata_type_id() != output_delegate_at_data.metadata_type_id()
     {
         return Err(Error::UpdateDataError);
     }
-    debug!(
-        "input_amount: {}, output_amount: {}",
-        input_amount, output_amount
-    );
 
     let epoch = get_current_epoch(checkpoint_type_id)?;
-    // debug!("epoch: {}", epoch);
-    let mut at_change = 0i128;
+    debug!(
+        "input_delegate_at_amount: {}, output_delegate_at_amount: {}, epoch: {}",
+        input_delegate_at_amount, output_delegate_at_amount, epoch
+    );
+
+    let mut delegate_at_change = 0i128;
     let input_delegate_info_deltas = input_delegate_at_data.delegator_infos();
     let output_delegate_info_deltas = output_delegate_at_data.delegator_infos();
     for i in 0..output_delegate_info_deltas.len() {
         let output_delegate_info = output_delegate_info_deltas.get(i);
         let output_delegate = bytes_to_u128(&output_delegate_info.amount());
         let output_increase: bool = output_delegate_info.is_increase() == 1;
-        let output_inaugutation_epoch = output_delegate_info.inauguration_epoch();
+        let output_inauguration_epoch = output_delegate_info.inauguration_epoch();
         let staker = output_delegate_info.staker();
         if staker == *delegator_identity {
             return Err(Error::DelegateSelf);
         }
-        if output_inaugutation_epoch != epoch + 2 {
+        if output_inauguration_epoch != epoch + 2 {
             return Err(Error::BadInaugurationEpoch);
         }
 
         let mut input_delegate = 0u128;
         let mut input_increase = true;
-        let mut first_delegate = true;
         for i in 0..input_delegate_info_deltas.len() {
             let input_delegate_info = input_delegate_info_deltas.get(i);
             if input_delegate_info.staker().as_slice().to_vec() == staker {
-                first_delegate = false;
                 input_delegate = bytes_to_u128(&input_delegate_info.amount());
                 input_increase = input_delegate_info.is_increase() == 1;
                 break;
             }
         }
 
-        if first_delegate {
-            // no delegate info before
-            if !output_increase {
-                return Err(Error::FirstRedeemError);
-            }
-            at_change -= output_delegate as i128; // decrease by output_delegate
-        } else {
-            // update existing delegate info
-            if input_increase {
-                if output_increase {
-                    at_change += output_delegate as i128 - input_delegate as i128;
-                } else {
-                    // delegate decrease by input_delegate, withdraw all of previous tokens
-                    at_change -= input_delegate as i128;
-                    // we should check output_delegate is less than amount stored in smt?
-                }
+        if input_increase {
+            if output_increase {
+                delegate_at_change += output_delegate as i128 - input_delegate as i128;
             } else {
-                if output_increase {
-                    at_change += output_delegate as i128;
-                } else {
-                    // we should check output_delegate is less than amount stored in smt?
-                }
+                // delegate decrease by input_delegate, withdraw all of previous tokens
+                delegate_at_change -= input_delegate as i128;
+                // we should check output_delegate is less than amount stored in smt?
+            }
+        } else {
+            if output_increase {
+                delegate_at_change += output_delegate as i128;
+            } else {
+                // we should check output_delegate is less than amount stored in smt?
             }
         }
-        if input_amount as i128 + at_change != output_amount as i128 {
-            return Err(Error::BadDelegateChange);
+
+        // can not undelegate total delegate at amount
+        if !output_increase {
+            if output_delegate > output_delegate_at_amount {
+                return Err(Error::UnDelegateTooMuch);
+            }
         }
+    }
+
+    debug!(
+        "input_delegate_at_amount: {}, delegate_at_change: {}, output_delegate_at_amount: {}",
+        input_delegate_at_amount, delegate_at_change, output_delegate_at_amount
+    );
+    if input_delegate_at_amount as i128 + delegate_at_change != output_delegate_at_amount as i128 {
+        return Err(Error::BadDelegateChange);
     }
 
     Ok(())

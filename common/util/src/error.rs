@@ -54,7 +54,7 @@ pub enum Error {
     BadSudtDataFormat,
     BadInaugurationEpoch,
     BadStakeChange,
-    RedeemExceedLimit,
+    UnstakeTooMuch,
     BadStakeStakeChange,
     BadStakeRedeemChange,
     IllegalDefaultStakeInfo,
@@ -72,7 +72,7 @@ pub enum Error {
     MismatchXudtTypeId,
 
     // delegate
-    FirstRedeemError = 80,
+    UnDelegateTooMuch = 80,
     BadDelegateChange,
     StaleDelegateInfo,
     IllegalDefaultDelegateInfo,

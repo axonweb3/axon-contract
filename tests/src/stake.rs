@@ -11,19 +11,29 @@ use axon_types::withdraw::WithdrawArgs;
 use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
 use ckb_testtool::ckb_types::core::ScriptHashType;
-use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
+use ckb_testtool::ckb_types::{
+    bytes::Bytes, core::TransactionBuilder, core::TransactionView, packed::*, prelude::*,
+};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
 use ophelia::{Crypto, PrivateKey, Signature, ToPublicKey, UncompressedPublicKey};
 use ophelia_secp256k1::{Secp256k1Recoverable, Secp256k1RecoverablePrivateKey};
+use util::error::Error::{
+    BadInaugurationEpoch, BadStakeChange, InputOutputAtAmountNotEqual, UnstakeTooMuch,
+};
 use util::smt::{u64_to_h256, LockInfo, BOTTOM_SMT};
 // use util::helper::pubkey_to_eth_addr;
 
-#[test]
-fn test_stake_at_increase_success() {
-    // init context
-    let mut context = Context::default();
+fn construct_stake_at_tx(
+    context: &mut Context,
+    input_stake_info_delta: StakeInfoDelta,
+    output_stake_info_delta: StakeInfoDelta,
+    input_stake_at_amount: u128,
+    input_normal_at_amount: u128,
+    output_stake_at_amount: u128,
+    output_normal_at_amount: u128,
+) -> TransactionView {
     let secp256k1_data_bin = BUNDLED_CELL.get("specs/cells/secp256k1_data").unwrap();
     let secp256k1_data_out_point = context.deploy_cell(secp256k1_data_bin.to_vec().into());
 
@@ -79,11 +89,6 @@ fn test_stake_at_increase_success() {
         .stake_addr(l2_addr.clone())
         .build();
 
-    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
-        .is_increase(1.into())
-        .amount(axon_u128(0 as u128))
-        .inauguration_epoch(axon_u64(0 as u64))
-        .build();
     let keypair = Generator::random_keypair();
     // println!("staker pubkey: {:?}", keypair.1.serialize());
     let input_stake_at_data = axon_stake_at_cell_data_without_amount(
@@ -112,7 +117,10 @@ fn test_stake_at_increase_success() {
                         .lock(stake_at_lock_script.clone())
                         .type_(Some(stake_at_type_script.clone()).pack())
                         .build(),
-                    Bytes::from(axon_stake_at_cell_data(0, input_stake_at_data)),
+                    Bytes::from(axon_stake_at_cell_data(
+                        input_stake_at_amount,
+                        input_stake_at_data,
+                    )),
                 ),
             )
             .build(),
@@ -125,7 +133,7 @@ fn test_stake_at_increase_success() {
                         .lock(always_success_lock_script.clone())
                         .type_(Some(stake_at_type_script.clone()).pack())
                         .build(),
-                    Bytes::from((1000 as u128).to_le_bytes().to_vec()),
+                    Bytes::from(input_normal_at_amount.to_le_bytes().to_vec()),
                 ),
             )
             .build(),
@@ -146,11 +154,6 @@ fn test_stake_at_increase_success() {
     ];
 
     // prepare outputs_data
-    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
-        .is_increase(1.into())
-        .amount(axon_u128(100 as u128))
-        .inauguration_epoch(axon_u64(3 as u64))
-        .build();
     let output_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
@@ -160,9 +163,11 @@ fn test_stake_at_increase_success() {
         DelegateRequirementInfo::default(),
     );
     let outputs_data = vec![
-        Bytes::from(axon_stake_at_cell_data(100, output_stake_at_data)), // stake at cell
-        Bytes::from((900 as u128).to_le_bytes().to_vec()),               // normal at cell
-                                                                         // Bytes::from(axon_withdrawal_data(50, 2)),
+        Bytes::from(axon_stake_at_cell_data(
+            output_stake_at_amount,
+            output_stake_at_data,
+        )), // stake at cell
+        Bytes::from(output_normal_at_amount.to_le_bytes().to_vec()), // normal at cell
     ];
 
     // prepare metadata cell_dep
@@ -211,12 +216,6 @@ fn test_stake_at_increase_success() {
         )
         .build();
 
-    // let stake_at_witness = StakeAtWitness::new_builder().mode(0.into()).build();
-    // println!("stake at witness: {:?}", stake_at_witness.as_bytes().len());
-    // let stake_at_witness = WitnessArgs::new_builder()
-    //     .lock(Some(Bytes::from(stake_at_witness.as_bytes())).pack())
-    //     .build();
-
     // prepare signed tx
     let tx = TransactionBuilder::default()
         .inputs(inputs)
@@ -243,22 +242,6 @@ fn test_stake_at_increase_success() {
         signature.len()
     );
 
-    // {
-    //     let pubkey: ophelia_secp256k1::Secp256k1RecoverablePublicKey = priv_key.pub_key();
-    //     let pubkey = pubkey.to_uncompressed_bytes();
-    //     let result = Secp256k1Recoverable::verify_signature(&msg.as_slice(), &signature, &pubkey);
-    //     println!(
-    //         "secp256k1 signature, signature: {:?}, msg: {:?}, pubkey: {:?}",
-    //         signature,
-    //         msg.as_slice().to_vec(),
-    //         pubkey.to_vec()
-    //     );
-    //     match result {
-    //         Ok(_) => println!("Verify secp256k1 signature success!"),
-    //         Err(err) => println!("Verify secp256k1 signature failed! {}", err),
-    //     }
-    // }
-
     let stake_at_witness = StakeAtWitness::new_builder()
         .mode(0.into())
         .eth_sig(axon_byte65(signature))
@@ -270,9 +253,38 @@ fn test_stake_at_increase_success() {
 
     let tx = context.complete_tx(tx);
     let tx = sign_eth_tx(tx, stake_at_witness);
+    tx
+}
 
-    // sign tx for stake at cell (update stake at cell delta mode)
-    // let tx = sign_stake_tx(tx, &keypair.0, stake_at_witness);
+#[test]
+fn test_stake_at_success_increase_increase() {
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 100;
+    let input_normal_at_amount = 1000;
+    let output_stake_at_amount = 200;
+    let output_normal_at_amount = 900;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(input_stake_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_stake_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
 
     // run
     let cycles = context
@@ -282,9 +294,274 @@ fn test_stake_at_increase_success() {
 }
 
 #[test]
-fn test_stake_smt_success() {
+fn test_stake_at_success_stale_increase_increase() {
     // init context
     let mut context = Context::default();
+    let input_stake_at_amount = 100;
+    let input_normal_at_amount = 1000;
+    let output_stake_at_amount = 200;
+    let output_normal_at_amount = 900;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(input_stake_at_amount))
+        .inauguration_epoch(axon_u64(1 as u64))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_stake_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
+
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_stake_at_fail_wrong_epoch() {
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 100;
+    let input_normal_at_amount = 1000;
+    let output_stake_at_amount = 200;
+    let output_normal_at_amount = 900;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(input_stake_at_amount))
+        .inauguration_epoch(axon_u64(1 as u64))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_stake_at_amount))
+        .inauguration_epoch(axon_u64(4 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("BadInaugurationEpoch");
+    assert_script_error(err, BadInaugurationEpoch as i8);
+}
+
+#[test]
+fn test_stake_at_fail_more_at() {
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 100;
+    let input_normal_at_amount = 1000;
+    let output_stake_at_amount = 200;
+    let output_normal_at_amount = 950; // should be 900 instead
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(input_stake_at_amount))
+        .inauguration_epoch(axon_u64(1 as u64))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_stake_at_amount))
+        .inauguration_epoch(axon_u64(4 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("InputOutputAtAmountNotEqual");
+    assert_script_error(err, InputOutputAtAmountNotEqual as i8);
+}
+
+#[test]
+fn test_stake_at_success_decrease_increase() {
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 100;
+    let input_normal_at_amount = 1000;
+    let output_stake_at_amount = 200;
+    let output_normal_at_amount = 900;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(input_stake_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_stake_at_amount - input_stake_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
+
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_stake_at_fail_decrease_increase() {
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 100;
+    let input_normal_at_amount = 1000;
+    let output_stake_at_amount = 200;
+    let output_normal_at_amount = 900;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(input_stake_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+    // output stake delta increase 200, but output stake at only increase 100(200-100)
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(output_stake_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("BadStakeChange");
+    assert_script_error(err, BadStakeChange as i8);
+}
+
+#[test]
+fn test_stake_at_success_decrease_increase_less() {
+    // decrease unstake amount
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 200;
+    let input_normal_at_amount = 1000;
+    let output_stake_at_amount = 200;
+    let output_normal_at_amount = 1000;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(input_stake_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(output_stake_at_amount - 100))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
+
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_stake_at_success_decrease_decrease_toomuch() {
+    // unstake amount more than total stake amount
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 200;
+    let input_normal_at_amount = 1000;
+    let output_stake_at_amount = 200;
+    let output_normal_at_amount = 1000;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(200))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(output_stake_at_amount + 100))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("UnstakeTooMuch");
+    assert_script_error(err, UnstakeTooMuch as i8);
+}
+
+fn construct_stake_smt_tx(
+    context: &mut Context,
+    input_stake_info_delta: StakeInfoDelta,
+    output_stake_info_delta: StakeInfoDelta,
+    input_stake_at_amount: u128,
+    output_stake_at_amount: u128,
+) -> TransactionView {
     let secp256k1_data_bin = BUNDLED_CELL.get("specs/cells/secp256k1_data").unwrap();
     let secp256k1_data_out_point = context.deploy_cell(secp256k1_data_bin.to_vec().into());
     let secp256k1_data_dep = CellDep::new_builder()
@@ -339,13 +616,7 @@ fn test_stake_smt_success() {
         .stake_addr(l2_addr.clone())
         .build();
 
-    let new_stake_amount = 100;
     let inauguration_epoch = 3;
-    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
-        .is_increase(1.into())
-        .amount(axon_u128(new_stake_amount))
-        .inauguration_epoch(axon_u64(inauguration_epoch))
-        .build();
     let input_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
@@ -400,7 +671,10 @@ fn test_stake_smt_success() {
                         .lock(stake_at_lock_script.clone())
                         .type_(Some(stake_at_type_script.clone()).pack())
                         .build(),
-                    Bytes::from(axon_stake_at_cell_data(100, input_stake_at_data)),
+                    Bytes::from(axon_stake_at_cell_data(
+                        input_stake_at_amount,
+                        input_stake_at_data,
+                    )),
                 ),
             )
             .build(),
@@ -426,7 +700,6 @@ fn test_stake_smt_success() {
     ];
 
     // prepare outputs_data
-    let output_stake_info_delta = stake::StakeInfoDelta::new_builder().build();
     let output_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
@@ -439,7 +712,7 @@ fn test_stake_smt_success() {
     let lock_info = LockInfo {
         // addr: blake160(keypair.1.serialize().as_slice()),
         addr: l2_addr.as_slice().try_into().unwrap(),
-        amount: new_stake_amount,
+        amount: input_stake_at_amount,
     };
     let output_stake_infos = vec![lock_info].into_iter().collect::<BTreeSet<LockInfo>>();
     // let output_stake_infos = BTreeSet::new();
@@ -453,8 +726,11 @@ fn test_stake_smt_success() {
         output_stake_smt_data.as_bytes().len()
     );
     let outputs_data = vec![
-        Bytes::from(axon_stake_at_cell_data(100, output_stake_at_data)), // stake at cell
-        output_stake_smt_data.as_bytes(),                                // stake smt cell
+        Bytes::from(axon_stake_at_cell_data(
+            output_stake_at_amount,
+            output_stake_at_data,
+        )), // stake at cell
+        output_stake_smt_data.as_bytes(), // stake smt cell
     ];
 
     // prepare metadata cell_dep
@@ -520,10 +796,6 @@ fn test_stake_smt_success() {
         .0;
     println!("old proof: {:?}", old_proof);
 
-    // let lock_info = LockInfo {
-    //     addr: blake160(keypair.1.serialize().as_slice()),
-    //     amount: 100,
-    // };
     let lock_infos: BTreeSet<LockInfo> =
         vec![lock_info].into_iter().collect::<BTreeSet<LockInfo>>();
     let (new_bottom_root, _) = construct_lock_info_smt(&lock_infos);
@@ -584,7 +856,30 @@ fn test_stake_smt_success() {
         // .cell_dep(stake_smt_input_dep)
         .build();
     let tx = context.complete_tx(tx);
+    tx
+}
 
+#[test]
+fn test_stake_smt_success() {
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 200;
+    let output_stake_at_amount = 200;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(input_stake_at_amount))
+        .inauguration_epoch(axon_u64(3))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder().build();
+
+    let tx = construct_stake_smt_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        output_stake_at_amount,
+    );
     // run
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)
@@ -592,12 +887,15 @@ fn test_stake_smt_success() {
     println!("consume cycles: {}", cycles);
 }
 
-// staker has staked 100 at, and updated to stake smt cell
-// staker then want to redeem 5 at , and updated to stake smt cell
-#[test]
-fn test_stake_smt_redeem_success() {
-    // init context
-    let mut context = Context::default();
+fn construct_stake_smt_unstake_tx(
+    context: &mut Context,
+    input_stake_info_delta: StakeInfoDelta,
+    output_stake_info_delta: StakeInfoDelta,
+    input_unstake_amount: u128,
+    input_stake_smt_amount: u128,
+    input_stake_at_amount: u128,
+    output_stake_at_amount: u128,
+) -> TransactionView {
     let secp256k1_data_bin = BUNDLED_CELL.get("specs/cells/secp256k1_data").unwrap();
     let secp256k1_data_out_point = context.deploy_cell(secp256k1_data_bin.to_vec().into());
     let secp256k1_data_dep = CellDep::new_builder()
@@ -653,13 +951,8 @@ fn test_stake_smt_redeem_success() {
         .build();
 
     // redeem 10 AT
-    let new_unstake_amount = 10;
     let inauguration_epoch = 2; // default epoch of checkpoint cell is 0
-    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
-        .is_increase(0.into())
-        .amount(axon_u128(new_unstake_amount))
-        .inauguration_epoch(axon_u64(inauguration_epoch))
-        .build();
+
     let input_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
@@ -687,10 +980,9 @@ fn test_stake_smt_redeem_success() {
     );
 
     println!("input stake infos of stake smt cell");
-    let old_stake_amount = 100;
     let old_lock_info = LockInfo {
         addr: l2_addr.as_slice().try_into().unwrap(),
-        amount: old_stake_amount,
+        amount: input_stake_smt_amount,
     };
     let input_stake_infos = vec![old_lock_info]
         .into_iter()
@@ -710,11 +1002,6 @@ fn test_stake_smt_redeem_success() {
         input_stake_smt_data.as_bytes(),
     );
 
-    // let withdraw_contract_bin: Bytes = Loader::default().load_binary("withdraw");
-    // let withdraw_contract_out_point = context.deploy_cell(withdraw_contract_bin);
-    // let withdraw_contract_dep = CellDep::new_builder()
-    //     .out_point(withdraw_contract_out_point.clone())
-    //     .build();
     let withdraw_lock_args = WithdrawArgs::new_builder()
         .addr(l2_addr.clone())
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
@@ -759,7 +1046,7 @@ fn test_stake_smt_redeem_success() {
                         .type_(Some(stake_at_type_script.clone()).pack())
                         .build(),
                     Bytes::from(axon_stake_at_cell_data(
-                        old_stake_amount,
+                        input_stake_at_amount,
                         input_stake_at_data,
                     )),
                 ),
@@ -797,7 +1084,6 @@ fn test_stake_smt_redeem_success() {
     ];
 
     // prepare outputs_data
-    let output_stake_info_delta = stake::StakeInfoDelta::new_builder().build();
     let output_stake_at_data = axon_stake_at_cell_data_without_amount(
         0,
         &keypair.1.serialize(),
@@ -809,7 +1095,7 @@ fn test_stake_smt_redeem_success() {
 
     let new_lock_info = LockInfo {
         addr: l2_addr.as_slice().try_into().unwrap(),
-        amount: old_stake_amount - new_unstake_amount,
+        amount: input_stake_smt_amount - input_unstake_amount,
     };
     let output_stake_infos = vec![new_lock_info]
         .into_iter()
@@ -826,18 +1112,18 @@ fn test_stake_smt_redeem_success() {
     let output_withdraw_infos = vec![
         (inauguration_epoch - 2 as u64, 0 as u128),
         (inauguration_epoch - 1, 0),
-        (inauguration_epoch, new_unstake_amount),
+        (inauguration_epoch, input_unstake_amount),
     ];
     let output_withdraw_data = axon_withdraw_at_cell_data_without_amount(output_withdraw_infos);
 
     let outputs_data = vec![
         Bytes::from(axon_stake_at_cell_data(
-            old_stake_amount - new_unstake_amount,
+            output_stake_at_amount,
             output_stake_at_data,
         )), // stake at cell
         output_stake_smt_data.as_bytes(), // stake smt cell
         Bytes::from(axon_withdraw_at_cell_data(
-            new_unstake_amount,
+            input_unstake_amount,
             output_withdraw_data,
         )), // withdraw at cell
     ];
@@ -934,7 +1220,7 @@ fn test_stake_smt_redeem_success() {
 
     let stake_info = stake::StakeInfo::new_builder()
         .addr(l2_addr.clone())
-        .amount(axon_u128(old_stake_amount))
+        .amount(axon_u128(input_stake_smt_amount))
         .build(); // assume old stake smt is empty
     let stake_infos = stake::StakeInfos::new_builder().push(stake_info).build();
     let stake_smt_update_info = stake::StakeSmtUpdateInfo::new_builder()
@@ -974,7 +1260,35 @@ fn test_stake_smt_redeem_success() {
         .cell_dep(metadata_script_dep)
         .build();
     let tx = context.complete_tx(tx);
+    tx
+}
 
+// staker has staked 100 at, and updated to stake smt cell
+// staker then want to redeem 5 at , and updated to stake smt cell
+#[test]
+fn test_stake_smt_redeem_success() {
+    // init context
+    let mut context = Context::default();
+    let input_unstake_amount = 10;
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(input_unstake_amount))
+        .inauguration_epoch(axon_u64(2))
+        .build();
+    let input_stake_smt_amount = 100;
+    let input_stake_at_amount = 100;
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder().build();
+    let output_stake_at_amount = input_stake_at_amount - input_unstake_amount;
+
+    let tx = construct_stake_smt_unstake_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_unstake_amount,
+        input_stake_smt_amount,
+        input_stake_at_amount,
+        output_stake_at_amount,
+    );
     // run
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)
@@ -1206,6 +1520,40 @@ fn test_stake_election_success() {
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");
     println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_eth_sig_success() {
+    let hex_privkey = [0xcd; 32];
+    let priv_key = Secp256k1RecoverablePrivateKey::try_from(hex_privkey.as_slice()).unwrap();
+    let pubkey = priv_key.pub_key();
+    let pubkey = pubkey.to_uncompressed_bytes().to_vec();
+
+    let msg = [1u8; 32];
+    // println!("tx hash: {:?}", msg.clone().as_bytes().to_vec());
+    let signature = Secp256k1Recoverable::sign_message(&msg, &priv_key.to_bytes())
+        .unwrap()
+        .to_bytes()
+        .to_vec();
+    println!(
+        "eth_addr msg: {:?}, signature:{:?}, len: {:?}",
+        msg,
+        signature,
+        signature.len()
+    );
+
+    let result = Secp256k1Recoverable::verify_signature(&msg, &signature, &pubkey);
+    println!(
+        "secp256k1 signature, signature: {:?}, msg: {:?}, pubkey: {:?}",
+        signature,
+        msg.as_slice().to_vec(),
+        pubkey.to_vec()
+    );
+    assert!(result.is_ok());
+    match result {
+        Ok(_) => println!("Verify secp256k1 signature success!"),
+        Err(err) => println!("Verify secp256k1 signature failed! {}", err),
+    }
 }
 
 #[test]

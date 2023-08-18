@@ -120,17 +120,19 @@ fn check_l2_addr(l2_addr_args: &Vec<u8>, stake_at_lock_hash: &[u8; 32]) -> Resul
 }
 
 fn check_stake_change(
-    input_stake: u128,
-    output_stake: u128,
-    input_amount: u128,
-    output_amount: u128,
+    input_stake_delta: u128,
+    output_stake_delta: u128,
+    input_stake_at_amount: u128,
+    output_stake_at_amount: u128,
 ) -> Result<(), Error> {
-    if output_stake >= input_stake {
-        if output_stake - input_stake != output_amount - input_amount {
+    if output_stake_delta >= input_stake_delta {
+        if output_stake_delta - input_stake_delta != output_stake_at_amount - input_stake_at_amount
+        {
             return Err(Error::BadStakeStakeChange);
         }
     } else {
-        if input_stake - output_stake != input_amount - output_amount {
+        if input_stake_delta - output_stake_delta != input_stake_at_amount - output_stake_at_amount
+        {
             return Err(Error::BadStakeStakeChange);
         }
     }
@@ -164,65 +166,70 @@ pub fn update_stake_at_cell(
 
     let total_input_at_amount = get_xudt_by_type_hash(xudt_type_hash, Source::Input)?;
     let total_output_at_amount = get_xudt_by_type_hash(xudt_type_hash, Source::Output)?;
-    if total_input_at_amount != total_output_at_amount {
-        return Err(Error::InputOutputAtAmountNotEqual);
-    }
     debug!(
         "input_at_amount:{}, output_at_amount:{}",
         total_input_at_amount, total_output_at_amount
     );
+    if total_input_at_amount != total_output_at_amount {
+        return Err(Error::InputOutputAtAmountNotEqual);
+    }
 
-    let (input_amount, input_stake_at_data) =
+    let (input_stake_at_amount, input_stake_at_data) =
         get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Input)?;
-    debug!("input_amount:{}", input_amount);
-    let (output_amount, output_stake_at_data) =
+    let (output_stake_at_amount, output_stake_at_data) =
         get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Output)?;
-    debug!("output_amount:{}", output_amount);
+    debug!(
+        "input_stake_at_amount:{}, output_stake_at_amount:{}",
+        input_stake_at_amount, output_stake_at_amount
+    );
     if input_stake_at_data.version() != output_stake_at_data.version()
         || input_stake_at_data.metadata_type_id() != output_stake_at_data.metadata_type_id()
     {
         return Err(Error::UpdateDataError);
     }
 
-    let input_stake_info = input_stake_at_data.delta();
-    let input_stake = bytes_to_u128(&input_stake_info.amount());
-    let input_increase = input_stake_info.is_increase() == 1;
+    let input_stake_info_delta = input_stake_at_data.delta();
+    let input_stake_delta = bytes_to_u128(&input_stake_info_delta.amount());
+    let input_increase = input_stake_info_delta.is_increase() == 1;
 
-    let output_stake_info = output_stake_at_data.delta();
-    let output_stake = bytes_to_u128(&output_stake_info.amount());
-    let output_increase = output_stake_info.is_increase() == 1;
-    let output_inaugutation_epoch = output_stake_info.inauguration_epoch();
+    let output_stake_info_delta = output_stake_at_data.delta();
+    let output_stake_delta = bytes_to_u128(&output_stake_info_delta.amount());
+    let output_increase = output_stake_info_delta.is_increase() == 1;
+    let output_inaugutation_epoch = output_stake_info_delta.inauguration_epoch();
+
+    let current_epoch = get_current_epoch(checkpoint_type_id)?;
     debug!(
-        "input_stake:{}, output_stake:{}, output_inaugutation_epoch:{}",
-        input_stake, output_stake, output_inaugutation_epoch
+        "input_stake_delta:{}, output_stake_delta:{}, output_inaugutation_epoch:{}, current_epoch:{}",
+        input_stake_delta, output_stake_delta, output_inaugutation_epoch, current_epoch
     );
-
-    let epoch = get_current_epoch(checkpoint_type_id)?;
-    debug!("epoch:{}", epoch);
-    if output_inaugutation_epoch != epoch + 2 {
+    if output_inaugutation_epoch != current_epoch + 2 {
         return Err(Error::BadInaugurationEpoch);
     }
 
     if input_increase {
         if output_increase {
-            check_stake_change(input_stake, output_stake, input_amount, output_amount)?;
+            check_stake_change(
+                input_stake_delta,
+                output_stake_delta,
+                input_stake_at_amount,
+                output_stake_at_amount,
+            )?;
         } else {
-            if input_stake != input_amount - output_amount {
+            if input_stake_delta != input_stake_at_amount - output_stake_at_amount {
                 return Err(Error::BadStakeRedeemChange);
-            }
-            if output_stake > input_amount {
-                return Err(Error::RedeemExceedLimit);
             }
         }
     } else {
         if output_increase {
-            if output_stake != output_amount - input_amount {
+            if output_stake_delta != output_stake_at_amount - input_stake_at_amount {
                 return Err(Error::BadStakeChange);
             }
-        } else {
-            if output_stake > input_amount {
-                return Err(Error::RedeemExceedLimit);
-            }
+        }
+    }
+
+    if !output_increase {
+        if output_stake_delta > output_stake_at_amount {
+            return Err(Error::UnstakeTooMuch);
         }
     }
     Ok(())
