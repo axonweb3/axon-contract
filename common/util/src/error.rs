@@ -54,7 +54,7 @@ pub enum Error {
     BadSudtDataFormat,
     BadInaugurationEpoch,
     BadStakeChange,
-    RedeemExceedLimit,
+    UnstakeTooMuch,
     BadStakeStakeChange,
     BadStakeRedeemChange,
     IllegalDefaultStakeInfo,
