@@ -25,9 +25,6 @@ use util::{
 fn construct_delegate_tx(context: &mut Context) -> TransactionView {
     let delegator_keypair = Generator::random_keypair();
     let staker_keypair = Generator::random_keypair();
-    // let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
-    //     .staker(axon_identity(&staker_keypair.1.serialize()))
-    //     .build();
     let output_at_amount = 1000;
     let output_delegate_at_amount = 100;
     let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
@@ -59,8 +56,6 @@ fn construct_delegate_tx_with_args(
     output_normal_at_amount: u128,
     output_delegate_at_amount: u128,
 ) -> TransactionView {
-    // let input_normal_at_amount: u128 = 1000;
-    // let output_normal_at_amount: u128 = 900;
     let current_epoch = 1;
 
     let contract_bin: Bytes = Loader::default().load_binary("delegate");

@@ -103,16 +103,6 @@ impl PartialOrd for LockInfo {
             Some(Ordering::Equal) => self.addr.partial_cmp(&other.addr),
             ordering => ordering,
         }
-        // let order = self.amount.partial_cmp(&other.amount);
-        // if let Some(order) = order {
-        //     if order == Ordering::Equal {
-        //         self.addr.partial_cmp(&other.addr)
-        //     } else {
-        //         Some(order)
-        //     }
-        // } else {
-        //     order
-        // }
     }
 }
 
