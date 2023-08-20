@@ -118,14 +118,6 @@ pub fn addr_to_h256(addr: &[u8; 20]) -> H256 {
     buf.into()
 }
 
-// pub fn u32_to_h256(propose_count: u32) -> H256 {
-//     let mut buf = [0u8; 32];
-//     let mut hasher = new_blake2b();
-//     hasher.update(&propose_count.to_le_bytes());
-//     hasher.finalize(&mut buf);
-//     buf.into()
-// }
-
 pub fn u64_to_h256(num: u64) -> H256 {
     let mut buf = [0u8; 32];
     buf[..8].copy_from_slice(&num.to_le_bytes());

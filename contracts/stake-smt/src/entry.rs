@@ -130,7 +130,7 @@ fn verify_withdraw_amount(
     Ok(())
 }
 
-// the old_stake_infos_set is the stake infos of old epoch， the stake_info_delta is the stake change of this epoch
+// the old_stake_info_set is the stake infos of old epoch， the stake_info_delta is the stake change of this epoch
 // if the staker's stake is changed in this epoch, we need to update the stake_infos_set
 // if not, we need to add the staker's stake info to stake_infos_set
 fn update_stake_info(
@@ -138,51 +138,19 @@ fn update_stake_info(
     metadata_type_id: &[u8; 32],
     withdraw_code_hash: &Vec<u8>,
     stake_info_delta: &StakeInfoDelta,
-    stake_infos_set: &mut BTreeSet<LockInfo>,
+    // stake_infos_set: &mut BTreeSet<LockInfo>,
 ) -> Result<(), Error> {
-    // get this staker's old stake amount in smt tree from stake_infos_set
-    let mut old_stake = 0u128;
-    let stake_info = stake_infos_set
-        .iter()
-        .find(|stake_info| addr == stake_info.addr);
-
-    // the staker's info should be updated, so we deleted it from stake_infos_set first, we will insert it in the future
-    if let Some(stake_info) = stake_info {
-        old_stake = stake_info.amount;
-        let stake_info_clone = LockInfo {
-            addr: stake_info.addr,
-            amount: stake_info.amount,
-        };
-        stake_infos_set.remove(&stake_info_clone);
-    }
-
-    let delta_stake = bytes_to_u128(&stake_info_delta.amount());
     let input_increase = stake_info_delta.is_increase() == 1;
     // calculate the stake of output
     let mut unstake_amount = 0u128;
-    if input_increase {
-        old_stake += delta_stake;
-    } else {
-        if delta_stake > old_stake {
-            // unstake amount larger than staked amount, set to 0
-            unstake_amount = old_stake;
-            old_stake = 0;
-        } else {
-            unstake_amount = delta_stake;
-            old_stake -= delta_stake;
-        }
+    if !input_increase {
+        unstake_amount = bytes_to_u128(&stake_info_delta.amount());
     }
-
-    let stake_info_obj = LockInfo {
-        addr: addr,
-        amount: old_stake,
-    };
-    stake_infos_set.insert(stake_info_obj);
 
     // get input & output withdraw AT cell, we need to update this after withdraw script's finish
     debug!(
-        "verify_withdraw_amount withdraw_code_hash: {:?}, addr: {:?}, metadata_type_id: {:?}",
-        withdraw_code_hash, addr, metadata_type_id
+        "verify_withdraw_amount withdraw_code_hash: {:?}, addr: {:?}, metadata_type_id: {:?}, unstake_amount: {}",
+        withdraw_code_hash, addr, metadata_type_id, unstake_amount
     );
     verify_withdraw_amount(unstake_amount, metadata_type_id, &addr, withdraw_code_hash)?;
 
@@ -212,29 +180,48 @@ fn verify_old_stake_infos(
     Ok(())
 }
 
-fn verify_staker_selection(
-    stake_infos_set: &BTreeSet<LockInfo>,
-    new_stake_smt_data: &StakeSmtCellData,
-    stake_smt_update_infos: &StakeSmtUpdateInfo,
-    epoch: u64,
+fn get_selected_unselected_staker(
+    new_stake_info_set: &BTreeSet<LockInfo>,
     metadata_type_id: &[u8; 32],
-) -> Result<(), Error> {
+) -> Result<(BTreeSet<LockInfo>, BTreeSet<LockInfo>), Error> {
     // sort stakes by amount
     let quorum_size = get_quorum_size(metadata_type_id, Source::CellDep)?;
-    let iter = stake_infos_set.iter();
-    let mut top_3quorum = iter.take(3 * quorum_size as usize);
-    let mut new_stake_infos_set = BTreeSet::new();
+    let mut top_3quorum = new_stake_info_set.iter().take(3 * quorum_size as usize);
+    let mut select_stake_info_set = BTreeSet::new();
     while let Some(elem) = top_3quorum.next() {
-        new_stake_infos_set.insert((*elem).clone());
+        select_stake_info_set.insert((*elem).clone());
+        debug!("select_stake_infos_set : {:?}", *elem);
     }
+
+    let mut delete_stake_info_set = BTreeSet::<LockInfo>::new();
+    if new_stake_info_set.len() > select_stake_info_set.len() {
+        let mut iter = new_stake_info_set.iter();
+        let deleted_size = new_stake_info_set.len() - select_stake_info_set.len();
+        for _ in 0..deleted_size {
+            if let Some(elem) = iter.next_back() {
+                delete_stake_info_set.insert(elem.clone());
+                debug!("deleted_stake_infos : {:?}", *elem);
+            }
+        }
+    }
+
     debug!(
-        "epoch: {}, stake_infos_set len: {}, new_stake_infos_set.len():{}, quorum: {}",
-        epoch,
-        stake_infos_set.len(),
-        new_stake_infos_set.len(),
+        "stake_infos_set len: {}, select_stake_infos_set.len():{}, deleted stake infos size: {}, quorum: {}",
+        new_stake_info_set.len(),
+        select_stake_info_set.len(),
+        delete_stake_info_set.len(),
         quorum_size
     );
 
+    Ok((select_stake_info_set, delete_stake_info_set))
+}
+
+fn verify_staker_selection(
+    select_stake_info_set: &BTreeSet<LockInfo>,
+    new_stake_smt_data: &StakeSmtCellData,
+    stake_smt_update_infos: &StakeSmtUpdateInfo,
+    epoch: u64,
+) -> Result<(), Error> {
     // get proof of new_stakes from Stake AT cells' witness of input,
     // verify delete_stakes is default
     // verify the new stake infos is equal to on-chain calculation
@@ -243,14 +230,14 @@ fn verify_staker_selection(
     let new_epoch_proof = stake_smt_update_infos.new_epoch_proof();
     let new_epoch_proof = CompiledMerkleProof(new_epoch_proof);
     let result = verify_2layer_smt(
-        &new_stake_infos_set,
+        &select_stake_info_set,
         u64_to_h256(epoch),
         new_epoch_root,
         new_epoch_proof,
     )?;
     debug!(
-        "verify_staker_selection verify_2layer_smt result:{}",
-        result
+        "verify_staker_selection epoch: {}, verify_2layer_smt result:{}",
+        epoch, result
     );
     if !result {
         return Err(Error::StakeSmtVerifySelectionError);
@@ -319,27 +306,28 @@ fn update_stake_smt(
     // construct old stake smt root & verify
     let current_epoch = get_current_epoch(&checkpoint_script_hash.to_vec())?;
     let min_inguaration_epoch = current_epoch + 2;
-    let mut stake_infos_set = transform_to_set(&stake_smt_update_infos.all_stake_infos());
+    let old_stake_info_set = transform_to_set(&stake_smt_update_infos.all_stake_infos());
     debug!(
         "current epoch:{}, old stake_infos_set len: {}",
         current_epoch,
-        stake_infos_set.len()
+        old_stake_info_set.len()
     );
     verify_old_stake_infos(
         min_inguaration_epoch,
         &stake_smt_update_infos,
         old_stake_smt_data,
-        &stake_infos_set,
+        &old_stake_info_set,
     )?;
 
     // get delta stake infos by parsing Stake AT cells' data
-    let update_infos = get_stake_update_infos(
+    let stake_deltas = get_stake_deltas(
         &xudt_type_hash.as_slice().try_into().unwrap(),
         &type_ids.stake_at_code_hash(),
         Source::Input,
     )?;
-    debug!("update_infos.len():{}", update_infos.len());
-    for (staker_addr, stake_at_lock_hash, stake_info_delta) in update_infos {
+    debug!("stake_deltas.len():{}", stake_deltas.len());
+    let mut new_stake_info_set = BTreeSet::new();
+    for (staker_addr, _stake_at_lock_hash, stake_info_delta) in &stake_deltas {
         let inauguration_epoch = stake_info_delta.inauguration_epoch();
         if inauguration_epoch < min_inguaration_epoch {
             return Err(Error::StaleStakeInfo); // kicker shouldn't update stale stake info
@@ -348,31 +336,103 @@ fn update_stake_smt(
             "staker_addr:{:?}, inauguration_epoch: {:?}",
             staker_addr, inauguration_epoch
         );
-
-        // after updated to smt cell, the output stake should be reset
-        let (_, output_stake_at_data) =
-            get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Output)?;
-        debug!("is_output_lock_info_reset");
-        is_output_lock_info_reset(&output_stake_at_data)?;
-
-        debug!("update_stake_info");
-        update_stake_info(
-            staker_addr,
-            &metadata_type_id,
-            &withdraw_code_hash,
-            &stake_info_delta,
-            &mut stake_infos_set,
-        )?;
+        if let Some(entry) = old_stake_info_set
+            .iter()
+            .find(|info| info.addr == *staker_addr)
+        {
+            let mut amount = entry.amount;
+            if stake_info_delta.is_increase() == 1 {
+                amount += bytes_to_u128(&stake_info_delta.amount());
+            } else {
+                let unstake_amount = bytes_to_u128(&stake_info_delta.amount());
+                if amount < unstake_amount {
+                    return Err(Error::UnstakeTooMuch);
+                }
+                amount -= unstake_amount;
+            }
+            let new_lock_info = LockInfo {
+                addr: *staker_addr,
+                amount: amount,
+            };
+            new_stake_info_set.insert(new_lock_info);
+        } else {
+            // this staker has not been updated to stake smt yet, a new entry
+            let new_lock_info = LockInfo {
+                addr: *staker_addr,
+                amount: bytes_to_u128(&stake_info_delta.amount()),
+            };
+            new_stake_info_set.insert(new_lock_info);
+        }
+    }
+    for old_info in &old_stake_info_set {
+        if let Some(_) = new_stake_info_set
+            .iter()
+            .find(|new_info| new_info.addr == old_info.addr)
+        {
+            debug!("staker already updated: {:?}", old_info.addr);
+        } else {
+            new_stake_info_set.insert(old_info.clone());
+        }
     }
 
+    let (select_stake_info_set, delete_stake_info_set) =
+        get_selected_unselected_staker(&new_stake_info_set, &metadata_type_id)?;
     debug!("verify_staker_selection");
     verify_staker_selection(
-        &stake_infos_set,
+        &select_stake_info_set,
         &new_stake_smt_data,
         &stake_smt_update_infos,
         min_inguaration_epoch,
-        &metadata_type_id,
     )?;
+
+    for select_stake_info in select_stake_info_set {
+        if let Some(delta) = stake_deltas
+            .iter()
+            .find(|delta| delta.0 == select_stake_info.addr)
+        {
+            let stake_at_lock_hash = delta.1;
+            // after updated to smt cell, the output stake should be reset
+            let (_, output_stake_at_data) =
+                get_stake_at_data_by_lock_hash(&stake_at_lock_hash, Source::Output)?;
+            debug!("is_output_lock_info_reset, staker: {:?}", delta.0);
+            is_output_lock_info_reset(&output_stake_at_data)?;
+            debug!("update_stake_info");
+            update_stake_info(
+                delta.0,
+                &metadata_type_id,
+                &withdraw_code_hash,
+                &delta.2,
+                // &mut old_stake_info_set,
+            )?;
+        } else {
+            debug!(
+                "select staker {:?} no change this time",
+                select_stake_info.addr
+            );
+        }
+    }
+
+    for delete_stake_info in delete_stake_info_set {
+        debug!("delete staker {:?} no change this time", delete_stake_info);
+        let mut withdraw_amount = delete_stake_info.amount;
+        if let Some(delta) = stake_deltas
+            .iter()
+            .find(|delta| delta.0 == delete_stake_info.addr)
+        {
+            let delta = &delta.2;
+            if delta.is_increase() == 1 {
+                withdraw_amount -= bytes_to_u128(&delta.amount());
+            }
+        }
+        // withdraw all smt amount of delete staker
+        verify_withdraw_amount(
+            withdraw_amount,
+            &metadata_type_id,
+            &delete_stake_info.addr,
+            &withdraw_code_hash,
+        )?;
+        //keep the stake at cell not changed, todo
+    }
 
     Ok(())
 }
