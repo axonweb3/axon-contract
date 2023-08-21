@@ -1343,7 +1343,7 @@ impl ::core::fmt::Debug for CheckpointArgs {
 impl ::core::fmt::Display for CheckpointArgs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, "{}: {}", "checkpoint_type_id", self.checkpoint_type_id())?;
         write!(f, " }}")
     }
 }
@@ -1360,7 +1360,7 @@ impl CheckpointArgs {
     pub const TOTAL_SIZE: usize = 32;
     pub const FIELD_SIZES: [usize; 1] = [32];
     pub const FIELD_COUNT: usize = 1;
-    pub fn metadata_type_id(&self) -> Byte32 {
+    pub fn checkpoint_type_id(&self) -> Byte32 {
         Byte32::new_unchecked(self.0.slice(0..32))
     }
     pub fn as_reader<'r>(&'r self) -> CheckpointArgsReader<'r> {
@@ -1389,7 +1389,7 @@ impl molecule::prelude::Entity for CheckpointArgs {
         ::core::default::Default::default()
     }
     fn as_builder(self) -> Self::Builder {
-        Self::new_builder().metadata_type_id(self.metadata_type_id())
+        Self::new_builder().checkpoint_type_id(self.checkpoint_type_id())
     }
 }
 #[derive(Clone, Copy)]
@@ -1411,7 +1411,7 @@ impl<'r> ::core::fmt::Debug for CheckpointArgsReader<'r> {
 impl<'r> ::core::fmt::Display for CheckpointArgsReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "metadata_type_id", self.metadata_type_id())?;
+        write!(f, "{}: {}", "checkpoint_type_id", self.checkpoint_type_id())?;
         write!(f, " }}")
     }
 }
@@ -1419,7 +1419,7 @@ impl<'r> CheckpointArgsReader<'r> {
     pub const TOTAL_SIZE: usize = 32;
     pub const FIELD_SIZES: [usize; 1] = [32];
     pub const FIELD_COUNT: usize = 1;
-    pub fn metadata_type_id(&self) -> Byte32Reader<'r> {
+    pub fn checkpoint_type_id(&self) -> Byte32Reader<'r> {
         Byte32Reader::new_unchecked(&self.as_slice()[0..32])
     }
 }
@@ -1446,14 +1446,14 @@ impl<'r> molecule::prelude::Reader<'r> for CheckpointArgsReader<'r> {
 }
 #[derive(Debug, Default)]
 pub struct CheckpointArgsBuilder {
-    pub(crate) metadata_type_id: Byte32,
+    pub(crate) checkpoint_type_id: Byte32,
 }
 impl CheckpointArgsBuilder {
     pub const TOTAL_SIZE: usize = 32;
     pub const FIELD_SIZES: [usize; 1] = [32];
     pub const FIELD_COUNT: usize = 1;
-    pub fn metadata_type_id(mut self, v: Byte32) -> Self {
-        self.metadata_type_id = v;
+    pub fn checkpoint_type_id(mut self, v: Byte32) -> Self {
+        self.checkpoint_type_id = v;
         self
     }
 }
@@ -1464,7 +1464,7 @@ impl molecule::prelude::Builder for CheckpointArgsBuilder {
         Self::TOTAL_SIZE
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
-        writer.write_all(self.metadata_type_id.as_slice())?;
+        writer.write_all(self.checkpoint_type_id.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {

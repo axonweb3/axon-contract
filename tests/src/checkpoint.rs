@@ -7,19 +7,23 @@ use bit_vec::BitVec;
 use blst::min_pk::{AggregatePublicKey, AggregateSignature, SecretKey};
 // use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_crypto::secp::Generator;
-use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
+use ckb_testtool::ckb_types::{
+    bytes::Bytes, core::TransactionBuilder, core::TransactionView, packed::*, prelude::*,
+};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
 use rand::prelude::*;
 use rlp::RlpStream;
+use util::error::Error::CheckpointDataError;
 use util::helper::keccak256;
 
-#[test]
-fn test_checkpoint_success() {
-    // init context
-    let mut context = Context::default();
-
+fn construct_checkpoint_tx(
+    context: &mut Context,
+    input_data: TestCheckpointData,
+    output_data: TestCheckpointData,
+    epoch_len: u32,
+) -> TransactionView {
     let contract_bin: Bytes = Loader::default().load_binary("checkpoint");
     let contract_out_point = context.deploy_cell(contract_bin);
     let contract_dep = CellDep::new_builder()
@@ -39,11 +43,8 @@ fn test_checkpoint_success() {
 
     // prepare stake_args and stake_data
     let _keypair = Generator::random_keypair();
-    let checkpoint_args = CheckpointArgs::new_builder()
-        .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-        .build();
     let checkpoint_type_script = context
-        .build_script(&contract_out_point, Bytes::from(checkpoint_args.as_bytes()))
+        .build_script(&contract_out_point, Bytes::from(vec![0u8; 32]))
         .expect("checkpoint script");
     println!(
         "checkpoint type hash: {:?}",
@@ -51,9 +52,9 @@ fn test_checkpoint_success() {
     );
 
     let input_checkpoint_data = CheckpointCellData::new_builder()
-        .version(0.into())
-        .epoch(axon_u64(1))
-        .period(axon_u32(2))
+        .version(input_data.version.into())
+        .epoch(axon_u64(input_data.epoch))
+        .period(axon_u32(input_data.period))
         // .latest_block_hash(v)
         .latest_block_height(axon_u64(10))
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
@@ -83,9 +84,9 @@ fn test_checkpoint_success() {
 
     // prepare outputs_data
     let output_checkpoint_data = CheckpointCellData::new_builder()
-        .version(0.into())
-        .epoch(axon_u64(1))
-        .period(axon_u32(3))
+        .version(output_data.version.into())
+        .epoch(axon_u64(output_data.epoch))
+        .period(axon_u32(output_data.period))
         // .latest_block_hash(v)
         .latest_block_height(axon_u64(10))
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
@@ -114,7 +115,7 @@ fn test_checkpoint_success() {
         .collect::<Vec<_>>();
     let validatorlist = ValidatorList::new_builder().set(validators).build();
     let metadata = Metadata::new_builder()
-        .epoch_len(axon_u32(100))
+        .epoch_len(axon_u32(epoch_len))
         .validators(validatorlist)
         .build();
     // let metadata = Metadata::new_builder().epoch_len(axon_u32(100)).build();
@@ -161,12 +162,135 @@ fn test_checkpoint_success() {
         .cell_dep(metadata_script_dep)
         .build();
     let tx = context.complete_tx(tx);
+    tx
+}
 
+struct TestCheckpointData {
+    version: u8,
+    epoch: u64,
+    period: u32,
+}
+
+#[test]
+fn test_checkpoint_success() {
+    // init context
+    let mut context = Context::default();
+
+    let input_checkpoint_data = TestCheckpointData {
+        version: 0,
+        epoch: 1,
+        period: 2,
+    };
+
+    let output_checkpoint_data = TestCheckpointData {
+        version: 0,
+        epoch: 1,
+        period: 3,
+    };
+
+    let tx = construct_checkpoint_tx(
+        &mut context,
+        input_checkpoint_data,
+        output_checkpoint_data,
+        100,
+    );
     // run
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");
     println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_checkpoint_success_period_reset() {
+    // init context
+    let mut context = Context::default();
+
+    let epoch_len = 100;
+    let input_checkpoint_data = TestCheckpointData {
+        version: 0,
+        epoch: 1,
+        period: epoch_len - 1,
+    };
+
+    let output_checkpoint_data = TestCheckpointData {
+        version: 0,
+        epoch: 2,
+        period: 0,
+    };
+
+    let tx = construct_checkpoint_tx(
+        &mut context,
+        input_checkpoint_data,
+        output_checkpoint_data,
+        epoch_len,
+    );
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_checkpoint_fail_period_equal() {
+    // init context
+    let mut context = Context::default();
+
+    let input_checkpoint_data = TestCheckpointData {
+        version: 0,
+        epoch: 1,
+        period: 2,
+    };
+
+    let output_checkpoint_data = TestCheckpointData {
+        version: 0,
+        epoch: 1,
+        period: 2,
+    };
+
+    let tx = construct_checkpoint_tx(
+        &mut context,
+        input_checkpoint_data,
+        output_checkpoint_data,
+        100,
+    );
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("CheckpointDataError");
+    assert_script_error(err, CheckpointDataError as i8);
+}
+
+#[test]
+fn test_checkpoint_fail_period_not_reset() {
+    // init context
+    let mut context = Context::default();
+
+    let epoch_len = 100;
+    let input_checkpoint_data = TestCheckpointData {
+        version: 0,
+        epoch: 1,
+        period: epoch_len - 1,
+    };
+
+    let output_checkpoint_data = TestCheckpointData {
+        version: 0,
+        epoch: 2,
+        period: 1,
+    };
+
+    let tx = construct_checkpoint_tx(
+        &mut context,
+        input_checkpoint_data,
+        output_checkpoint_data,
+        epoch_len,
+    );
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("CheckpointDataError");
+    assert_script_error(err, CheckpointDataError as i8);
 }
 
 #[test]
@@ -193,19 +317,8 @@ fn test_checkpoint_create() {
 
     // prepare stake_args and stake_data
     let _keypair = Generator::random_keypair();
-    let checkpoint_args = CheckpointArgs::new_builder()
-        .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
-        .build();
-    let checkpoint_type_script = context
-        .build_script(&contract_out_point, Bytes::from(checkpoint_args.as_bytes()))
-        .expect("checkpoint script");
-    println!(
-        "checkpoint type hash: {:?}",
-        checkpoint_type_script.calc_script_hash().as_slice()
-    );
 
-    // prepare tx inputs and outputs
-    let inputs = vec![CellInput::new_builder()
+    let input = CellInput::new_builder()
         .previous_output(
             context.create_cell(
                 CellOutput::new_builder()
@@ -215,7 +328,18 @@ fn test_checkpoint_create() {
                 Bytes::from([0u8; 1].to_vec()),
             ),
         )
-        .build()];
+        .build();
+    let input_hash = calc_type_id(&input, 0);
+    let checkpoint_type_script = context
+        .build_script(&contract_out_point, input_hash)
+        .expect("checkpoint script");
+    println!(
+        "checkpoint type hash: {:?}",
+        checkpoint_type_script.calc_script_hash().as_slice()
+    );
+
+    // prepare tx inputs and outputs
+    let inputs = vec![input];
     let outputs = vec![CellOutput::new_builder()
         .capacity(1000.pack())
         .lock(always_success_lock_script.clone())

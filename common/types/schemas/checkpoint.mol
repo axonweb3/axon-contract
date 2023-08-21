@@ -25,5 +25,5 @@ table CheckpointWitness {
 }
 
 struct CheckpointArgs {
-	metadata_type_id:   Byte32, // just to differentiate from other chain
+	checkpoint_type_id:   Byte32,
 }

@@ -146,6 +146,7 @@ dependencies = [
  "bit-vec",
  "blst 0.1.0",
  "ckb-std",
+ "ckb-type-id",
  "keccak-hash 0.8.0",
  "rlp",
  "util",

@@ -88,7 +88,7 @@
       "name": "CheckpointArgs",
       "fields": [
         {
-          "name": "metadata_type_id",
+          "name": "checkpoint_type_id",
           "type": "Byte32"
         }
       ]

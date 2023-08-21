@@ -18,11 +18,16 @@ use axon_types::{
     Cursor,
 };
 use bit_vec::BitVec;
+use ckb_type_id::{load_type_id_from_script_args, validate_type_id};
 use keccak_hash::keccak;
 use rlp::{Rlp, RlpStream};
 use util::{error::Error, helper::*};
 
 pub fn main() -> Result<(), Error> {
+    let type_id = load_type_id_from_script_args(0)?;
+    debug!("type_id: {:?}", type_id);
+    validate_type_id(type_id)?;
+
     let script = load_script()?;
     let checkpoint_type_id = util::helper::calc_script_hash(&script).to_vec();
     debug!("checkpoint_type_id = {:?}", checkpoint_type_id);
