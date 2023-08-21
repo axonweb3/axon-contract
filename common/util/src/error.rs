@@ -106,16 +106,16 @@ pub enum Error {
 
     // withdraw
     WithdrawWrongRecordSize = 110,
-    WrongLockEpoch,
-    WrongOutWithdrawEpoch,
-    WrongOutWithdraw,
     WithdrawTotalAmount,
-    OutLessThanIn,
     WithdrawUpdateDataError,
-    BadUnstake,
     WithdrawDataEmpty,
     WithdrawBadSudtDataFormat,
     WithdrawZeroAmount,
+    OutLessThanIn,
+    BadUnstake,
+    WrongLockEpoch,
+    WrongOutWithdrawEpoch,
+    WrongOutWithdraw,
 
     // reward
     RewardWrongAmount = -10,

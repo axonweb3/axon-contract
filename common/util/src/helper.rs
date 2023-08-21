@@ -408,12 +408,12 @@ pub fn get_delegate_delta(
     Ok(None)
 }
 
-pub fn get_stake_update_infos(
+pub fn get_stake_deltas(
     cell_type_hash: &[u8; 32],
     stake_at_code_hash: &Vec<u8>,
     source: Source,
 ) -> Result<Vec<([u8; 20], [u8; 32], StakeInfoDelta)>, Error> {
-    let mut stake_update_infos = Vec::<([u8; 20], [u8; 32], StakeInfoDelta)>::default();
+    let mut stake_deltas = Vec::<([u8; 20], [u8; 32], StakeInfoDelta)>::default();
     QueryIter::new(load_cell_type_hash, source)
         .enumerate()
         .for_each(|(i, type_hash)| {
@@ -437,12 +437,12 @@ pub fn get_stake_update_infos(
                     let stake_info_delta = stake_xudt_lock.delta();
                     let address: [u8; 20] =
                         stake_xudt_lock.l2_address().as_slice().try_into().unwrap();
-                    stake_update_infos.push((address, lock_hash, stake_info_delta));
+                    stake_deltas.push((address, lock_hash, stake_info_delta));
                 }
             }
         });
 
-    Ok(stake_update_infos)
+    Ok(stake_deltas)
 }
 
 pub fn get_delegate_update_infos(
