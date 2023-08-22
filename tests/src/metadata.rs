@@ -11,6 +11,7 @@ use axon_types::metadata::{
     DelegateInfo, DelegateProof, DelegateProofs, ElectionSmtProof, Metadata, MetadataArgs,
     MetadataList, MetadataWitness, MinerGroupInfo, MinerGroupInfos, StakeSmtElectionInfo,
 };
+use axon_types::withdraw::WithdrawArgs;
 use ckb_testtool::ckb_crypto::secp::{Generator, Privkey, Pubkey};
 use ckb_testtool::ckb_types::core::ScriptHashType;
 use ckb_testtool::ckb_types::{
@@ -19,9 +20,9 @@ use ckb_testtool::ckb_types::{
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
+use util::error::Error::MetadataNotLastCheckpoint;
 use util::helper::ProposeCountObject;
 use util::smt::{u64_to_h256, LockInfo};
-use util::error::Error::MetadataNotLastCheckpoint;
 
 #[test]
 fn test_metadata_creation_success() {
@@ -172,7 +173,12 @@ struct TestStakeInfo {
     delegators: BTreeSet<LockInfo>,
 }
 
-fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoch_len: u32, period: u32) -> TransactionView {
+fn construct_metadata_tx(
+    context: &mut Context,
+    stakes: Vec<TestStakeInfo>,
+    epoch_len: u32,
+    period: u32,
+) -> TransactionView {
     let current_epoch = 0;
     // let epoch_len = 100;
     // let period: u32 = epoch_len - 1;
@@ -185,6 +191,7 @@ fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoc
     let contract_dep = CellDep::new_builder()
         .out_point(contract_out_point.clone())
         .build();
+
     let metadata_args = MetadataArgs::new_builder()
         .metadata_type_id(axon_byte32(&[1u8; 32].pack()))
         .build();
@@ -199,13 +206,15 @@ fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoc
         "metadata type script: {:?}",
         metadata_type_script.calc_script_hash()
     );
-
+    let special_keypair = stake0.keypair.clone(); // stake0 will be deleted and withdraw
+    let delete_delegator = stake0.delegators.first();
     let mut propose_counts = Vec::new();
     let mut propose_count_objs = Vec::new();
     let mut input_stake_infos = BTreeSet::new();
     let mut miner_group_infos = Vec::new();
     let mut new_delegate_proofs = Vec::new();
-
+    let mut output_stake_infos = BTreeSet::new();
+    let stake_len = stakes.len();
     for stake in stakes {
         let staker_addr = pubkey_to_addr(&stake.keypair.1.serialize());
         let propose_count = ProposeCount::new_builder()
@@ -257,10 +266,18 @@ fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoc
             .proof(axon_bytes(&new_delegate_proof.0))
             .build();
         new_delegate_proofs.push(new_delegate_proof);
+
+        if stake_len == 3 && stake.amount <= 1000 {
+            println!("deleted staker {:?}, amount: {}", staker_addr, stake.amount);
+        } else {
+            output_stake_infos.insert(LockInfo {
+                addr: staker_addr,
+                amount: stake.amount,
+            });
+        }
     }
 
     let propose_counts = ProposeCounts::new_builder().set(propose_counts).build();
-    let output_stake_infos = input_stake_infos.clone();
     println!("output_stake_infos: {:?}", output_stake_infos);
     let miner_group_infos = MinerGroupInfos::new_builder()
         .set(miner_group_infos)
@@ -356,6 +373,25 @@ fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoc
         .push(input_metadata0)
         .push(input_metadata1.clone())
         .build();
+    let withdraw_lock_args = WithdrawArgs::new_builder()
+        .addr(axon_identity(&special_keypair.1.serialize()))
+        .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
+        .build();
+    let withdraw_lock_script = context
+        .build_script_with_hash_type(
+            &always_success_out_point,
+            ScriptHashType::Type,
+            withdraw_lock_args.as_bytes(),
+        )
+        .expect("withdraw lock script");
+    println!(
+        "withdraw_lock_script code hash: {:?}, addr: {:?}, metadata_type_id: {:?}, args: {:?}, withdraw_lock_hash: {:?}",
+        withdraw_lock_script.code_hash().as_slice(),
+        pubkey_to_addr(&special_keypair.1.serialize()),
+        metadata_type_script.calc_script_hash().as_slice(),
+        withdraw_lock_args.as_slice(),
+        withdraw_lock_script.calc_script_hash().as_slice(),
+    );
 
     let propose_count_smt_root = [0u8; 32];
     let input_meta_data = axon_metadata_data_by_script(
@@ -371,10 +407,14 @@ fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoc
         propose_count_smt_root,
         &metadata_type_script.code_hash(),
         &metadata_type_script.code_hash(),
-        &metadata_type_script.code_hash(),
+        &withdraw_lock_script.code_hash(),
     );
 
-    let inputs = vec![
+    let stake_at_type_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![4]))
+        .expect("sudt script");
+
+    let mut inputs = vec![
         // stake smt cell
         CellInput::new_builder()
             .previous_output(
@@ -415,7 +455,8 @@ fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoc
             )
             .build(),
     ];
-    let outputs = vec![
+
+    let mut outputs = vec![
         // stake smt cell
         CellOutput::new_builder()
             .capacity(1000.pack())
@@ -435,6 +476,73 @@ fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoc
             .type_(Some(metadata_type_script.clone()).pack())
             .build(),
     ];
+
+    if stake_len == 3 {
+        let input_withdraw_infos = vec![
+            (input_waiting_epoch - 2 as u64, 0 as u128),
+            (input_waiting_epoch - 1, 0),
+            (input_waiting_epoch, 0),
+        ];
+
+        let input_withdraw_data = axon_withdraw_at_cell_data_without_amount(input_withdraw_infos);
+        let input_withdraw_out_point = context.create_cell(
+            CellOutput::new_builder()
+                .capacity(1000.pack())
+                .lock(withdraw_lock_script.clone())
+                .type_(Some(stake_at_type_script.clone()).pack())
+                .build(),
+            Bytes::from(axon_withdraw_at_cell_data(0, input_withdraw_data.clone())), // delegate at cell
+        );
+
+        let withdraw_lock_args_delete_delegator = WithdrawArgs::new_builder()
+            .addr(axon_byte20_identity(&delete_delegator.unwrap().addr))
+            .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
+            .build();
+        let withdraw_lock_script_delete_delegator = context
+            .build_script_with_hash_type(
+                &always_success_out_point,
+                ScriptHashType::Type,
+                withdraw_lock_args_delete_delegator.as_bytes(),
+            )
+            .expect("withdraw lock script");
+        let input_withdraw_out_point_delete_delegator = context.create_cell(
+            CellOutput::new_builder()
+                .capacity(1000.pack())
+                .lock(withdraw_lock_script_delete_delegator.clone())
+                .type_(Some(stake_at_type_script.clone()).pack())
+                .build(),
+            Bytes::from(axon_withdraw_at_cell_data(0, input_withdraw_data)), // delegate at cell
+        );
+        inputs.push(
+            // withdraw at cell
+            CellInput::new_builder()
+                .previous_output(input_withdraw_out_point)
+                .build(),
+        );
+        inputs.push(
+            // withdraw at cell
+            CellInput::new_builder()
+                .previous_output(input_withdraw_out_point_delete_delegator)
+                .build(),
+        );
+
+        outputs.push(
+            // withdraw at cell
+            CellOutput::new_builder()
+                .capacity(1000.pack())
+                .lock(withdraw_lock_script.clone())
+                .type_(Some(stake_at_type_script.clone()).pack())
+                .build(),
+        );
+        outputs.push(
+            // withdraw at cell
+            CellOutput::new_builder()
+                .capacity(1000.pack())
+                .lock(withdraw_lock_script_delete_delegator.clone())
+                .type_(Some(stake_at_type_script.clone()).pack())
+                .build(),
+        );
+    }
 
     let output_stake_smt_data = axon_stake_smt_cell_data_for_update_metadata_cell(
         &output_stake_infos,
@@ -473,7 +581,7 @@ fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoc
         top_smt_root.as_slice().try_into().unwrap(),
         &metadata_type_script.code_hash(),
         &metadata_type_script.code_hash(),
-        &metadata_type_script.code_hash(),
+        &withdraw_lock_script.code_hash(),
     );
 
     // assume only 1 staker has delegator
@@ -486,11 +594,36 @@ fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoc
             input_waiting_epoch,
         );
 
-    let outputs_data = vec![
+    let mut outputs_data = vec![
         output_stake_smt_data.as_bytes(), // stake smt cell
         output_delegate_smt_cell_data.as_bytes(),
         output_meta_data.as_bytes(),
     ];
+    if stake_len == 3 {
+        let withdraw_amount = 1000; // stake0 stake amount
+        let output_withdraw_infos = vec![
+            (current_epoch, 0 as u128),
+            (current_epoch + 1, 0),
+            (current_epoch + 2, withdraw_amount),
+        ];
+        let output_withdraw_data = axon_withdraw_at_cell_data_without_amount(output_withdraw_infos);
+
+        let output_withdraw_infos = vec![
+            (current_epoch, 0 as u128),
+            (current_epoch + 1, 0),
+            (current_epoch + 2, delete_delegator.unwrap().amount),
+        ];
+        let output_withdraw_data_delete_delegator =
+            axon_withdraw_at_cell_data_without_amount(output_withdraw_infos);
+        outputs_data.push(Bytes::from(axon_withdraw_at_cell_data(
+            withdraw_amount,
+            output_withdraw_data,
+        )));
+        outputs_data.push(Bytes::from(axon_withdraw_at_cell_data(
+            delete_delegator.unwrap().amount,
+            output_withdraw_data_delete_delegator,
+        )));
+    }
 
     let stake_smt_witness = WitnessArgs::new_builder()
         .input_type(Some(Bytes::from(vec![2])).pack())
@@ -629,6 +762,51 @@ fn test_metadata_success_2stakers() {
     };
 
     let stakes = vec![stake0, stake1];
+    let tx = construct_metadata_tx(&mut context, stakes, 100, 99);
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_metadata_success_3stakers() {
+    // only 2 will be selected
+    // init context
+    let mut context = Context::default();
+
+    let delegator_keypair = Generator::random_keypair();
+    let delegator0 = LockInfo {
+        addr: pubkey_to_addr(&delegator_keypair.1.serialize()),
+        amount: 200,
+    };
+    let mut delegators0 = BTreeSet::<LockInfo>::new();
+    delegators0.insert(delegator0);
+    let stake0 = TestStakeInfo {
+        keypair: Generator::random_keypair(),
+        propose_count: 100,
+        amount: 1000,
+        delegators: delegators0,
+    };
+
+    let delegators1 = BTreeSet::<LockInfo>::new();
+    let stake1 = TestStakeInfo {
+        keypair: Generator::random_keypair(),
+        propose_count: 100,
+        amount: 2000,
+        delegators: delegators1,
+    };
+
+    let delegators2 = BTreeSet::<LockInfo>::new();
+    let stake2 = TestStakeInfo {
+        keypair: Generator::random_keypair(),
+        propose_count: 100,
+        amount: 3000,
+        delegators: delegators2,
+    };
+
+    let stakes = vec![stake0, stake1, stake2];
     let tx = construct_metadata_tx(&mut context, stakes, 100, 99);
     // run
     let cycles = context

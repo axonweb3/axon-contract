@@ -307,6 +307,10 @@ fn verify_withdraw_amount(
     if unstake_amount > 0 {
         let withdraw_lock_hash =
             calc_withdrawal_lock_hash(withdraw_code_hash, addr, metadata_type_id);
+        debug!(
+                "withdraw_lock_hash: {:?}, withdraw_code_hash: {:?}, addr: {:?}, metadata_type_id: {:?}",
+                withdraw_lock_hash, withdraw_code_hash, addr, metadata_type_id
+            );
         let (input_amount, input_info) =
             get_withdraw_at_data_by_lock_hash(&withdraw_lock_hash, Source::Input)?;
         let (output_amount, output_info) =
