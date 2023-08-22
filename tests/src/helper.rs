@@ -36,7 +36,7 @@ use crate::smt::{
     TopSmtInfo,
 };
 
-pub const MAX_CYCLES: u64 = 100_000_000;
+pub const MAX_CYCLES: u64 = 200_000_000;
 
 pub fn blake160(data: &[u8]) -> [u8; 20] {
     let mut buf = [0u8; 20];
@@ -456,15 +456,10 @@ pub fn axon_metadata_data_by_script(
         .build()
 }
 
-pub fn axon_delegate_smt_cell_data(
-    delegate_infos: &BTreeSet<LockInfo>,
-    metadata_type_id: &packed::Byte32,
-    staker_pubkey: &Pubkey,
+pub fn delegate_2layer_smt_root_proof(
     epoch: u64,
-) -> (
-    axon_types::delegate::DelegateSmtCellData,
-    CompiledMerkleProof,
-) {
+    delegate_infos: &BTreeSet<LockInfo>,
+) -> (sparse_merkle_tree::H256, CompiledMerkleProof) {
     let (delegate_root, _delegate_proof) = construct_lock_info_smt(&delegate_infos);
     let delegate_top_smt_infos = vec![TopSmtInfo {
         epoch: epoch,
@@ -481,6 +476,20 @@ pub fn axon_delegate_smt_cell_data(
         "axon_delegate_smt_cell_data delegate_epoch_root: {:?}, delegate_epoch_proof: {:?}, delegate_root: {:?}",
         delegate_epoch_root, delegate_epoch_proof.0, delegate_root
     );
+    (delegate_epoch_root, delegate_epoch_proof)
+}
+
+pub fn axon_delegate_smt_cell_data(
+    delegate_infos: &BTreeSet<LockInfo>,
+    metadata_type_id: &packed::Byte32,
+    staker_pubkey: &Pubkey,
+    epoch: u64,
+) -> (
+    axon_types::delegate::DelegateSmtCellData,
+    CompiledMerkleProof,
+) {
+    let (delegate_epoch_root, delegate_epoch_proof) =
+        delegate_2layer_smt_root_proof(epoch, delegate_infos);
 
     let stake_smt_root = StakerSmtRoot::new_builder()
         .staker(axon_identity(&staker_pubkey.serialize()))
@@ -500,15 +509,10 @@ pub fn axon_delegate_smt_cell_data(
     )
 }
 
-pub fn axon_delegate_smt_cell_data_for_metadata_update(
-    delegate_infos: &BTreeSet<LockInfo>,
-    metadata_type_id: &packed::Byte32,
-    pubkey: &Pubkey,
+pub fn delegate_2layer_smt_root_proof_for_metadata_update(
     epoch: u64,
-) -> (
-    axon_types::delegate::DelegateSmtCellData,
-    CompiledMerkleProof,
-) {
+    delegate_infos: &BTreeSet<LockInfo>,
+) -> (sparse_merkle_tree::H256, CompiledMerkleProof) {
     let (delegate_root, _delegate_proof) = construct_lock_info_smt(&delegate_infos);
     let delegate_top_smt_infos = vec![TopSmtInfo {
         epoch: epoch,
@@ -523,9 +527,23 @@ pub fn axon_delegate_smt_cell_data_for_metadata_update(
             .0,
     );
     println!(
-        "axon_delegate_smt_cell_data_for_metadata_update delegate_epoch_root: {:?}, delegate_epoch_proof: {:?}, delegate_root: {:?}",
+        "axon_delegate_smt_cell_data delegate_epoch_root: {:?}, delegate_epoch_proof: {:?}, delegate_root: {:?}",
         delegate_epoch_root, delegate_epoch_proof.0, delegate_root
     );
+    (delegate_epoch_root, delegate_epoch_proof)
+}
+
+pub fn axon_delegate_smt_cell_data_for_metadata_update(
+    delegate_infos: &BTreeSet<LockInfo>,
+    metadata_type_id: &packed::Byte32,
+    pubkey: &Pubkey,
+    epoch: u64,
+) -> (
+    axon_types::delegate::DelegateSmtCellData,
+    CompiledMerkleProof,
+) {
+    let (delegate_epoch_root, delegate_epoch_proof) =
+        delegate_2layer_smt_root_proof_for_metadata_update(epoch, delegate_infos);
 
     let stake_smt_root = StakerSmtRoot::new_builder()
         .staker(axon_identity(&pubkey.serialize()))

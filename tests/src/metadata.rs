@@ -4,22 +4,24 @@ use crate::smt::{
 };
 use std::collections::BTreeSet;
 use std::convert::TryInto;
-use std::iter::FromIterator;
 
 use super::*;
 use axon_types::checkpoint::{CheckpointCellData, ProposeCount, ProposeCounts};
 use axon_types::metadata::{
-    DelegateProof, DelegateProofs, ElectionSmtProof, Metadata, MetadataArgs, MetadataList,
-    MetadataWitness, MinerGroupInfo, MinerGroupInfos, StakeSmtElectionInfo,
+    DelegateInfo, DelegateProof, DelegateProofs, ElectionSmtProof, Metadata, MetadataArgs,
+    MetadataList, MetadataWitness, MinerGroupInfo, MinerGroupInfos, StakeSmtElectionInfo,
 };
-use ckb_testtool::ckb_crypto::secp::Generator;
+use ckb_testtool::ckb_crypto::secp::{Generator, Privkey, Pubkey};
 use ckb_testtool::ckb_types::core::ScriptHashType;
-use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
+use ckb_testtool::ckb_types::{
+    bytes::Bytes, core::TransactionBuilder, core::TransactionView, packed::*, prelude::*,
+};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 use helper::*;
 use molecule::prelude::*;
 use util::helper::ProposeCountObject;
 use util::smt::{u64_to_h256, LockInfo};
+use util::error::Error::MetadataNotLastCheckpoint;
 
 #[test]
 fn test_metadata_creation_success() {
@@ -162,21 +164,27 @@ fn test_metadata_creation_success() {
     println!("consume cycles: {}", cycles);
 }
 
-#[test]
-fn test_metadata_success() {
-    // init context
-    let mut context = Context::default();
+#[derive(Clone)]
+struct TestStakeInfo {
+    keypair: (Privkey, Pubkey),
+    propose_count: u64,
+    amount: u128,
+    delegators: BTreeSet<LockInfo>,
+}
 
+fn construct_metadata_tx(context: &mut Context, stakes: Vec<TestStakeInfo>, epoch_len: u32, period: u32) -> TransactionView {
+    let current_epoch = 0;
+    // let epoch_len = 100;
+    // let period: u32 = epoch_len - 1;
+    let input_waiting_epoch = current_epoch + 2;
+    let output_quasi_epoch = input_waiting_epoch;
+
+    let stake0 = stakes[0].clone();
     let contract_bin: Bytes = Loader::default().load_binary("metadata");
     let contract_out_point = context.deploy_cell(contract_bin);
     let contract_dep = CellDep::new_builder()
         .out_point(contract_out_point.clone())
         .build();
-    let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
-    let always_success_lock_script = context
-        .build_script(&always_success_out_point, Bytes::from(vec![1]))
-        .expect("always_success script");
-
     let metadata_args = MetadataArgs::new_builder()
         .metadata_type_id(axon_byte32(&[1u8; 32].pack()))
         .build();
@@ -191,19 +199,88 @@ fn test_metadata_success() {
         "metadata type script: {:?}",
         metadata_type_script.calc_script_hash()
     );
+
+    let mut propose_counts = Vec::new();
+    let mut propose_count_objs = Vec::new();
+    let mut input_stake_infos = BTreeSet::new();
+    let mut miner_group_infos = Vec::new();
+    let mut new_delegate_proofs = Vec::new();
+
+    for stake in stakes {
+        let staker_addr = pubkey_to_addr(&stake.keypair.1.serialize());
+        let propose_count = ProposeCount::new_builder()
+            .address(axon_byte20(&staker_addr))
+            .count(axon_u64(stake.propose_count))
+            .build();
+        propose_counts.push(propose_count);
+
+        let propose_count_obj = ProposeCountObject {
+            addr: staker_addr,
+            count: stake.propose_count,
+        };
+        propose_count_objs.push(propose_count_obj);
+
+        let input_stake_info = LockInfo {
+            addr: staker_addr,
+            amount: stake.amount,
+        };
+        input_stake_infos.insert(input_stake_info);
+
+        let (_, input_delegate_epoch_proof) =
+            delegate_2layer_smt_root_proof(input_waiting_epoch, &stake.delegators);
+
+        let mut delegate_infos = Vec::new();
+        for delegator in &stake.delegators {
+            let delegate_info = DelegateInfo::new_builder()
+                .addr(axon_byte20_identity(&delegator.addr))
+                .amount(axon_u128(delegator.amount))
+                .build();
+            delegate_infos.push(delegate_info);
+        }
+        let input_delegate_infos = axon_types::metadata::DelegateInfos::new_builder()
+            .set(delegate_infos)
+            .build();
+        let miner_group_info = MinerGroupInfo::new_builder()
+            .staker(axon_identity(&stake.keypair.1.serialize()))
+            .amount(axon_u128(stake.amount))
+            .delegate_epoch_proof(axon_bytes(&input_delegate_epoch_proof.0))
+            .delegate_infos(input_delegate_infos)
+            .build();
+        miner_group_infos.push(miner_group_info);
+
+        let (_, new_delegate_proof) = delegate_2layer_smt_root_proof_for_metadata_update(
+            input_waiting_epoch,
+            &stake.delegators,
+        );
+        let new_delegate_proof = DelegateProof::new_builder()
+            .staker(axon_identity(&stake.keypair.1.serialize()))
+            .proof(axon_bytes(&new_delegate_proof.0))
+            .build();
+        new_delegate_proofs.push(new_delegate_proof);
+    }
+
+    let propose_counts = ProposeCounts::new_builder().set(propose_counts).build();
+    let output_stake_infos = input_stake_infos.clone();
+    println!("output_stake_infos: {:?}", output_stake_infos);
+    let miner_group_infos = MinerGroupInfos::new_builder()
+        .set(miner_group_infos)
+        .build();
+
+    let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
+    let always_success_lock_script = context
+        .build_script(&always_success_out_point, Bytes::from(vec![1]))
+        .expect("always_success script");
     let always_success_script_dep = CellDep::new_builder()
         .out_point(always_success_out_point.clone())
         .build();
 
-    let keypair = Generator::random_keypair();
-    let staker_addr = pubkey_to_addr(&keypair.1.serialize());
-    let staker_propose_count = 100;
-    let propose_count = ProposeCount::new_builder()
-        .address(axon_byte20(&staker_addr))
-        .count(axon_u64(staker_propose_count))
-        .build();
-    let propose_counts = vec![propose_count];
-    let propose_counts = ProposeCounts::new_builder().set(propose_counts).build();
+    let (delegate_smt_cell_data, _input_delegate_epoch_proof) = axon_delegate_smt_cell_data(
+        &stake0.delegators,
+        &metadata_type_script.calc_script_hash(),
+        &stake0.keypair.1,
+        input_waiting_epoch,
+    );
+
     // prepare checkpoint lock_script
     let checkpoint_type_script = context
         .build_script_with_hash_type(
@@ -216,12 +293,10 @@ fn test_metadata_success() {
         "checkpoint script: {:?}",
         checkpoint_type_script.calc_script_hash()
     );
-    let current_epoch = 0;
-    let epoch_len = 100;
     let checkpoint_data = CheckpointCellData::new_builder()
         .version(0.into())
         .epoch(axon_u64(current_epoch))
-        .period(axon_u32(epoch_len - 1))
+        .period(axon_u32(period))
         // .latest_block_hash(v)
         .latest_block_height(axon_u64(10))
         .metadata_type_id(axon_byte32(&metadata_type_script.calc_script_hash()))
@@ -265,12 +340,6 @@ fn test_metadata_success() {
         .expect("delegate smt type script");
 
     // prepare tx inputs and outputs
-    let stake_amount = 1000;
-    let input_stake_infos = BTreeSet::from_iter(vec![LockInfo {
-        addr: staker_addr,
-        amount: stake_amount,
-    }]);
-    let input_waiting_epoch = current_epoch + 2;
     let input_stake_smt_data = axon_stake_smt_cell_data(
         &input_stake_infos,
         &metadata_type_script.calc_script_hash(),
@@ -303,14 +372,6 @@ fn test_metadata_success() {
         &metadata_type_script.code_hash(),
         &metadata_type_script.code_hash(),
         &metadata_type_script.code_hash(),
-    );
-
-    let delegate_infos = BTreeSet::new();
-    let (delegate_smt_cell_data, delegate_epoch_proof) = axon_delegate_smt_cell_data(
-        &delegate_infos,
-        &metadata_type_script.calc_script_hash(),
-        &keypair.1,
-        input_waiting_epoch,
     );
 
     let inputs = vec![
@@ -375,26 +436,23 @@ fn test_metadata_success() {
             .build(),
     ];
 
-    let output_stake_infos = input_stake_infos.clone();
-    let output_quasi_epoch = input_waiting_epoch;
     let output_stake_smt_data = axon_stake_smt_cell_data_for_update_metadata_cell(
         &output_stake_infos,
         &metadata_type_script.calc_script_hash(),
         output_quasi_epoch,
     );
-    let propose_count = ProposeCountObject {
-        addr: staker_addr,
-        count: 100 as u64,
-    };
-    let propose_infos = vec![propose_count];
-    let (propose_count_root, _) = construct_propose_count_smt(&propose_infos);
+
+    let (propose_count_root, _) = construct_propose_count_smt(&propose_count_objs);
     println!("propose_count_root: {:?}", propose_count_root);
     let top_smt_info = TopSmtInfo {
         epoch: current_epoch,
         smt_root: propose_count_root,
     };
     let (top_smt_root, proof) = construct_epoch_smt(&vec![top_smt_info]);
-    let propose_count_proof = proof.compile(vec![u64_to_h256(1)]).unwrap().0;
+    let propose_count_proof = proof
+        .compile(vec![u64_to_h256(current_epoch + 1)])
+        .unwrap()
+        .0;
 
     let output_metadata0 = input_metadata1.clone();
     let output_metadata1 = output_metadata0.clone();
@@ -418,12 +476,13 @@ fn test_metadata_success() {
         &metadata_type_script.code_hash(),
     );
 
-    let output_delegate_infos = delegate_infos;
-    let (output_delegate_smt_cell_data, out_delegate_epoch_proof) =
+    // assume only 1 staker has delegator
+    let output_delegate_infos = stake0.delegators.clone();
+    let (output_delegate_smt_cell_data, _out_delegate_epoch_proof) =
         axon_delegate_smt_cell_data_for_metadata_update(
             &output_delegate_infos,
             &metadata_type_script.calc_script_hash(),
-            &keypair.1,
+            &stake0.keypair.1, // only one delegator for 1st staker in stakes
             input_waiting_epoch,
         );
 
@@ -458,37 +517,13 @@ fn test_metadata_success() {
         .unwrap()
         .0;
 
-    let delegate_infos = axon_types::metadata::DelegateInfos::new_builder().build();
-    let delegate_epoch_proof = delegate_epoch_proof.0;
-    // let (_stake_root, out_delegate_epoch_proof) =
-    //     construct_epoch_smt_for_metadata_update(&stake_top_smt_infos);
-    // let out_delegate_epoch_proof = out_delegate_epoch_proof
-    //     .compile(vec![
-    //         u64_to_h256(input_waiting_epoch),
-    //         u64_to_h256(input_waiting_epoch + 1),
-    //     ])
-    //     .unwrap()
-    //     .0;
-    let miner_group_info = MinerGroupInfo::new_builder()
-        .staker(axon_identity(&keypair.1.serialize()))
-        .amount(axon_u128(stake_amount))
-        .delegate_epoch_proof(axon_bytes(&delegate_epoch_proof))
-        .delegate_infos(delegate_infos)
-        .build();
-    let miner_group_infos = MinerGroupInfos::new_builder()
-        .push(miner_group_info)
-        .build();
     let election_smt_proof = ElectionSmtProof::new_builder()
         .staker_epoch_proof(axon_bytes(&staker_epoch_proof))
         .miners(miner_group_infos)
         .build();
-    let out_delegate_epoch_proof = out_delegate_epoch_proof.0;
-    let new_delegate_proof = DelegateProof::new_builder()
-        .staker(axon_identity(&keypair.1.serialize()))
-        .proof(axon_bytes(&out_delegate_epoch_proof))
-        .build();
+
     let new_delegate_proofs = DelegateProofs::new_builder()
-        .push(new_delegate_proof)
+        .set(new_delegate_proofs)
         .build();
     let new_stake_proof = out_staker_epoch_proof;
     let stake_smt_election_info = StakeSmtElectionInfo::new_builder()
@@ -512,7 +547,6 @@ fn test_metadata_success() {
         .witnesses(vec![
             stake_smt_witness.as_bytes().pack(),
             Bytes::default().pack(),
-            // metadata_witness.as_bytes().pack(),
             metadata_witness.as_bytes().pack(),
         ])
         .cell_dep(contract_dep)
@@ -520,7 +554,82 @@ fn test_metadata_success() {
         .cell_dep(always_success_script_dep)
         .build();
     let tx = context.complete_tx(tx);
+    tx
+}
 
+#[test]
+fn test_metadata_success_1staker_0delegator() {
+    // init context
+    let mut context = Context::default();
+
+    let delegators1 = BTreeSet::<LockInfo>::new();
+    let stake1 = TestStakeInfo {
+        keypair: Generator::random_keypair(),
+        propose_count: 100,
+        amount: 2000,
+        delegators: delegators1,
+    };
+
+    let stakes = vec![stake1];
+    let tx = construct_metadata_tx(&mut context, stakes, 100, 99);
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_metadata_fail_wrong_period() {
+    // init context
+    let mut context = Context::default();
+
+    let delegators1 = BTreeSet::<LockInfo>::new();
+    let stake1 = TestStakeInfo {
+        keypair: Generator::random_keypair(),
+        propose_count: 100,
+        amount: 2000,
+        delegators: delegators1,
+    };
+
+    let stakes = vec![stake1];
+    let tx = construct_metadata_tx(&mut context, stakes, 100, 98);
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("MetadataNotLastCheckpoint");
+    assert_script_error(err, MetadataNotLastCheckpoint as i8);
+}
+
+#[test]
+fn test_metadata_success_2stakers() {
+    // init context
+    let mut context = Context::default();
+
+    let delegator_keypair = Generator::random_keypair();
+    let delegator0 = LockInfo {
+        addr: pubkey_to_addr(&delegator_keypair.1.serialize()),
+        amount: 200,
+    };
+    let mut delegators0 = BTreeSet::<LockInfo>::new();
+    delegators0.insert(delegator0);
+    let stake0 = TestStakeInfo {
+        keypair: Generator::random_keypair(),
+        propose_count: 100,
+        amount: 1000,
+        delegators: delegators0,
+    };
+
+    let delegators1 = BTreeSet::<LockInfo>::new();
+    let stake1 = TestStakeInfo {
+        keypair: Generator::random_keypair(),
+        propose_count: 100,
+        amount: 2000,
+        delegators: delegators1,
+    };
+
+    let stakes = vec![stake0, stake1];
+    let tx = construct_metadata_tx(&mut context, stakes, 100, 99);
     // run
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)

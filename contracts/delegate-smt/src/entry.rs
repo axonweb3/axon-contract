@@ -24,7 +24,7 @@ use util::{
     smt::{u64_to_h256, verify_2layer_smt, LockInfo},
 };
 
-use crate::types::WithdrawAmountMap;
+use util::stake::WithdrawAmountMap;
 
 pub fn main() -> Result<(), Error> {
     debug!("start delegate smt type script");

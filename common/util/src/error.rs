@@ -98,7 +98,7 @@ pub enum Error {
     MetadataSizeWrong,
     MetadataInputOutputMismatch,
     MetadataSmtVerifyError,
-    NotLastCheckpoint,
+    MetadataNotLastCheckpoint,
     StakerNonExist,
     StakerNotFound,
     MetadataNotFound,

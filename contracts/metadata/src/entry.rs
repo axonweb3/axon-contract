@@ -28,14 +28,16 @@ use ckb_type_id::{load_type_id_from_script_args, validate_type_id};
 use sparse_merkle_tree::{CompiledMerkleProof, H256};
 use util::helper::{
     calc_script_hash, get_cell_count_by_type_hash, get_current_epoch, get_delegate_smt_root,
-    get_quorum_size, get_script_hash, get_stake_smt_root, MinerGroupInfoObject,
+    get_quorum_size, get_script_hash, get_stake_smt_root, get_withdraw_at_data_by_lock_hash,
+    MinerGroupInfoObject,
 };
 use util::smt::{u64_to_h256, verify_2layer_smt_propose, LockInfo};
+use util::stake::WithdrawAmountMap;
 use util::{
     error::Error,
     helper::{
-        get_checkpoint_by_type_id, get_epoch_len, get_metada_data_by_type_id, get_type_ids,
-        ProposeCountObject,
+        calc_withdrawal_lock_hash, get_checkpoint_by_type_id, get_epoch_len,
+        get_metada_data_by_type_id, get_type_ids, ProposeCountObject,
     },
 };
 
@@ -100,8 +102,6 @@ pub fn main() -> Result<(), Error> {
 
     debug!("verify_election");
     verify_election(&type_ids, &metadata_witness.smt_election_info())?;
-
-    // verify lock_info smt root of stake in epoch n + 1 is equal to n
 
     Ok(())
 }
@@ -197,7 +197,7 @@ fn verify_last_checkpoint_of_epoch(
     )?;
     let period = checkpoint.period();
     if period != epoch_len - 1 {
-        return Err(Error::NotLastCheckpoint);
+        return Err(Error::MetadataNotLastCheckpoint);
     }
     Ok(())
 }
@@ -267,7 +267,61 @@ fn verify_election(type_ids: &TypeIds, election_infos: &StakeSmtElectionInfo) ->
         get_script_hash(&type_ids.metadata_code_hash(), &type_ids.metadata_type_id());
     let quorum = get_quorum_size(&metadata_type_id, Source::Input)?;
     debug!("quorum: {:?}", quorum);
-    verify_election_metadata(&type_ids, quorum, election_infos)?;
+    let delete_miners = verify_election_metadata(&type_ids, quorum, election_infos)?;
+
+    // verify validators' stake amount, verify delete_stakers & delete_delegators all zero & withdraw At cell amount is equal.
+    let withdraw_code_hash = type_ids.withdraw_code_hash();
+    let mut total_delete_delegator = WithdrawAmountMap::new();
+    for delete_miner_info in delete_miners {
+        debug!("delete staker {:?} ", delete_miner_info);
+        verify_withdraw_amount(
+            delete_miner_info.stake_amount,
+            &metadata_type_id,
+            &delete_miner_info.staker,
+            &withdraw_code_hash,
+        )?;
+
+        for delegator in delete_miner_info.delegators {
+            total_delete_delegator.insert(delegator.addr, delegator.amount);
+        }
+    }
+
+    for addr in total_delete_delegator.map.keys() {
+        let withdraw_amount = total_delete_delegator.map.get(addr).unwrap();
+        verify_withdraw_amount(
+            *withdraw_amount,
+            &metadata_type_id,
+            addr,
+            &withdraw_code_hash,
+        )?;
+    }
+    Ok(())
+}
+
+fn verify_withdraw_amount(
+    unstake_amount: u128,
+    metadata_type_id: &[u8; 32],
+    addr: &[u8; 20],
+    withdraw_code_hash: &Vec<u8>,
+) -> Result<(), Error> {
+    if unstake_amount > 0 {
+        let withdraw_lock_hash =
+            calc_withdrawal_lock_hash(withdraw_code_hash, addr, metadata_type_id);
+        let (input_amount, input_info) =
+            get_withdraw_at_data_by_lock_hash(&withdraw_lock_hash, Source::Input)?;
+        let (output_amount, output_info) =
+            get_withdraw_at_data_by_lock_hash(&withdraw_lock_hash, Source::Output)?;
+        debug!(
+            "unstake_amount:{}, input_amount: {}, output_amount: {}",
+            unstake_amount, input_amount, output_amount
+        );
+        if input_amount + unstake_amount != output_amount {
+            return Err(Error::BadUnstake);
+        }
+        if input_info.lock().version() != output_info.lock().version() {
+            return Err(Error::WithdrawUpdateDataError);
+        }
+    }
 
     Ok(())
 }
@@ -360,11 +414,11 @@ fn verify_election_metadata(
     type_ids: &TypeIds,
     quorum_size: u16,
     election_infos: &StakeSmtElectionInfo,
-) -> Result<(), Error> {
+) -> Result<BTreeSet<MinerGroupInfoObject>, Error> {
     // get stake & delegate data of epoch n + 1 & n + 2,  from witness of stake smt cell
     // staker info of n + 2
     let election_info_n2 = election_infos.n2();
-    let mut miners_n2 = BTreeSet::new();
+    let mut miners_n2_before_selection = BTreeSet::new();
     let checkpoint_script_hash = get_script_hash(
         &type_ids.checkpoint_code_hash(),
         &type_ids.checkpoint_type_id(),
@@ -376,26 +430,61 @@ fn verify_election_metadata(
     verify_stake_delegate(
         &election_info_n2,
         input_waiting_epoch,
-        &mut miners_n2,
+        &mut miners_n2_before_selection,
         type_ids,
         Source::Input,
     )?;
 
     // only keep top quorum stakers as validators, others as delete_stakers & delete_delegators
-    let iter = miners_n2.iter();
-    let mut top_quorum = iter.take(quorum_size.into());
-    let mut validators = BTreeSet::new();
-    while let Some(elem) = top_quorum.next() {
-        validators.insert((*elem).clone());
-    }
+
+    let (validators, delete_miners) =
+        get_selected_unselected(&miners_n2_before_selection, quorum_size)?;
     // get output metadata, verify the validators data.
     debug!("verify_new_validators, {:?}", validators);
     let output_quasi_epoch = input_waiting_epoch;
     verify_new_validators(&validators, output_quasi_epoch, type_ids, &election_infos)?;
 
-    // verify validators' stake amount, verify delete_stakers & delete_delegators all zero & withdraw At cell amount is equal.
-    // todo
-    Ok(())
+    Ok(delete_miners)
+}
+
+fn get_selected_unselected(
+    miners_n2_before_selection: &BTreeSet<MinerGroupInfoObject>,
+    select_num: u16,
+) -> Result<
+    (
+        BTreeSet<MinerGroupInfoObject>,
+        BTreeSet<MinerGroupInfoObject>,
+    ),
+    Error,
+> {
+    let iter = miners_n2_before_selection.iter();
+    let mut top_quorum = iter.take(select_num.into());
+    let mut select_set = BTreeSet::new();
+    while let Some(elem) = top_quorum.next() {
+        select_set.insert((*elem).clone());
+    }
+
+    let mut delete_set = BTreeSet::<MinerGroupInfoObject>::new();
+    if miners_n2_before_selection.len() > select_set.len() {
+        let mut iter = miners_n2_before_selection.iter();
+        let deleted_size = miners_n2_before_selection.len() - select_set.len();
+        for _ in 0..deleted_size {
+            if let Some(elem) = iter.next_back() {
+                delete_set.insert(elem.clone());
+                debug!("deleted_infos : {:?}", *elem);
+            }
+        }
+    }
+
+    debug!(
+        "input set len: {}, select_set.len():{}, deleted  size: {}, quorum: {}",
+        miners_n2_before_selection.len(),
+        select_set.len(),
+        delete_set.len(),
+        select_num
+    );
+
+    Ok((select_set, delete_set))
 }
 
 // verify stake and delegate infos, fill miners with respect to election_info
@@ -438,6 +527,7 @@ pub fn verify_stake_delegate(
 
     let new_miners = miners.clone();
     debug!("new_miners: {:?}", new_miners);
+    // verify input delegate info of stakers
     for miner in new_miners {
         let mut delegate_infos = BTreeSet::new();
         for i in 0..miner.delegators.len() {

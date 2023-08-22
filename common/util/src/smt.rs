@@ -231,8 +231,8 @@ pub fn verify_2layer_smt_for_metadata_update(
     // construct old stake smt root & verify
     let bottom_root = get_bottom_smt_root(lock_infos);
     debug!(
-        "verify_2layer_smt_for_metadata_update calculated bottom_root: {:?}, top_root: {:?}, top_proof: {:?}",
-        bottom_root, top_root, top_proof
+        "verify_2layer_smt_for_metadata_update calculated lock_infos: {:?}, bottom_root: {:?}, top_root: {:?}, top_proof: {:?}",
+        lock_infos, bottom_root, top_root, top_proof
     );
     verify_top_smt_for_metadata_update(epoch, next_epoch, bottom_root, top_root, top_proof)
 }
