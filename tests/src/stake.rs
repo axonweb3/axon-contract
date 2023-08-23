@@ -20,7 +20,7 @@ use molecule::prelude::*;
 use ophelia::{Crypto, PrivateKey, Signature, ToPublicKey, UncompressedPublicKey};
 use ophelia_secp256k1::{Secp256k1Recoverable, Secp256k1RecoverablePrivateKey};
 use util::error::Error::{
-    BadInaugurationEpoch, BadStakeChange, BadUnstake, InputOutputAtAmountNotEqual, UnstakeTooMuch,
+    BadInaugurationEpoch, BadStakeChange, InputOutputAtAmountNotEqual, UnstakeTooMuch,
 };
 use util::smt::{u64_to_h256, LockInfo, BOTTOM_SMT};
 // use util::helper::pubkey_to_eth_addr;

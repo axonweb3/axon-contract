@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use alloc::collections::BTreeMap;
 
 pub struct WithdrawAmountMap {

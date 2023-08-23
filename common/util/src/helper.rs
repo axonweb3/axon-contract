@@ -683,7 +683,8 @@ pub fn get_delegate_smt_root(
         }
     }
 
-    Err(Error::StakerNotFound)
+    Ok([0u8; 32])
+    // Err(Error::StakerNotFound)
 }
 
 pub fn get_delegate_smt_root_from_cell_data(

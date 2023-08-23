@@ -162,7 +162,7 @@ impl From<Cursor> for CheckpointArgs {
 }
 
 impl CheckpointArgs {
-    pub fn metadata_type_id(&self) -> Vec<u8> {
+    pub fn checkpoint_type_id(&self) -> Vec<u8> {
         let cur = self.cursor.slice_by_offset(0, 32).unwrap();
         cur.into()
     }

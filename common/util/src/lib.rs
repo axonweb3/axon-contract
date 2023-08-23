@@ -7,3 +7,4 @@
 pub mod error;
 pub mod helper;
 pub mod smt;
+pub mod stake;
