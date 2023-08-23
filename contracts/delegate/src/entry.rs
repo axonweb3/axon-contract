@@ -213,7 +213,7 @@ pub fn update_delegate_at_cell(
         input_delegate_at_amount, delegate_at_change, output_delegate_at_amount
     );
     if input_delegate_at_amount as i128 + delegate_at_change != output_delegate_at_amount as i128 {
-        return Err(Error::BadDelegateChange);
+        return Err(Error::DelegateBadChange);
     }
 
     Ok(())

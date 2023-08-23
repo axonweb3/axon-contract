@@ -20,7 +20,8 @@ use molecule::prelude::*;
 use ophelia::{Crypto, PrivateKey, Signature, ToPublicKey, UncompressedPublicKey};
 use ophelia_secp256k1::{Secp256k1Recoverable, Secp256k1RecoverablePrivateKey};
 use util::error::Error::{
-    BadInaugurationEpoch, BadStakeChange, InputOutputAtAmountNotEqual, UnstakeTooMuch,
+    BadInaugurationEpoch, BadStakeChange, BadStakeUnstakeChange, InputOutputAtAmountNotEqual,
+    UnstakeTooMuch,
 };
 use util::smt::{u64_to_h256, LockInfo, BOTTOM_SMT};
 // use util::helper::pubkey_to_eth_addr;
@@ -331,6 +332,44 @@ fn test_stake_at_success_stale_increase_increase() {
 }
 
 #[test]
+fn test_stake_at_fail_stale_increase_decrease() {
+    // illegal tx,
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 100;
+    let input_normal_at_amount = 1000;
+    let output_stake_at_amount = 200;
+    let output_normal_at_amount = 900;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(input_stake_at_amount))
+        .inauguration_epoch(axon_u64(1 as u64))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(output_stake_at_amount))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
+
+    // run
+    let err = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect_err("BadStakeUnstakeChange");
+    assert_script_error(err, BadStakeUnstakeChange as i8);
+}
+
+#[test]
 fn test_stake_at_fail_wrong_epoch() {
     // init context
     let mut context = Context::default();
@@ -518,7 +557,45 @@ fn test_stake_at_success_decrease_increase_less() {
 }
 
 #[test]
-fn test_stake_at_success_decrease_decrease_toomuch() {
+fn test_stake_at_success_increase_decrease() {
+    // decrease unstake amount
+    // init context
+    let mut context = Context::default();
+    let input_stake_at_amount = 95;
+    let input_normal_at_amount = 405;
+    let output_stake_at_amount = 90;
+    let output_normal_at_amount = 410;
+
+    let input_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(1.into())
+        .amount(axon_u128(5))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+    let output_stake_info_delta = stake::StakeInfoDelta::new_builder()
+        .is_increase(0.into())
+        .amount(axon_u128(10))
+        .inauguration_epoch(axon_u64(3 as u64))
+        .build();
+
+    let tx = construct_stake_at_tx(
+        &mut context,
+        input_stake_info_delta,
+        output_stake_info_delta,
+        input_stake_at_amount,
+        input_normal_at_amount,
+        output_stake_at_amount,
+        output_normal_at_amount,
+    );
+
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_stake_at_fail_decrease_decrease_toomuch() {
     // unstake amount more than total stake amount
     // init context
     let mut context = Context::default();

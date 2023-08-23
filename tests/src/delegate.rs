@@ -374,7 +374,7 @@ fn test_delegate_at_success_stale_increase_increase() {
     let input_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
         .is_increase(1.into())
         .amount(axon_u128(input_delegate_at_amount))
-        .inauguration_epoch(axon_u64(waiting_epoch - 1))
+        .inauguration_epoch(axon_u64(waiting_epoch - 2))
         .staker(axon_identity(&staker_keypair.1.serialize()))
         .build();
     let output_delegate_info_delta = delegate::DelegateInfoDelta::new_builder()
@@ -638,6 +638,7 @@ fn test_undelegate_at_success_increase_decrease_more() {
 
 #[test]
 fn test_undelegate_at_success_increase_decrease_less() {
+    // undelegate amount less than already delegate amount
     // init context
     let mut context = Context::default();
     let delegator_keypair = Generator::random_keypair();
