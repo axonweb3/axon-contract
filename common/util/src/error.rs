@@ -56,7 +56,7 @@ pub enum Error {
     BadStakeChange,
     UnstakeTooMuch,
     BadStakeStakeChange,
-    BadStakeRedeemChange,
+    BadStakeUnstakeChange,
     IllegalDefaultStakeInfo,
     IllegalInputStakeInfo,
     IllegalOutputStakeInfo,
@@ -73,8 +73,8 @@ pub enum Error {
 
     // delegate
     UnDelegateTooMuch = 80,
-    BadDelegateChange,
-    StaleDelegateInfo,
+    DelegateBadChange,
+    DelegateStaleInfo,
     IllegalDefaultDelegateInfo,
     DelegateSmtTypeIdMismatch,
     DelegateSmtVerifySelectionError,

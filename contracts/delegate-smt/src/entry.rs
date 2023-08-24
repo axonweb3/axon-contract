@@ -341,7 +341,7 @@ fn update_delegate_smt(
         {
             let inauguration_epoch = delegate_info_delta.inauguration_epoch();
             if inauguration_epoch < epoch + 2 {
-                return Err(Error::StaleDelegateInfo);
+                return Err(Error::DelegateStaleInfo);
             }
 
             // get the delegator's new delegate info for this staker

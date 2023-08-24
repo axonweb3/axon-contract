@@ -215,13 +215,17 @@ pub fn update_stake_at_cell(
                 output_stake_at_amount,
             )?;
         } else {
-            if input_stake_delta != input_stake_at_amount - output_stake_at_amount {
-                return Err(Error::BadStakeRedeemChange);
+            if input_stake_at_amount < output_stake_at_amount
+                || input_stake_delta != input_stake_at_amount - output_stake_at_amount
+            {
+                return Err(Error::BadStakeUnstakeChange);
             }
         }
     } else {
         if output_increase {
-            if output_stake_delta != output_stake_at_amount - input_stake_at_amount {
+            if output_stake_at_amount < input_stake_at_amount
+                || output_stake_delta != output_stake_at_amount - input_stake_at_amount
+            {
                 return Err(Error::BadStakeChange);
             }
         }
