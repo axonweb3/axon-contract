@@ -196,6 +196,7 @@ fn construct_reward_tx_with_reward_amount(
             context,
             &staker_keypair,
             &staker_addr,
+            3,
         );
 
     // prepare tx inputs and outputs

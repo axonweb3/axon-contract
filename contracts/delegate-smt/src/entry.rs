@@ -168,6 +168,10 @@ fn update_delegate_info(
     debug!("delegate_info_obj: {:?}", delegate_info_obj);
 
     if redeem_amount > 0 {
+        debug!(
+            "delegate_withdraw_infos insert: {:?}, amount: {}",
+            delegator, redeem_amount
+        );
         delegate_withdraw_infos.insert(*delegator, redeem_amount);
     }
 
@@ -249,7 +253,7 @@ fn verify_delegator_selection(
             .find(|info| info.addr == deleted_delegator.addr)
         {
             debug!("deleted delegator withdraw info: {:?}", entry);
-            delegate_withdraw_infos.insert(deleted_delegator.addr, entry.amount);
+            delegate_withdraw_infos.reset_insert(deleted_delegator.addr, entry.amount);
         }
     }
 
