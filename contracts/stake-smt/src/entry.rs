@@ -413,7 +413,7 @@ fn update_stake_smt(
     }
 
     for delete_stake_info in delete_stake_info_set {
-        debug!("delete staker {:?} no change this time", delete_stake_info);
+        debug!("delete staker {:?}", delete_stake_info);
         let mut withdraw_amount = delete_stake_info.amount;
         if let Some(delta) = stake_deltas
             .iter()
@@ -422,6 +422,8 @@ fn update_stake_smt(
             let delta = &delta.2;
             if delta.is_increase() == 1 {
                 withdraw_amount -= bytes_to_u128(&delta.amount());
+            } else {
+                withdraw_amount += bytes_to_u128(&delta.amount());
             }
         }
         // withdraw all smt amount of delete staker
