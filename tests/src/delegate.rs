@@ -2095,6 +2095,98 @@ fn test_delegate_smt_success_2delegate_2staker() {
 }
 
 #[test]
+fn test_delegate_smt_success_1_delete_delegator_1_select_delegator_2staker() {
+    // init context
+    let mut context = Context::default();
+    let stake_keypair1 = Generator::random_keypair();
+    let stake_keypair2 = Generator::random_keypair();
+    let delegator_keypair1 = Generator::random_keypair();
+    let delegator_keypair2 = Generator::random_keypair();
+    let input_delegate_amount2 = 20 as u128;
+
+    let stake1 = TestDelegateInfo {
+        staker: pubkey_to_addr(&stake_keypair1.1.serialize()),
+        staker_keypair: stake_keypair1.clone(),
+        delegates: BTreeSet::from_iter(vec![LockInfo {
+            addr: pubkey_to_addr(&delegator_keypair2.1.serialize()),
+            amount: input_delegate_amount2,
+        }]),
+    };
+
+    let stake2 = TestDelegateInfo {
+        staker: pubkey_to_addr(&stake_keypair2.1.serialize()),
+        staker_keypair: stake_keypair2.clone(),
+        delegates: BTreeSet::from_iter(vec![LockInfo {
+            addr: pubkey_to_addr(&delegator_keypair2.1.serialize()),
+            amount: input_delegate_amount2,
+        }]),
+    };
+
+    let in_smt_stakes = vec![stake1, stake2];
+
+    let delegate1_update = TestDelegateUpdateInfos {
+        delegator: delegator_keypair1.clone(),
+        input_delegate_info_deltas: vec![
+            DelegateInfoDelta::new_builder()
+                .staker(axon_identity(&stake_keypair1.1.serialize()))
+                .is_increase(1.into())
+                .amount(axon_u128(30))
+                .inauguration_epoch(axon_u64(2))
+                .build(),
+            DelegateInfoDelta::new_builder()
+                .staker(axon_identity(&stake_keypair2.1.serialize()))
+                .is_increase(1.into())
+                .amount(axon_u128(30))
+                .inauguration_epoch(axon_u64(2))
+                .build(),
+        ],
+        input_delegate_at_amount: 60,
+        output_delegate_info_deltas: vec![DelegateInfoDelta::new_builder().build()],
+        output_delegate_at_amount: 60,
+    };
+
+    let delegate_updates = vec![delegate1_update];
+
+    let stake1 = TestDelegateInfo {
+        staker: pubkey_to_addr(&stake_keypair1.1.serialize()),
+        staker_keypair: stake_keypair1.clone(),
+        delegates: BTreeSet::from_iter(vec![LockInfo {
+            addr: pubkey_to_addr(&delegator_keypair1.1.serialize()),
+            amount: 30,
+        }]),
+    };
+
+    let stake2 = TestDelegateInfo {
+        staker: pubkey_to_addr(&stake_keypair2.1.serialize()),
+        staker_keypair: stake_keypair2.clone(),
+        delegates: BTreeSet::from_iter(vec![LockInfo {
+            addr: pubkey_to_addr(&delegator_keypair1.1.serialize()),
+            amount: 30,
+        }]),
+    };
+    let out_smt_stakes = vec![stake1, stake2];
+
+    let delete_delegates = vec![TestDelegateDelete {
+        delegator: pubkey_to_addr(&delegator_keypair2.1.serialize()),
+        amount: 40,
+    }];
+
+    let tx = construct_delegate_smt_delegate_tx_2staker_2delegator(
+        &mut context,
+        in_smt_stakes,
+        delegate_updates,
+        out_smt_stakes,
+        delete_delegates,
+    );
+
+    // run
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
 fn test_delegate_smt_increase_success_toomany_delegator_withdraw() {
     // we need to delete 1 delegator out of 4, because only 3 delegator is allowed for every staker
     // init context

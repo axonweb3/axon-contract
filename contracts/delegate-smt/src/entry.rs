@@ -290,7 +290,7 @@ fn update_delegate_smt(
     let epoch = get_current_epoch(&checkpoint_type_id)?;
     debug!("get_current_epoch: {}", epoch);
     let stake_group_infos = delegate_smt_update_infos.all_stake_group_infos();
-    let mut delegate_withdraw_infos = WithdrawAmountMap::new();
+    let mut all_stakers_delegate_withdraw_infos = WithdrawAmountMap::new();
     for i in 0..stake_group_infos.len() {
         // verify old delegate info
         let stake_group_info = stake_group_infos.get(i);
@@ -341,6 +341,7 @@ fn update_delegate_smt(
             Source::Input,
         )?;
         // update old delegate infos to new delegate infos
+        let mut delegate_withdraw_infos = WithdrawAmountMap::new(); // only for only staker's delegators
         for (delegator_addr, _delegate_at_lock_hash, delegate_info_delta) in &delegator_update_infos
         {
             let inauguration_epoch = delegate_info_delta.inauguration_epoch();
@@ -382,11 +383,20 @@ fn update_delegate_smt(
             &staker,
             &mut delegate_withdraw_infos,
         )?;
+        for addr in delegate_withdraw_infos.map.keys() {
+            debug!(
+                "withdraw addr: {:?}, amount: {}",
+                addr,
+                delegate_withdraw_infos.map.get(addr).unwrap()
+            );
+            all_stakers_delegate_withdraw_infos
+                .insert(*addr, *delegate_withdraw_infos.map.get(addr).unwrap());
+        }
     }
 
     // get input & output withdraw AT cell, we need to update this after withdraw script's finish
     verify_withdraw_amount(
-        delegate_withdraw_infos,
+        all_stakers_delegate_withdraw_infos,
         metadata_type_id,
         withdraw_code_hash,
     )?;

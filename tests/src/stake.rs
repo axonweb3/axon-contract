@@ -1825,7 +1825,7 @@ fn test_stake_smt_success_3old_4new() {
             .build(),
         input_stake_at_amount: 20,
         output_stake_info_delta: stake::StakeInfoDelta::new_builder().build(),
-        output_stake_at_amount: 10,
+        output_stake_at_amount: 0,
     };
     update_stakers.push(staker2);
 
