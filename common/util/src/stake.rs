@@ -18,4 +18,10 @@ impl WithdrawAmountMap {
         let entry = self.map.entry(addr).or_insert(0);
         *entry += amount;
     }
+
+    // if exist, it will clear then set
+    pub fn reset_insert(&mut self, addr: [u8; 20], amount: u128) {
+        let entry = self.map.entry(addr).or_insert(0);
+        *entry = amount;
+    }
 }

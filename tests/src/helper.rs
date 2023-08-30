@@ -31,9 +31,12 @@ use util::{
     smt::{u64_to_h256, LockInfo, TOP_SMT},
 };
 
-use crate::smt::{
-    construct_epoch_smt, construct_epoch_smt_for_metadata_update, construct_lock_info_smt,
-    TopSmtInfo,
+use crate::{
+    delegate::TestDelegateInfo,
+    smt::{
+        construct_epoch_smt, construct_epoch_smt_for_metadata_update, construct_lock_info_smt,
+        TopSmtInfo,
+    },
 };
 
 pub const MAX_CYCLES: u64 = 200_000_000;
@@ -261,6 +264,7 @@ pub fn axon_delegate_requirement_and_stake_at_cell(
     context: &mut Context,
     keypair: &(Privkey, Pubkey),
     staker_addr: &[u8; 20],
+    max_delegator_size: u32,
 ) -> (CellDep, CellDep, Script) {
     let requirement_type_id = [1u8; 32];
     let delegate_requirement_args = DelegateRequirementArgs::new_builder()
@@ -274,7 +278,8 @@ pub fn axon_delegate_requirement_and_stake_at_cell(
             delegate_requirement_args.as_bytes(),
         )
         .expect("delegate requirement type script");
-    let delegate_requirement_cell_data = axon_delegate_requirement_cell_data(10, 3);
+    let delegate_requirement_cell_data =
+        axon_delegate_requirement_cell_data(10, max_delegator_size);
     let delegate_requirement_script_dep = CellDep::new_builder()
         .out_point(
             context.create_cell(
@@ -509,6 +514,38 @@ pub fn axon_delegate_smt_cell_data(
     )
 }
 
+pub fn axon_delegate_smt_cell_data_multiple(
+    delegate_infos: &Vec<TestDelegateInfo>,
+    metadata_type_id: &packed::Byte32,
+    epoch: u64,
+) -> axon_types::delegate::DelegateSmtCellData {
+    let mut stake_smt_roots = Vec::new();
+    for delegate in delegate_infos {
+        // let mut delegate_set = BTreeSet::new();
+        // for i in delegate.delegates {
+        //     delegate_set.insert(i);
+        // }
+        let (delegate_epoch_root, _delegate_epoch_proof) =
+            delegate_2layer_smt_root_proof(epoch, &delegate.delegates);
+
+        let stake_smt_root = StakerSmtRoot::new_builder()
+            .staker(axon_byte20_identity(&delegate.staker))
+            .root(axon_array32_byte32(
+                delegate_epoch_root.as_slice().try_into().unwrap(),
+            ))
+            .build();
+        stake_smt_roots.push(stake_smt_root);
+    }
+
+    let stake_smt_roots = StakerSmtRoots::new_builder().set(stake_smt_roots).build();
+
+    axon_types::delegate::DelegateSmtCellData::new_builder()
+        .version(0.into())
+        .smt_roots(stake_smt_roots)
+        .metadata_type_id(axon_byte32(metadata_type_id))
+        .build()
+}
+
 pub fn delegate_2layer_smt_root_proof_for_metadata_update(
     epoch: u64,
     delegate_infos: &BTreeSet<LockInfo>,
@@ -531,6 +568,33 @@ pub fn delegate_2layer_smt_root_proof_for_metadata_update(
         delegate_epoch_root, delegate_epoch_proof.0, delegate_root
     );
     (delegate_epoch_root, delegate_epoch_proof)
+}
+
+pub fn axon_delegate_smt_cell_data_multiple_for_metadata_update(
+    delegate_infos: &Vec<TestDelegateInfo>,
+    metadata_type_id: &packed::Byte32,
+    epoch: u64,
+) -> axon_types::delegate::DelegateSmtCellData {
+    let mut stake_smt_roots = Vec::new();
+    for delegate in delegate_infos {
+        let (delegate_epoch_root, _delegate_epoch_proof) =
+            delegate_2layer_smt_root_proof_for_metadata_update(epoch, &delegate.delegates);
+
+        let stake_smt_root = StakerSmtRoot::new_builder()
+            .staker(axon_byte20_identity(&delegate.staker))
+            .root(axon_array32_byte32(
+                delegate_epoch_root.as_slice().try_into().unwrap(),
+            ))
+            .build();
+        stake_smt_roots.push(stake_smt_root);
+    }
+    let stake_smt_roots = StakerSmtRoots::new_builder().set(stake_smt_roots).build();
+
+    axon_types::delegate::DelegateSmtCellData::new_builder()
+        .version(0.into())
+        .smt_roots(stake_smt_roots)
+        .metadata_type_id(axon_byte32(metadata_type_id))
+        .build()
 }
 
 pub fn axon_delegate_smt_cell_data_for_metadata_update(
