@@ -97,7 +97,10 @@ pub enum Error {
     MetadataEpochWrong,
     MetadataSizeWrong,
     MetadataInputOutputMismatch,
-    MetadataSmtVerifyError,
+    MetadataSmtOldStakeVerifyError,
+    MetadataSmtOldDelegateVerifyError,
+    MetadataSmtNewStakeVerifyError,
+    MetadataSmtNewDelegateVerifyError,
     MetadataNotLastCheckpoint,
     StakerNonExist,
     StakerNotFound,
@@ -105,7 +108,7 @@ pub enum Error {
     MetadataProposeCountVerifyFail,
 
     // withdraw
-    WithdrawWrongRecordSize = 110,
+    WithdrawWrongRecordSize = 115,
     WithdrawTotalAmount,
     WithdrawUpdateDataError,
     WithdrawDataEmpty,

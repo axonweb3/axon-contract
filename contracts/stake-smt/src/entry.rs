@@ -166,7 +166,10 @@ fn verify_old_stake_infos(
     let epoch_root: [u8; 32] = old_stake_smt_data.smt_root().as_slice().try_into().unwrap(); // get from input smt cell
     let epoch_root: H256 = epoch_root.into();
     let epoch_proof = CompiledMerkleProof(stake_smt_update_infos.old_epoch_proof());
-    debug!("epoch_proof:{:?}", epoch_proof);
+    debug!(
+        "epoch_root: {:?}, epoch_proof: {:?}",
+        epoch_root, epoch_proof
+    );
     let result = verify_2layer_smt(
         &stake_infos_set,
         u64_to_h256(epoch),
@@ -185,12 +188,16 @@ fn get_selected_unselected_staker(
     metadata_type_id: &[u8; 32],
 ) -> Result<(BTreeSet<LockInfo>, BTreeSet<LockInfo>), Error> {
     // sort stakes by amount
-    let quorum_size = get_quorum_size(metadata_type_id, Source::CellDep)?;
+    let quorum_size = get_quorum_size(
+        metadata_type_id,
+        util::stake::EpochClass::CURRENT,
+        Source::CellDep,
+    )?;
     let mut top_3quorum = new_stake_info_set.iter().take(3 * quorum_size as usize);
     let mut select_stake_info_set = BTreeSet::new();
     while let Some(elem) = top_3quorum.next() {
         select_stake_info_set.insert((*elem).clone());
-        debug!("select_stake_infos_set : {:?}", *elem);
+        debug!("select_stake_infos_set : {:x?}", *elem);
     }
 
     let mut delete_stake_info_set = BTreeSet::<LockInfo>::new();
@@ -200,7 +207,7 @@ fn get_selected_unselected_staker(
         for _ in 0..deleted_size {
             if let Some(elem) = iter.next_back() {
                 delete_stake_info_set.insert(elem.clone());
-                debug!("deleted_stake_infos : {:?}", *elem);
+                debug!("deleted_stake_infos : {:x?}", *elem);
             }
         }
     }

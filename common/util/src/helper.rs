@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use crate::{error::Error, smt::LockInfo};
+use crate::{error::Error, smt::LockInfo, stake::EpochClass};
 use alloc::vec::Vec;
 use axon_types::{
     basic::{self},
@@ -620,10 +620,14 @@ pub fn get_epoch_len(metadata_type_id: &[u8; 32], source: Source) -> Result<u32,
     Ok(metadata0.epoch_len())
 }
 
-pub fn get_quorum_size(metadata_type_id: &[u8; 32], source: Source) -> Result<u16, Error> {
+pub fn get_quorum_size(
+    metadata_type_id: &[u8; 32],
+    index: EpochClass,
+    source: Source,
+) -> Result<u16, Error> {
     let metadata = get_metada_data_by_type_id(metadata_type_id, source)?;
     let metadata_list = metadata.metadata();
-    let metadata = metadata_list.get(0); // index 0 is metadata of current epoch
+    let metadata = metadata_list.get(index.into()); // index 0 is metadata of current epoch
     let quorum_size = metadata.quorum();
     Ok(quorum_size)
 }

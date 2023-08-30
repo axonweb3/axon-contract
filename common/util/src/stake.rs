@@ -25,3 +25,14 @@ impl WithdrawAmountMap {
         *entry = amount;
     }
 }
+
+pub enum EpochClass {
+    CURRENT = 0,
+    NEXT = 1,
+}
+
+impl Into<usize> for EpochClass {
+    fn into(self) -> usize {
+        self as usize
+    }
+}
