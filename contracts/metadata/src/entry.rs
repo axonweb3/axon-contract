@@ -265,7 +265,11 @@ fn verify_election(type_ids: &TypeIds, election_infos: &StakeSmtElectionInfo) ->
     */
     let metadata_type_id =
         get_script_hash(&type_ids.metadata_code_hash(), &type_ids.metadata_type_id());
-    let quorum = get_quorum_size(&metadata_type_id, Source::Input)?;
+    let quorum = get_quorum_size(
+        &metadata_type_id,
+        util::stake::EpochClass::NEXT,
+        Source::Input,
+    )?;
     debug!("quorum: {:?}", quorum);
     let delete_miners = verify_election_metadata(&type_ids, quorum, election_infos)?;
 
@@ -526,7 +530,7 @@ pub fn verify_stake_delegate(
         util::smt::verify_2layer_smt(&stake_infos, u64_to_h256(epoch), epoch_root, epoch_proof)?;
     debug!("staker verify_2layer_smt result: {:?}", result);
     if !result {
-        return Err(Error::MetadataSmtVerifyError);
+        return Err(Error::MetadataSmtOldStakeVerifyError);
     }
 
     let new_miners = miners.clone();
@@ -558,7 +562,7 @@ pub fn verify_stake_delegate(
             miner.staker, result
         );
         if !result {
-            return Err(Error::MetadataSmtVerifyError);
+            return Err(Error::MetadataSmtOldDelegateVerifyError);
         }
     }
 
@@ -598,11 +602,11 @@ fn verify_new_validators(
         epoch_proof,
     )?;
     debug!(
-        "verify_new_validators stake verify_2layer_smt result: {:?}",
-        result
+        "verify_new_validators stake verify_2layer_smt result: {:?}, epoch: {}",
+        result, epoch
     );
     if !result {
-        return Err(Error::MetadataSmtVerifyError);
+        return Err(Error::MetadataSmtNewStakeVerifyError);
     }
 
     let new_miners = validators.clone();
@@ -641,7 +645,7 @@ fn verify_new_validators(
             result
         );
         if !result {
-            return Err(Error::MetadataSmtVerifyError);
+            return Err(Error::MetadataSmtNewDelegateVerifyError);
         }
     }
 

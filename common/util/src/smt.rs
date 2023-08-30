@@ -135,6 +135,7 @@ pub fn get_bottom_smt_root(lock_infos: &BTreeSet<LockInfo>) -> H256 {
     let mut tree = BOTTOM_SMT::default();
     // travese lock_infos and insert into smt
     for lock_info in lock_infos.iter() {
+        debug!("get_bottom_smt_root: {:x?}", lock_info);
         let key: H256 = addr_to_h256(&lock_info.addr);
         let value = BottomValue(lock_info.amount);
         tree.update(key, value).expect("update");
@@ -215,8 +216,8 @@ pub fn verify_2layer_smt(
     // construct old stake smt root & verify
     let bottom_root = get_bottom_smt_root(lock_infos);
     debug!(
-        "verify_2layer_smt calculated bottom_root: {:?}, top_root: {:?}, top_proof: {:?}",
-        bottom_root, top_root, top_proof
+        "verify_2layer_smt calculated epoch: {:?}, bottom_root: {:?}, top_root: {:?}, top_proof: {:?}",
+        epoch, bottom_root, top_root, top_proof
     );
     verify_top_smt(epoch, bottom_root, top_root, top_proof)
 }
