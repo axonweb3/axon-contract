@@ -544,7 +544,7 @@ pub fn verify_stake_delegate(
         }
         debug!("delegator_epoch_proof");
         let epoch_proof = CompiledMerkleProof(miner.delegator_epoch_proof);
-        debug!("delegate_smt_type_hash");
+        // debug!("delegate_smt_type_hash");
         let delegate_smt_type_hash = get_script_hash(
             &type_ids.delegate_smt_code_hash(),
             &type_ids.delegate_smt_type_id(),
