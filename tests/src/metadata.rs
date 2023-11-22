@@ -96,11 +96,9 @@ fn test_metadata_creation_success() {
         .quorum(axon_u16(2))
         .build();
     let metadata1 = metadata0.clone();
-    let metadata2 = metadata0.clone();
     let metadata_list = MetadataList::new_builder()
         .push(metadata0)
         .push(metadata1)
-        .push(metadata2)
         .build();
     println!(
         "checkpoint script: {:?}",

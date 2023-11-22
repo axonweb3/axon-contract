@@ -23,7 +23,7 @@ table DelegateRequirementInfo {
 
 table StakeAtCellLockData {
     version:             byte,
-    l1_pub_key:          Byte65,
+    l1_pub_key:          Byte33,
     bls_pub_key:         Byte48,
     l1_address:          Identity,
     l2_address:          Identity,

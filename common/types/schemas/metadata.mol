@@ -2,7 +2,7 @@ import basic;
 
 table Validator {
     bls_pub_key:    Byte48,
-    pub_key:        Byte65,
+    pub_key:        Byte33,
     address:        Identity,
     propose_weight: Uint32,
     vote_weight:    Uint32,

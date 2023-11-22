@@ -78,6 +78,10 @@ pub fn axon_array32_byte32(bytes: [u8; 32]) -> basic::Byte32 {
     basic::Byte32::new_unchecked(bytes.to_vec().into())
 }
 
+pub fn axon_byte33(bytes: Vec<u8>) -> basic::Byte33 {
+    basic::Byte33::new_unchecked(bytes.into())
+}
+
 pub fn axon_byte65(bytes: Vec<u8>) -> basic::Byte65 {
     basic::Byte65::new_unchecked(bytes.into())
 }

@@ -67,6 +67,13 @@
     },
     {
       "type": "array",
+      "name": "Byte33",
+      "item": "byte",
+      "item_count": 33,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
       "name": "Byte48",
       "item": "byte",
       "item_count": 48,
