@@ -949,20 +949,18 @@ impl ::core::fmt::Display for StakeAtCellLockData {
 impl ::core::default::Default for StakeAtCellLockData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            115, 1, 0, 0, 36, 0, 0, 0, 37, 0, 0, 0, 102, 0, 0, 0, 150, 0, 0, 0, 170, 0, 0, 0, 190,
-            0, 0, 0, 222, 0, 0, 0, 74, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            83, 1, 0, 0, 36, 0, 0, 0, 37, 0, 0, 0, 70, 0, 0, 0, 118, 0, 0, 0, 138, 0, 0, 0, 158, 0,
+            0, 0, 190, 0, 0, 0, 42, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 108, 0, 0, 0, 12, 0, 0, 0,
+            44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 108, 0, 0, 0,
-            12, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0,
-            0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         StakeAtCellLockData::new_unchecked(v.into())
     }
@@ -991,11 +989,11 @@ impl StakeAtCellLockData {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         Byte::new_unchecked(self.0.slice(start..end))
     }
-    pub fn l1_pub_key(&self) -> Byte65 {
+    pub fn l1_pub_key(&self) -> Byte33 {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        Byte65::new_unchecked(self.0.slice(start..end))
+        Byte33::new_unchecked(self.0.slice(start..end))
     }
     pub fn bls_pub_key(&self) -> Byte48 {
         let slice = self.as_slice();
@@ -1132,11 +1130,11 @@ impl<'r> StakeAtCellLockDataReader<'r> {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         ByteReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn l1_pub_key(&self) -> Byte65Reader<'r> {
+    pub fn l1_pub_key(&self) -> Byte33Reader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        Byte65Reader::new_unchecked(&self.as_slice()[start..end])
+        Byte33Reader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn bls_pub_key(&self) -> Byte48Reader<'r> {
         let slice = self.as_slice();
@@ -1229,7 +1227,7 @@ impl<'r> molecule::prelude::Reader<'r> for StakeAtCellLockDataReader<'r> {
             return ve!(Self, OffsetsNotMatch);
         }
         ByteReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        Byte65Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        Byte33Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         Byte48Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         IdentityReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
         IdentityReader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
@@ -1242,7 +1240,7 @@ impl<'r> molecule::prelude::Reader<'r> for StakeAtCellLockDataReader<'r> {
 #[derive(Debug, Default)]
 pub struct StakeAtCellLockDataBuilder {
     pub(crate) version: Byte,
-    pub(crate) l1_pub_key: Byte65,
+    pub(crate) l1_pub_key: Byte33,
     pub(crate) bls_pub_key: Byte48,
     pub(crate) l1_address: Identity,
     pub(crate) l2_address: Identity,
@@ -1256,7 +1254,7 @@ impl StakeAtCellLockDataBuilder {
         self.version = v;
         self
     }
-    pub fn l1_pub_key(mut self, v: Byte65) -> Self {
+    pub fn l1_pub_key(mut self, v: Byte33) -> Self {
         self.l1_pub_key = v;
         self
     }
@@ -1709,20 +1707,19 @@ impl ::core::fmt::Display for StakeAtCellData {
 impl ::core::default::Default for StakeAtCellData {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            131, 1, 0, 0, 12, 0, 0, 0, 127, 1, 0, 0, 115, 1, 0, 0, 36, 0, 0, 0, 37, 0, 0, 0, 102,
-            0, 0, 0, 150, 0, 0, 0, 170, 0, 0, 0, 190, 0, 0, 0, 222, 0, 0, 0, 74, 1, 0, 0, 0, 0, 0,
+            99, 1, 0, 0, 12, 0, 0, 0, 95, 1, 0, 0, 83, 1, 0, 0, 36, 0, 0, 0, 37, 0, 0, 0, 70, 0, 0,
+            0, 118, 0, 0, 0, 138, 0, 0, 0, 158, 0, 0, 0, 190, 0, 0, 0, 42, 1, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 108, 0, 0, 0, 12, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 108, 0, 0, 0, 12, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 41, 0, 0, 0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0,
+            0, 16, 0, 0, 0, 17, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
         ];
         StakeAtCellData::new_unchecked(v.into())
     }

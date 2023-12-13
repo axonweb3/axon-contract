@@ -78,7 +78,7 @@
         },
         {
           "name": "l1_pub_key",
-          "type": "Byte65"
+          "type": "Byte33"
         },
         {
           "name": "bls_pub_key",
@@ -241,6 +241,13 @@
       "name": "Byte32",
       "item": "byte",
       "item_count": 32,
+      "imported_depth": 1
+    },
+    {
+      "type": "array",
+      "name": "Byte33",
+      "item": "byte",
+      "item_count": 33,
       "imported_depth": 1
     },
     {
